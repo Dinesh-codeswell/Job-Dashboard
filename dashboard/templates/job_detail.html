@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Details - Consulting Jobs Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="back-link">
+                    <span class="icon">←</span>
+                    <span>Back to Dashboard</span>
+                </a>
+                <div class="header-actions">
+                    <button id="shareBtn" class="btn btn-outline" title="Share job">
+                        <span class="icon">↗</span>
+                        <span>Share</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Job Detail Loading -->
+            <div id="jobDetailContainer">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading job details...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>Consulting Jobs Dashboard - India | Data sourced from LinkedIn</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script>
+        // Load job details
+        const jobId = decodeURIComponent('{{ job_id }}');
+        console.log('Loading job with ID:', jobId);
+        
+        async function loadJobDetail() {
+            try {
+                console.log('Fetching job from API:', `/api/jobs/${jobId}`);
+                const response = await API.getJob(jobId);
+                console.log('API Response:', response);
+                
+                if (response.success) {
+                    renderJobDetail(response.job);
+                    document.title = `${response.job['Job Title']} - Consulting Jobs Dashboard`;
+                } else {
+                    console.error('Job not found:', response.error);
+                    showError('Job not found. The job may have been removed or the URL is incorrect.');
+                }
+            } catch (error) {
+                console.error('Error loading job:', error);
+                showError('Failed to load job details. Please check your connection and try again.');
+            }
+        }
+        
+        function renderJobDetail(job) {
+            const container = document.getElementById('jobDetailContainer');
+
+            const applyUrl = job['Job URL'] || '#';
+            const postedDate = job['Posted'] || 'Not specified';
+            const employmentType = job['Employment Type'] || 'Not specified';
+            const location = job['Location'] || 'Not specified';
+            const company = job['Company'] || 'Company';
+            const title = job['Job Title'] || 'Job Position';
+            const description = job['Job Description'] || 'No description available';
+            const searchCity = job['Search City'] || '';
+
+            container.innerHTML = `
+                <div class="job-detail-card">
+                    <!-- Header -->
+                    <div class="job-detail-header">
+                        <div class="job-detail-title">
+                            <h1>${Utils.escapeHtml(title)}</h1>
+                            <h2>${Utils.escapeHtml(company)}</h2>
+                        </div>
+                        <div class="job-detail-badges">
+                            <span class="badge badge-type">${Utils.escapeHtml(employmentType)}</span>
+                            <span class="badge badge-location">${Utils.escapeHtml(location)}</span>
+                        </div>
+                    </div>
+
+                    <!-- Meta Info -->
+                    <div class="job-detail-meta">
+                        <div class="meta-item">
+                            <span class="meta-icon">📍</span>
+                            <span>${Utils.escapeHtml(searchCity || location)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">⏰</span>
+                            <span>Posted ${Utils.escapeHtml(postedDate)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">🔗</span>
+                            <span>LinkedIn Job</span>
+                        </div>
+                    </div>
+
+                    <!-- Apply Button -->
+                    <div class="job-detail-actions">
+                        <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-large">
+                            <span class="icon">🚀</span>
+                            <span>Apply Now</span>
+                        </a>
+                        <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-large">
+                            <span class="icon">🔗</span>
+                            <span>View on LinkedIn</span>
+                        </a>
+                    </div>
+
+                    <!-- Job Description -->
+                    <div class="job-detail-section">
+                        <h3>Job Description</h3>
+                        <div class="job-description">
+                            ${formatDescription(description)}
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="job-detail-section job-detail-info">
+                        <h4>Job Information</h4>
+                        <table class="info-table">
+                            <tr>
+                                <td><strong>Job Title:</strong></td>
+                                <td>${Utils.escapeHtml(title)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Company:</strong></td>
+                                <td>${Utils.escapeHtml(company)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Employment Type:</strong></td>
+                                <td>${Utils.escapeHtml(employmentType)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Location:</strong></td>
+                                <td>${Utils.escapeHtml(location)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Posted:</strong></td>
+                                <td>${Utils.escapeHtml(postedDate)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>City:</strong></td>
+                                <td>${Utils.escapeHtml(searchCity)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDescription(description) {
+            if (!description) return '<p>No description available</p>';
+            
+            // Convert line breaks to paragraphs
+            const paragraphs = description.split('\n\n').filter(p => p.trim());
+
+            if (paragraphs.length === 0) {
+                // If no double line breaks, try single line breaks
+                const lines = description.split('\n').filter(l => l.trim());
+                return lines.map(line => `<p>${Utils.escapeHtml(line)}</p>`).join('');
+            }
+
+            return paragraphs.map(p => `<p>${Utils.escapeHtml(p)}</p>`).join('');
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('jobDetailContainer');
+            container.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">❌</div>
+                    <h2>Job Not Found</h2>
+                    <p>${message}</p>
+                    <a href="/" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            `;
+        }
+        
+        // Share functionality
+        document.getElementById('shareBtn').addEventListener('click', async () => {
+            const shareData = {
+                title: document.title,
+                text: 'Check out this consulting job opportunity!',
+                url: window.location.href
+            };
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    showToast('Shared successfully!');
+                } catch (err) {
+                    copyToClipboard(window.location.href);
+                }
+            } else {
+                copyToClipboard(window.location.href);
+            }
+        });
+        
+        // Load job on page load
+        loadJobDetail();
+    </script>
+</body>
+</html>

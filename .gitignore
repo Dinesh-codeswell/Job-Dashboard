@@ -34,6 +34,7 @@ debug_*.py
 
 # Session files (sensitive cookies)
 linkedin_session.json
+credentials.json
 
 # Build artifacts
 MANIFEST

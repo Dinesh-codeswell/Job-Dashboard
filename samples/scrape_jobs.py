@@ -10,11 +10,11 @@ from linkedin_scraper.core.browser import BrowserManager
 
 async def main():
     """Search for jobs and scrape details"""
-    
+
     async with BrowserManager(headless=False) as browser:
         await browser.load_session("linkedin_session.json")
         print("✓ Session loaded")
-        
+
         # Search for jobs
         search_scraper = JobSearchScraper(browser.page)
         print("🔍 Searching for jobs...")
@@ -23,27 +23,28 @@ async def main():
             location="Toronto",
             limit=5
         )
-        
+
         print(f"\n✓ Found {len(job_urls)} jobs")
         for url in job_urls:
             print(f"  - {url}")
-        
+
         # Scrape first job details if any found
         if job_urls:
-            print(f"\n📄 Scraping first job details...")
+            print(f"\n📄 Scraping job details...")
             job_scraper = JobScraper(browser.page)
             for job_url in job_urls:
                 job = await job_scraper.scrape(job_url)
-                
+
                 print("\n" + "="*60)
                 print(f"Title: {job.job_title}")
                 print(f"Company: {job.company}")
+                print(f"Type: {job.employment_type}")
                 print(f"Location: {job.location}")
                 print(f"Posted: {job.posted_date}")
-                print(f"Applicants: {job.applicant_count}")
                 print(f"Description: {job.job_description[:200]}..." if job.job_description else "Description: N/A")
+                print(f"URL: {job.linkedin_url}")
                 print("="*60)
-    
+
     print("\n✓ Done!")
 
 

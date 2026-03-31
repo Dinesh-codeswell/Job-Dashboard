@@ -1,0 +1,321 @@
+================================================================================
+                    LINKEDIN JOB SCRAPER - COMMAND REFERENCE
+                         Daily Use & Quick Reference
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. BASIC JOB SCRAPING COMMANDS
+2. JOB TYPE SPECIFIC COMMANDS
+3. LOCATION SPECIFIC COMMANDS
+4. KEYWORD & ROLE SPECIFIC COMMANDS
+5. GOOGLE SHEETS OPERATIONS
+6. ADVANCED OPTIONS
+7. TROUBLESHOOTING COMMANDS
+8. SESSION MANAGEMENT
+9. QUICK TEMPLATES FOR DAILY USE
+10. BEST PRACTICES
+
+================================================================================
+1. BASIC JOB SCRAPING COMMANDS
+================================================================================
+
+# Scrape jobs with default settings (10 jobs, headless mode)
+python jobs_to_sheets.py -k "KEYWORD" -l "LOCATION"
+
+# Scrape specific number of jobs
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 20
+
+# Show browser window (see scraping in action)
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --headless False
+
+# Scrape without duplicate checking (upload all jobs)
+python jobs_to_sheets.py -k "Data Analyst" --no-dedup
+
+# Use custom worksheet name
+python jobs_to_sheets.py -k "Data Analyst" --worksheet "March Jobs"
+
+================================================================================
+2. JOB TYPE SPECIFIC COMMANDS
+================================================================================
+
+# Full-time jobs only
+python jobs_to_sheets.py -k "Data Analyst full-time" -l "United States" --limit 15
+
+# Part-time jobs
+python jobs_to_sheets.py -k "Data Analyst part-time" -l "Remote" --limit 10
+
+# Internship positions
+python jobs_to_sheets.py -k "Data Analyst internship" -l "Remote" --limit 15
+
+# Contract positions
+python jobs_to_sheets.py -k "Data Analyst contract" -l "Remote" --limit 10
+
+# Entry level jobs
+python jobs_to_sheets.py -k "Entry level Data Analyst" -l "Remote" --limit 15
+
+# Senior level jobs
+python jobs_to_sheets.py -k "Senior Data Analyst" -l "Remote" --limit 15
+
+================================================================================
+3. LOCATION SPECIFIC COMMANDS
+================================================================================
+
+# Remote jobs (Worldwide)
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 20
+
+# United States
+python jobs_to_sheets.py -k "Data Analyst" -l "United States" --limit 20
+python jobs_to_sheets.py -k "Data Analyst" -l "US" --limit 20
+
+# India
+python jobs_to_sheets.py -k "Data Analyst" -l "India" --limit 20
+python jobs_to_sheets.py -k "Data Analyst" -l "Bangalore" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Mumbai" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Delhi" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Hyderabad" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Pune" --limit 15
+
+# Major US Cities
+python jobs_to_sheets.py -k "Data Analyst" -l "New York" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "San Francisco" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Seattle" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Austin" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Chicago" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Boston" --limit 15
+
+# Europe
+python jobs_to_sheets.py -k "Data Analyst" -l "London" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Berlin" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Paris" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Amsterdam" --limit 15
+
+# Canada
+python jobs_to_sheets.py -k "Data Analyst" -l "Toronto" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Vancouver" --limit 15
+python jobs_to_sheets.py -k "Data Analyst" -l "Montreal" --limit 15
+
+================================================================================
+4. KEYWORD & ROLE SPECIFIC COMMANDS
+================================================================================
+
+# Data & Analytics Roles
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Data Scientist" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Data Engineer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Business Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Business Intelligence Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Machine Learning Engineer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "AI Engineer" -l "Remote" --limit 15
+
+# Software Engineering Roles
+python jobs_to_sheets.py -k "Software Engineer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Frontend Developer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Backend Developer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Full Stack Developer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "DevOps Engineer" -l "Remote" --limit 15
+
+# Specialized Data Roles
+python jobs_to_sheets.py -k "Financial Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Marketing Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Product Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Operations Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "HR Data Analyst" -l "Remote" --limit 15
+
+# Tools-Specific Roles
+python jobs_to_sheets.py -k "Python Developer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "SQL Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Tableau Developer" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Power BI Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Excel Analyst" -l "Remote" --limit 15
+
+================================================================================
+5. GOOGLE SHEETS OPERATIONS
+================================================================================
+
+# View jobs in Google Sheets (Python script)
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{i+1}. {j.get(\"Job Title\", \"N/A\")} at {j.get(\"Company\", \"N/A\")}') for i, j in enumerate(jobs)]"
+
+# Count total jobs in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); print(f'Total jobs: {len(gs.get_all_jobs())}')"
+
+# Check for specific company in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(j.get('Job Title')) for j in jobs if 'Microsoft' in j.get('Company', '')]"
+
+# Export jobs to CSV
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; import csv; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); f=open('jobs_export.csv','w',newline='',encoding='utf-8'); w=csv.DictWriter(f,fieldnames=jobs[0].keys()); w.writeheader(); w.writerows(jobs); f.close(); print('Exported to jobs_export.csv')"
+
+# Find jobs posted today (contains 'ago' with hours)
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{j.get(\"Job Title\")} - {j.get(\"Posted\")}') for j in jobs if 'hour' in j.get('Posted', '').lower()]"
+
+# Find jobs posted in last 24 hours
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{j.get(\"Job Title\")} - {j.get(\"Posted\")}') for j in jobs if 'hour' in j.get('Posted', '').lower() or 'minute' in j.get('Posted', '').lower()]"
+
+# Find remote jobs in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{j.get(\"Job Title\")} - {j.get(\"Location\")}') for j in jobs if 'Remote' in j.get('Employment Type', '') or 'Remote' in j.get('Location', '')]"
+
+# Find full-time jobs in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{j.get(\"Job Title\")}') for j in jobs if 'Full' in j.get('Employment Type', '')]"
+
+# Find internship positions in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); [print(f'{j.get(\"Job Title\")}') for j in jobs if 'Intern' in j.get('Employment Type', '') or 'Intern' in j.get('Job Title', '')]"
+
+================================================================================
+6. ADVANCED OPTIONS
+================================================================================
+
+# Scrape large batch (50+ jobs) - Use with caution due to rate limits
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 50 --headless False
+
+# Scrape to different worksheet (for organizing by date/type)
+python jobs_to_sheets.py -k "Data Analyst" --worksheet "Week1_March"
+
+# Scrape with custom session file
+python jobs_to_sheets.py -k "Data Analyst" --session-file "my_session.json"
+
+# Combine multiple searches (run sequentially)
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 10
+python jobs_to_sheets.py -k "Business Analyst" -l "Remote" --limit 10
+python jobs_to_sheets.py -k "Financial Analyst" -l "Remote" --limit 10
+
+# Scrape without location filter (worldwide)
+python jobs_to_sheets.py -k "Data Analyst" --limit 20
+
+================================================================================
+7. TROUBLESHOOTING COMMANDS
+================================================================================
+
+# Test Google Sheets connection
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); print('Connected!' if gs.connect() else 'Failed')"
+
+# Test LinkedIn session
+python -c "from linkedin_scraper import BrowserManager; import asyncio; asyncio.run((lambda: BrowserManager().__aenter__())().then(lambda b: b.load_session('linkedin_session.json').then(lambda _: print('Session OK'))))"
+
+# Create new LinkedIn session (if expired)
+python samples\create_session.py
+
+# Check installed packages
+pip list | findstr "linkedin gspread playwright"
+
+# Reinstall dependencies if needed
+pip install -e .
+
+# Install Playwright browsers
+playwright install chromium
+
+# View error logs (if scraping fails)
+python jobs_to_sheets.py -k "test" --headless False 2>&1 | tee scrape_log.txt
+
+================================================================================
+8. SESSION MANAGEMENT
+================================================================================
+
+# Create new LinkedIn session
+python samples\create_session.py
+
+# Check if session file exists
+dir linkedin_session.json
+
+# Backup session file
+copy linkedin_session.json linkedin_session_backup.json
+
+# Restore session from backup
+copy linkedin_session_backup.json linkedin_session.json
+
+================================================================================
+9. QUICK TEMPLATES FOR DAILY USE
+================================================================================
+
+# MORNING ROUTINE: Check new jobs posted overnight
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 10
+
+# SEARCH: Full-time remote positions
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 20
+
+# SEARCH: Internship opportunities
+python jobs_to_sheets.py -k "Data Analyst internship" -l "Remote" --limit 15
+
+# SEARCH: Entry level in specific city
+python jobs_to_sheets.py -k "Entry level Data Analyst" -l "New York" --limit 15
+
+# SEARCH: Senior positions
+python jobs_to_sheets.py -k "Senior Data Analyst" -l "Remote" --limit 15
+
+# WEEKLY: Large batch scrape (Monday morning)
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 50 --headless False
+
+# CHECK: How many jobs in sheet
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); print(f'Total jobs: {len(gs.get_all_jobs())}')"
+
+# EXPORT: Weekly report to CSV
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; import csv; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); jobs = gs.get_all_jobs(); f=open('weekly_jobs.csv','w',newline='',encoding='utf-8'); w=csv.DictWriter(f,fieldnames=jobs[0].keys()); w.writeheader(); w.writerows(jobs); f.close(); print('Exported!')"
+
+================================================================================
+10. BEST PRACTICES
+================================================================================
+
+RATE LIMITING:
+- Wait 2-3 hours between large scraping sessions
+- Use --limit 10-15 for regular searches
+- Use --headless False for better success rate
+- If rate limited, wait a few hours before trying again
+
+SESSION MANAGEMENT:
+- Re-run create_session.py every 1-2 weeks
+- Keep linkedin_session.json secure
+- Don't share your session file
+
+GOOGLE SHEETS:
+- Create new worksheet weekly for better organization
+- Export to CSV regularly as backup
+- Use descriptive worksheet names (e.g., "Week1_March", "Remote_Jobs")
+
+SCRAPING STRATEGY:
+- Morning: Check overnight postings (use "24 hours ago" filter on LinkedIn)
+- Midday: Search specific roles
+- End of week: Large batch scrape for next week
+
+ORGANIZATION TIPS:
+- Use separate worksheets for different job types
+- Add date to worksheet names
+- Export and backup regularly
+- Review and clean up old jobs monthly
+
+================================================================================
+                              QUICK COMMAND CHEATSHEET
+================================================================================
+
+# Most Common Commands:
+python jobs_to_sheets.py -k "Data Analyst" -l "Remote" --limit 15
+python jobs_to_sheets.py -k "Business Analyst" -l "United States" --limit 20
+python jobs_to_sheets.py -k "Data Scientist" -l "India" --limit 15
+python jobs_to_sheets.py -k "Software Engineer" --limit 20
+
+# Check Jobs Count:
+python -c "from linkedin_scraper.integrations.google_sheets import GoogleSheetsIntegration; gs = GoogleSheetsIntegration(); gs.connect('Jobs_v2'); print(f'Total: {len(gs.get_all_jobs())}')"
+
+# Create Session:
+python samples\create_session.py
+
+# Help:
+python jobs_to_sheets.py --help
+
+================================================================================
+                              SUPPORT & DOCUMENTATION
+================================================================================
+
+Documentation Files:
+- QUICKSTART.md - Getting started guide
+- JOB_SCRAPER_WORKFLOW.md - Complete workflow documentation
+- GOOGLE_SHEETS_SETUP.md - Google Sheets setup guide
+- README.md - Main project documentation
+
+Common Issues:
+- Rate limited? Wait 2-3 hours and try again
+- Session expired? Run: python samples\create_session.py
+- Google Sheets error? Check credentials.json and Sheet ID in .env
+
+================================================================================
+                         Created: March 31, 2026
+                         Version: 1.0
+================================================================================

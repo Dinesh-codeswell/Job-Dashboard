@@ -1,0 +1,12 @@
+{
+  "name": "consulting-jobs-dashboard",
+  "version": "1.0.0",
+  "description": "Real-time consulting jobs dashboard for India",
+  "scripts": {
+    "start": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel deploy"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

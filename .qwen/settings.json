@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:\\users\\%username%\\appdata\\local\\programs\\python\\python311\\python.exe *)"
+    ]
+  },
+  "$version": 3
+}

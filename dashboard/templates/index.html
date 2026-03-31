@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulting Jobs Dashboard - India</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">💼</div>
+                    <div>
+                        <h1>Consulting Jobs</h1>
+                        <p class="subtitle">India Dashboard</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="refreshBtn" class="btn btn-outline" title="Refresh data">
+                        <span class="icon">↻</span>
+                        <span>Refresh</span>
+                    </button>
+                    <a href="/about" class="btn btn-outline">About</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalJobs">-</div>
+                    <div class="stat-label">Total Jobs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCities">-</div>
+                    <div class="stat-label">Cities</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCompanies">-</div>
+                    <div class="stat-label">Companies</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lastUpdated">-</div>
+                    <div class="stat-label">Last Updated</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Search and Filters -->
+            <div class="filters-section">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search by job title, company, or keywords..."
+                        class="search-input"
+                    >
+                </div>
+                
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="cityFilter">City</label>
+                        <select id="cityFilter" class="filter-select">
+                            <option value="">All Cities</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="typeFilter">Employment Type</label>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-actions">
+                        <button id="applyFilters" class="btn btn-primary">Apply</button>
+                        <button id="clearFilters" class="btn btn-outline">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Info -->
+            <div class="results-info">
+                <span id="resultsCount">Loading jobs...</span>
+                <div class="auto-refresh-indicator" id="autoRefreshIndicator">
+                    <span class="pulse"></span>
+                    <span>Auto-refresh in <span id="refreshCountdown">60</span>s</span>
+                </div>
+            </div>
+
+            <!-- Jobs Grid -->
+            <div id="jobsGrid" class="jobs-grid">
+                <!-- Loading State -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading jobs...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination" class="pagination">
+                <!-- Pagination will be rendered here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>Consulting Jobs Dashboard - India | Data sourced from LinkedIn</p>
+            <p class="footer-note">Jobs are updated automatically every 60 seconds</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

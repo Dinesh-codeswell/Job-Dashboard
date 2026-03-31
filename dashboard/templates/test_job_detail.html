@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Job Detail Page</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Job Detail Page Test</h1>
+    
+    <h2>Test 1: Check API Endpoint</h2>
+    <button onclick="testAPI()">Test API Call</button>
+    <div id="apiResult"></div>
+    
+    <h2>Test 2: Navigate to Job</h2>
+    <button onclick="navigateToJob('job_4393581078')">Open SAP ABAP Consultant Job</button>
+    <button onclick="navigateToJob('job_4393282404')">Open IT Program Consultant Job</button>
+    <button onclick="goBack()">Back to Dashboard</button>
+    
+    <h2>Available Job IDs:</h2>
+    <div id="jobList"></div>
+    
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            try {
+                resultDiv.innerHTML = 'Testing...';
+                const response = await fetch('/api/jobs/job_4393581078');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `
+                        <strong>✅ API Working!</strong><br>
+                        Job Title: ${data.job['Job Title']}<br>
+                        Company: ${data.job['Company'] || 'N/A'}<br>
+                        ID: ${data.job.id}
+                    `;
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `<strong>❌ API Error:</strong> ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>❌ Connection Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function navigateToJob(jobId) {
+            window.location.href = `/job/${jobId}`;
+        }
+        
+        function goBack() {
+            window.location.href = '/';
+        }
+        
+        async function loadJobList() {
+            try {
+                const response = await fetch('/api/jobs?page=1&limit=11');
+                const data = await response.json();
+                
+                const jobList = document.getElementById('jobList');
+                jobList.innerHTML = data.jobs.map(job => `
+                    <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                        <strong>${job.job_title}</strong><br>
+                        ID: <code>${job.id}</code><br>
+                        <button onclick="navigateToJob('${job.id}')">View Details</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('jobList').innerHTML = 'Error loading jobs: ' + error.message;
+            }
+        }
+        
+        // Load job list on page load
+        loadJobList();
+    </script>
+</body>
+</html>
