@@ -6,7 +6,8 @@
       "src": "api/**/*.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.11"
+        "runtime": "python3.11",
+        "maxDuration": 60
       }
     },
     {
@@ -43,11 +44,6 @@
   "env": {
     "PYTHON_VERSION": "3.11",
     "FLASK_ENV": "production"
-  },
-  "functions": {
-    "api/**/*.py": {
-      "maxDuration": 60
-    }
   },
   "outputDirectory": "dashboard"
 }
