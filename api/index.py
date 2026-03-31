@@ -8,20 +8,10 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
-# Import data fetcher
-try:
-    from api.data_fetcher import get_data_fetcher
-except ImportError:
-    from data_fetcher import get_data_fetcher
-
-# Create Flask app for Vercel
+# Create Flask app FIRST before any imports
 app = Flask(__name__, 
             template_folder='../dashboard/templates',
             static_folder='../dashboard/static',
@@ -29,22 +19,49 @@ app = Flask(__name__,
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'vercel-secret-key')
 CORS(app)
 
-# Initialize data fetcher
+# Load environment variables
+os.environ.setdefault('GOOGLE_SHEET_ID', '')
+os.environ.setdefault('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
+os.environ.setdefault('WORKSHEET_NAME', 'Consulting_Jobs_India')
+
+# Lazy load data fetcher
 _fetcher = None
+_fetcher_error = None
 
 def get_fetcher():
     """Get or create data fetcher instance."""
-    global _fetcher
-    if _fetcher is None:
+    global _fetcher, _fetcher_error
+    
+    if _fetcher is not None:
+        return _fetcher
+    
+    if _fetcher_error is not None:
+        return None
+    
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        
         try:
-            _fetcher = get_data_fetcher(
-                sheet_id=os.getenv('GOOGLE_SHEET_ID'),
-                credentials_file=os.getenv('GOOGLE_CREDENTIALS_FILE', 'credentials.json'),
-                worksheet_name=os.getenv('WORKSHEET_NAME', 'Consulting_Jobs_India')
-            )
-        except Exception as e:
-            print(f"Error initializing fetcher: {e}")
-    return _fetcher
+            from api.data_fetcher import get_data_fetcher
+        except ImportError:
+            from data_fetcher import get_data_fetcher
+        
+        sheet_id = os.getenv('GOOGLE_SHEET_ID')
+        creds_file = os.getenv('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
+        worksheet = os.getenv('WORKSHEET_NAME', 'Consulting_Jobs_India')
+        
+        if not sheet_id:
+            _fetcher_error = "GOOGLE_SHEET_ID not set"
+            return None
+        
+        _fetcher = get_data_fetcher(sheet_id, creds_file, worksheet)
+        return _fetcher
+        
+    except Exception as e:
+        _fetcher_error = str(e)
+        print(f"Fetcher error: {e}")
+        return None
 
 # ============================================================================
 # Frontend Routes
@@ -74,19 +91,47 @@ def test():
 # API Endpoints
 # ============================================================================
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': _fetcher_error or 'Failed to initialize data fetcher',
+            'env_check': {
+                'GOOGLE_SHEET_ID': 'set' if os.getenv('GOOGLE_SHEET_ID') else 'missing',
+                'credentials': 'exists' if os.path.exists('credentials.json') else 'missing'
+            }
+        }), 500
+    
+    try:
+        stats = fetcher.get_stats()
+        return jsonify({
+            'status': 'healthy',
+            'jobs_count': stats.get('total_jobs', 0),
+            'last_updated': stats.get('last_updated'),
+            'worksheet': stats.get('worksheet')
+        })
+    except Exception as e:
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
+
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
     """Get paginated list of jobs."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to initialize: {_fetcher_error}'
+        }), 500
+    
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 30))
         search = request.args.get('search', '')
         city = request.args.get('city', '')
         emp_type = request.args.get('type', '')
-        
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
         
         jobs = fetcher.search_jobs(
             query=search if search else None,
@@ -126,7 +171,6 @@ def get_jobs():
                 'has_prev': page > 1
             }
         })
-        
     except Exception as e:
         print(f"Error in get_jobs: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -134,18 +178,15 @@ def get_jobs():
 @app.route('/api/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
     """Get single job details."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+    
     try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
-        
         job = fetcher.get_job_by_id(job_id)
-        
         if not job:
             return jsonify({'success': False, 'error': 'Job not found'}), 404
-        
         return jsonify({'success': True, 'job': job})
-        
     except Exception as e:
         print(f"Error in get_job: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -153,93 +194,58 @@ def get_job(job_id):
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """Get dashboard statistics."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+    
     try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
-        
         stats = fetcher.get_stats()
         return jsonify({'success': True, 'stats': stats})
     except Exception as e:
         print(f"Error in get_stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/refresh', methods=['POST'])
-def refresh_data():
-    """Manually refresh data from Google Sheets."""
-    try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
-        
-        fetcher.clear_cache()
-        jobs = fetcher.fetch_all_jobs(use_cache=False)
-        
-        return jsonify({
-            'success': True,
-            'count': len(jobs),
-            'message': f'Refreshed {len(jobs)} jobs'
-        })
-        
-    except Exception as e:
-        print(f"Error in refresh_data: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route('/api/cities', methods=['GET'])
 def get_cities():
     """Get list of all cities."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+    
     try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
-        
         cities = fetcher.get_unique_cities()
         return jsonify({'success': True, 'cities': sorted(cities)})
     except Exception as e:
-        print(f"Error in get_cities: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/employment-types', methods=['GET'])
 def get_employment_types():
     """Get list of employment types."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+    
     try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({'success': False, 'error': 'Failed to initialize data fetcher'}), 500
-        
         types = fetcher.get_unique_employment_types()
         return jsonify({'success': True, 'types': sorted(types)})
     except Exception as e:
-        print(f"Error in get_employment_types: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint."""
+@app.route('/api/refresh', methods=['POST'])
+def refresh_data():
+    """Manually refresh data from Google Sheets."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+    
     try:
-        fetcher = get_fetcher()
-        if not fetcher:
-            return jsonify({
-                'status': 'unhealthy',
-                'error': 'Failed to initialize data fetcher'
-            }), 500
-        
-        stats = fetcher.get_stats()
-        return jsonify({
-            'status': 'healthy',
-            'jobs_count': stats.get('total_jobs', 0),
-            'last_updated': stats.get('last_updated'),
-            'worksheet': stats.get('worksheet')
-        })
+        fetcher.clear_cache()
+        jobs = fetcher.fetch_all_jobs(use_cache=False)
+        return jsonify({'success': True, 'count': len(jobs), 'message': f'Refreshed {len(jobs)} jobs'})
     except Exception as e:
-        print(f"Error in health_check: {e}")
-        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================================================
-# Vercel Serverless Handler
-# ============================================================================
-
-# This is required for Vercel to invoke the function
+# Vercel handler
 def handler(request):
     """Vercel serverless function handler."""
     return app(request.environ, lambda *args: None)
