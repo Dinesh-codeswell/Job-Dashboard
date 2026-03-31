@@ -17,6 +17,7 @@ tests
 *.tar.gz
 dashboard/__pycache__
 api/__pycache__
+api/data_fetcher.py
 *.bak
 *.swp
 .DS_Store
@@ -28,3 +29,4 @@ samples
 debug_*.py
 *.bat
 !api/requirements.txt
+!api/index.py

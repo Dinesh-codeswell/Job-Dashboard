@@ -3,7 +3,7 @@
   "name": "consulting-jobs-dashboard",
   "builds": [
     {
-      "src": "api/**/*.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.11",
