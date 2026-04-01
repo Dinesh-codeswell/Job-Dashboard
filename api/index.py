@@ -99,8 +99,9 @@ def index():
 
 @app.route('/job/<job_id>')
 def job_detail(job_id):
-    """Job detail page."""
-    return render_template('job_detail.html', job_id=job_id)
+    """Job detail page - client-side renders."""
+    # Just render the template - JavaScript will fetch job data via API
+    return render_template('job_detail.html')
 
 @app.route('/about')
 def about():

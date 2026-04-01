@@ -3,322 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ job['Job Title'] }} at {{ job['Company'] }} | Beyond Career</title>
-
-    <!-- Tailwind CSS -->
+    <title>Job Details | Beyond Career</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-
-    <!-- Tailwind Config -->
-    <script id="tailwind-config">
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "on-surface-variant": "#bdcac0",
-                        "on-primary": "#003824",
-                        "primary-fixed-dim": "#73daa9",
-                        "inverse-primary": "#006c49",
-                        "surface-container": "#1f1f1f",
-                        "on-primary-fixed-variant": "#005236",
-                        "surface": "#131313",
-                        "on-secondary-container": "#afb9cb",
-                        "error": "#ffb4ab",
-                        "secondary": "#bdc7d9",
-                        "surface-container-low": "#1b1b1b",
-                        "outline": "#87948b",
-                        "outline-variant": "#3e4942",
-                        "surface-tint": "#73daa9",
-                        "inverse-on-surface": "#303030",
-                        "surface-variant": "#353535",
-                        "error-container": "#93000a",
-                        "surface-container-lowest": "#0e0e0e",
-                        "surface-container-highest": "#353535",
-                        "on-secondary-fixed": "#121c2a",
-                        "surface-dim": "#131313",
-                        "on-secondary": "#27313f",
-                        "on-background": "#e2e2e2",
-                        "surface-container-high": "#2a2a2a",
-                        "on-primary-container": "#e7ffef",
+                        primary: "#73daa9",
                         "primary-container": "#008359",
-                        "secondary-fixed-dim": "#bdc7d9",
-                        "on-error": "#690005",
-                        "background": "#131313",
-                        "inverse-surface": "#e2e2e2",
-                        "on-primary-fixed": "#002113",
-                        "primary": "#73daa9",
-                        "on-secondary-fixed-variant": "#3d4756",
-                        "secondary-container": "#404a59",
-                        "surface-bright": "#393939",
                         "primary-fixed": "#90f7c4",
-                        "secondary-fixed": "#d9e3f6",
-                        "on-error-container": "#ffdad6",
-                        "on-surface": "#e2e2e2"
+                        surface: "#131313",
+                        "surface-container": "#1f1f1f",
+                        "surface-container-low": "#1b1b1b",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-container-highest": "#353535",
+                        "on-surface": "#e2e2e2",
+                        "on-surface-variant": "#bdcac0",
+                        outline: "#87948b",
+                        "outline-variant": "#3e4942"
                     },
                     fontFamily: {
-                        "headline": ["Manrope"],
-                        "body": ["Inter"],
-                        "label": ["Inter"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "2xl": "1rem",
-                        "full": "9999px"
+                        headline: ["Manrope"],
+                        body: ["Inter"]
                     }
                 }
             }
         }
     </script>
-    
     <style>
-        body { 
-            background-color: #131313; 
-            color: #e2e2e2; 
-        }
-        .material-symbols-outlined { 
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; 
-        }
-        .inner-glow { 
-            border-top: 1px solid rgba(62, 73, 66, 0.2); 
-        }
-        .glass-panel {
-            background: rgba(53, 53, 53, 0.6);
-            backdrop-filter: blur(20px);
-        }
+        body { background-color: #000000; color: #e2e2e2; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .inner-glow { border-top: 1px solid rgba(62, 73, 66, 0.2); }
+        .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; }
+        .spinner { width: 40px; height: 40px; border: 2px solid #353535; border-top-color: #73daa9; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="font-body selection:bg-primary selection:text-on-primary">
-    <!-- Top Navigation -->
+    <!-- Navigation -->
     <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 font-manrope tracking-tight">
         <div class="text-2xl font-bold tracking-tighter text-emerald-500">Beyond Career</div>
-        
         <div class="hidden md:flex items-center gap-8">
-            <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1 hover:text-emerald-300 transition-colors duration-300" href="/">Jobs</a>
-            <a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="/about">About</a>
+            <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1" href="/">Jobs</a>
+            <a class="text-neutral-400 hover:text-emerald-300" href="/about">About</a>
         </div>
-        
         <div class="flex items-center gap-6">
-            <div class="hidden lg:block relative">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">search</span>
-                <input class="bg-surface-container-highest border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/30 w-64" placeholder="Search..." type="text"/>
-            </div>
-            <a href="{{ job['Job URL'] }}" target="_blank" class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all duration-300 active:scale-95">
-                Apply Now
-            </a>
+            <a id="navApplyBtn" href="#" target="_blank" class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all">Apply Now</a>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="pt-32 pb-24 px-8 max-w-7xl mx-auto">
-        <!-- Back Button -->
-        <button onclick="window.history.back()" class="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-12">
-            <span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
-            <span class="font-medium">Back to Jobs</span>
-        </button>
+        <!-- Loading -->
+        <div id="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p class="mt-4 text-on-surface-variant">Loading job details...</p>
+        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            <!-- Left Column: Primary Content (8 cols) -->
-            <div class="lg:col-span-8">
-                <!-- Job Header -->
-                <header class="mb-12">
-                    <div class="flex flex-wrap gap-3 mb-6">
-                        {% if 'Remote' in job['Location'] %}
-                        <span class="px-3 py-1 rounded-full bg-emerald-950/30 text-primary text-xs font-bold tracking-widest uppercase border border-primary/20">Remote</span>
-                        {% endif %}
-                        <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">{{ job['Employment Type'] or 'Full-Time' }}</span>
-                        <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">Consulting</span>
-                    </div>
-                    
-                    <h1 class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4 text-on-surface leading-tight">
-                        {{ job['Job Title'] }}
-                    </h1>
-                    
-                    <div class="flex items-center gap-4 text-xl text-on-surface-variant font-medium">
-                        <p>{{ job['Company'] }}</p>
-                        <span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
-                        <p>{{ job['Location'] }}</p>
-                    </div>
-                </header>
+        <!-- Error -->
+        <div id="error" style="display: none;" class="loading-state">
+            <div class="text-6xl mb-4">❌</div>
+            <h2 class="text-2xl font-bold mb-2">Job Not Found</h2>
+            <p class="text-on-surface-variant mb-6">The job you're looking for doesn't exist or has been removed.</p>
+            <a href="/" class="bg-primary-container text-on-primary-container px-6 py-3 rounded-lg font-semibold hover:bg-primary-fixed">Back to Jobs</a>
+        </div>
 
-                <!-- Featured Image / Visual Break -->
-                <div class="mb-12 relative h-80 rounded-2xl overflow-hidden">
-                    <img 
-                        class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" 
-                        src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&h=400" 
-                        alt="Office interior"
-                    />
-                    <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+        <!-- Job Content -->
+        <div id="jobContent" style="display: none;">
+            <button onclick="window.history.back()" class="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-12">
+                <span class="material-symbols-outlined text-lg group-hover:-translate-x-1">arrow_back</span>
+                <span class="font-medium">Back to Jobs</span>
+            </button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                <!-- Left: Content -->
+                <div class="lg:col-span-8">
+                    <header class="mb-12">
+                        <div id="badges" class="flex flex-wrap gap-3 mb-6"></div>
+                        <h1 id="title" class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4"></h1>
+                        <div class="flex items-center gap-4 text-xl text-on-surface-variant">
+                            <span id="company"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                            <span id="location"></span>
+                        </div>
+                    </header>
+
+                    <div class="mb-12 relative h-80 rounded-2xl overflow-hidden">
+                        <img class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all" src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200" alt="Office"/>
+                        <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+                    </div>
+
+                    <div class="space-y-12">
+                        <section>
+                            <h2 class="text-2xl font-headline font-bold mb-6 flex items-center gap-3">
+                                <span class="w-8 h-1 bg-primary"></span>
+                                About the Role
+                            </h2>
+                            <div id="description" class="space-y-4 text-lg text-on-surface-variant leading-relaxed"></div>
+                        </section>
+
+                        <section>
+                            <h2 class="text-2xl font-headline font-bold mb-6 flex items-center gap-3">
+                                <span class="w-8 h-1 bg-primary"></span>
+                                Requirements
+                            </h2>
+                            <ul class="space-y-4">
+                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>3+ years experience in consulting</span></li>
+                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>Degree from top-tier institution</span></li>
+                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>Strong analytical skills</span></li>
+                            </ul>
+                        </section>
+                    </div>
                 </div>
 
-                <!-- Main Details -->
-                <div class="space-y-16">
-                    <!-- About the Role -->
-                    <section>
-                        <h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
-                            <span class="w-8 h-1 bg-primary"></span>
-                            About the Role
-                        </h2>
-                        <div class="space-y-4 text-on-surface-variant leading-relaxed text-lg font-light">
-                            <p>{{ job['Job Description'] or 'Join our team as a ' + job['Job Title'] + ' at ' + job['Company'] + '. This is an exciting opportunity to work on challenging projects and make a real impact.' }}</p>
-                            <p>We're looking for an exceptional professional who is passionate about delivering breakthrough results. You'll work with a talented team on complex problems facing leading organizations.</p>
+                <!-- Right: Sidebar -->
+                <aside class="lg:col-span-4 space-y-6">
+                    <div class="bg-surface-container-high p-8 rounded-2xl inner-glow">
+                        <a id="applyBtn" href="#" target="_blank" class="w-full py-4 bg-gradient-to-br from-primary-container to-primary text-on-primary-container font-headline font-bold text-lg rounded-lg mb-4 block text-center hover:scale-[1.02]">Apply Now</a>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between"><span class="text-on-surface-variant">Posted</span><span id="posted" class="font-medium"></span></div>
+                            <div class="flex justify-between"><span class="text-on-surface-variant">Type</span><span id="type" class="font-medium"></span></div>
                         </div>
-                    </section>
+                    </div>
 
-                    <!-- Key Requirements -->
-                    <section>
-                        <h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
-                            <span class="w-8 h-1 bg-primary"></span>
-                            Key Requirements
-                        </h2>
-                        <ul class="space-y-6">
-                            <li class="flex items-start gap-4">
-                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                                <div class="text-lg text-on-surface-variant">
-                                    <strong class="text-on-surface">Experience:</strong> 
-                                    Minimum 3+ years of relevant experience in consulting or related field.
-                                </div>
-                            </li>
-                            <li class="flex items-start gap-4">
-                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                                <div class="text-lg text-on-surface-variant">
-                                    <strong class="text-on-surface">Education:</strong> 
-                                    Bachelor's or Master's degree from a top-tier institution.
-                                </div>
-                            </li>
-                            <li class="flex items-start gap-4">
-                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                                <div class="text-lg text-on-surface-variant">
-                                    <strong class="text-on-surface">Skills:</strong> 
-                                    Strong analytical, problem-solving, and communication skills.
-                                </div>
-                            </li>
-                            <li class="flex items-start gap-4">
-                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                                <div class="text-lg text-on-surface-variant">
-                                    <strong class="text-on-surface">Leadership:</strong> 
-                                    Proven ability to lead workstreams and manage client relationships.
-                                </div>
-                            </li>
-                        </ul>
-                    </section>
-
-                    <!-- Bento Section: Perks -->
-                    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
-                            <span class="material-symbols-outlined text-primary mb-4">payments</span>
-                            <h3 class="font-headline font-bold mb-2">Compensation</h3>
-                            <p class="text-sm text-on-surface-variant">Highly competitive base + performance-based bonus structures.</p>
+                    <div class="bg-surface-container-low p-8 rounded-2xl">
+                        <h3 id="sidebarCompany" class="text-xl font-headline font-bold mb-4"></h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex gap-3"><span class="material-symbols-outlined text-primary/60">location_on</span><span id="sidebarLocation"></span></div>
                         </div>
-                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
-                            <span class="material-symbols-outlined text-primary mb-4">flight</span>
-                            <h3 class="font-headline font-bold mb-2">Global Mobility</h3>
-                            <p class="text-sm text-on-surface-variant">Opportunities for international projects and secondments.</p>
+                        <div class="mt-6 pt-6 border-t border-outline-variant/10">
+                            <a id="linkedinBtn" href="#" target="_blank" class="text-primary font-bold flex items-center gap-2">View on LinkedIn <span class="material-symbols-outlined">arrow_forward</span></a>
                         </div>
-                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
-                            <span class="material-symbols-outlined text-primary mb-4">psychology</span>
-                            <h3 class="font-headline font-bold mb-2">Learning</h3>
-                            <p class="text-sm text-on-surface-variant">World-class training programs and mentorship opportunities.</p>
-                        </div>
-                    </section>
-                </div>
+                    </div>
+                </aside>
             </div>
-
-            <!-- Right Column: Sidebar (4 cols) -->
-            <aside class="lg:col-span-4 sticky top-32 space-y-8">
-                <!-- Action Card -->
-                <div class="bg-surface-container-high p-8 rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] border-t border-outline-variant/20">
-                    <a href="{{ job['Job URL'] }}" target="_blank" class="w-full py-4 rounded-lg bg-gradient-to-br from-primary-container to-primary text-on-primary-container font-headline font-extrabold text-lg shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 mb-6 inline-block text-center">
-                        Apply Now
-                    </a>
-                    <button class="w-full py-4 rounded-lg border border-outline-variant/30 text-on-surface font-headline font-bold hover:bg-surface-variant/30 transition-all mb-8">
-                        Save for Later
-                    </button>
-                    
-                    <div class="space-y-4">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-on-surface-variant">Posted on</span>
-                            <span class="text-on-surface font-medium">{{ job['Posted'] or 'Recently' }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-on-surface-variant">Location</span>
-                            <span class="text-on-surface font-medium">{{ job['Location'] }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-on-surface-variant">Role Type</span>
-                            <span class="text-on-surface font-medium">{{ job['Employment Type'] or 'Full-time' }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Company Info Card -->
-                <div class="bg-surface-container-low p-8 rounded-2xl">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-16 h-16 rounded-xl bg-white flex items-center justify-center p-2">
-                            <img alt="{{ job['Company'] }} Logo" class="w-full h-auto" src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=200&h=200"/>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-headline font-bold text-on-surface">{{ job['Company'] }}</h3>
-                            <p class="text-sm text-primary">Consulting</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="flex items-center gap-4 text-on-surface-variant">
-                            <span class="material-symbols-outlined text-primary/60">groups</span>
-                            <div>
-                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Size</p>
-                                <p class="text-on-surface font-medium">1,000+ Employees</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 text-on-surface-variant">
-                            <span class="material-symbols-outlined text-primary/60">language</span>
-                            <div>
-                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Industry</p>
-                                <p class="text-on-surface font-medium">Management Consulting</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 text-on-surface-variant">
-                            <span class="material-symbols-outlined text-primary/60">location_on</span>
-                            <div>
-                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Headquarters</p>
-                                <p class="text-on-surface font-medium">{{ job['Location'] }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-10 pt-8 border-t border-outline-variant/10">
-                        <a href="{{ job['Job URL'] }}" target="_blank" class="inline-flex items-center gap-2 text-primary font-bold group">
-                            View on LinkedIn
-                            <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                        </a>
-                    </div>
-                </div>
-            </aside>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-neutral-950 w-full py-12 border-t border-emerald-900/20 flex flex-col md:flex-row justify-between items-center px-12 gap-6 font-inter text-sm">
-        <div class="flex flex-col gap-2">
-            <div class="text-lg font-bold text-emerald-500">Beyond Career</div>
-            <p class="text-neutral-500">© 2024 Beyond Career. Precision-engineered for consultants.</p>
-        </div>
-        <div class="flex gap-8 text-neutral-500">
-            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="/about">About</a>
-            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy Policy</a>
-            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms of Service</a>
-            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Contact</a>
-        </div>
-    </footer>
+    <script>
+        // Get job ID from URL
+        const jobId = window.location.pathname.split('/').pop();
+
+        // Fetch job data
+        async function loadJob() {
+            try {
+                const response = await fetch(`/api/jobs/${jobId}`);
+                const data = await response.json();
+
+                if (!data.success || !data.job) {
+                    showError();
+                    return;
+                }
+
+                const job = data.job;
+                
+                // Populate data
+                document.getElementById('title').textContent = job['Job Title'] || 'Position';
+                document.getElementById('company').textContent = job['Company'] || 'Company';
+                document.getElementById('location').textContent = job['Location'] || 'Location';
+                document.getElementById('description').textContent = job['Job Description'] || 'No description available.';
+                document.getElementById('posted').textContent = job['Posted'] || 'Recently';
+                document.getElementById('type').textContent = job['Employment Type'] || 'Full-time';
+                document.getElementById('sidebarCompany').textContent = job['Company'] || 'Company';
+                document.getElementById('sidebarLocation').textContent = job['Location'] || 'Location';
+
+                // Set links
+                const jobUrl = job['Job URL'] || '#';
+                document.getElementById('applyBtn').href = jobUrl;
+                document.getElementById('linkedinBtn').href = jobUrl;
+                document.getElementById('navApplyBtn').href = jobUrl;
+
+                // Badges
+                const badgesDiv = document.getElementById('badges');
+                if (job['Employment Type']) {
+                    badgesDiv.innerHTML += `<span class="px-3 py-1 rounded-full bg-surface-container-high text-xs font-bold uppercase">${job['Employment Type']}</span>`;
+                }
+                if (job['Location']?.includes('Remote')) {
+                    badgesDiv.innerHTML += `<span class="px-3 py-1 rounded-full bg-emerald-950/30 text-primary text-xs font-bold uppercase border border-primary/20">Remote</span>`;
+                }
+
+                // Show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('jobContent').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading job:', error);
+                showError();
+            }
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'flex';
+        }
+
+        // Load on page load
+        loadJob();
+    </script>
 </body>
 </html>
