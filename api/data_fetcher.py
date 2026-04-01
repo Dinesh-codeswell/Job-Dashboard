@@ -30,36 +30,54 @@ class SheetsDataFetcher:
         try:
             import gspread
             from google.oauth2.service_account import Credentials
+            import json
             
             scopes = [
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive"
             ]
             
-            creds_path = Path(self.credentials_file)
-            if not creds_path.exists():
-                logger.error(f"Credentials file not found: {self.credentials_file}")
-                return False
+            # Try environment variable first (for Vercel)
+            creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
             
-            creds = Credentials.from_service_account_file(
-                str(creds_path),
-                scopes=scopes
-            )
+            if creds_json:
+                print("Using credentials from environment variable")
+                try:
+                    creds_info = json.loads(creds_json)
+                    creds = Credentials.from_service_account_info(
+                        creds_info,
+                        scopes=scopes
+                    )
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error: {e}")
+                    return False
+            else:
+                # Fallback to file (for local development)
+                creds_path = Path(self.credentials_file)
+                if not creds_path.exists():
+                    print(f"Credentials file not found: {self.credentials_file}")
+                    return False
+                
+                print(f"Using credentials from file: {self.credentials_file}")
+                creds = Credentials.from_service_account_file(
+                    str(creds_path),
+                    scopes=scopes
+                )
             
             self.gc = gspread.authorize(creds)
             self.spreadsheet = self.gc.open_by_key(self.sheet_id)
             
             try:
                 self.worksheet = self.spreadsheet.worksheet(self.worksheet_name)
-            except Exception:
-                logger.error(f"Worksheet not found: {self.worksheet_name}")
+                print(f"Connected to worksheet: {self.worksheet_name}")
+            except Exception as e:
+                print(f"Worksheet not found: {self.worksheet_name} - {e}")
                 return False
             
-            logger.info(f"Connected to Google Sheets: {self.worksheet_name}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to connect to Google Sheets: {e}")
+            print(f"Failed to connect to Google Sheets: {e}")
             return False
     
     def fetch_all_jobs(self, use_cache: bool = True, cache_timeout: int = 60) -> List[Dict[str, Any]]:
