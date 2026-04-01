@@ -258,6 +258,23 @@ def refresh_data():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/test-import', methods=['GET'])
+def test_import():
+    """Test if data_fetcher can be imported."""
+    try:
+        from data_fetcher import get_data_fetcher
+        return jsonify({
+            'success': True,
+            'message': 'data_fetcher imported successfully!',
+            'module_path': get_data_fetcher.__module__
+        })
+    except ImportError as e:
+        return jsonify({
+            'success': False,
+            'error': f'ImportError: {str(e)}',
+            'python_path': sys.path
+        }), 500
+
 # Vercel handler
 def handler(request):
     """Vercel serverless function handler."""
