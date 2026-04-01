@@ -7,9 +7,9 @@ const API = {
     baseURL: '',
     
     /**
-     * Make an API request
+     * Make an API request with retry logic
      */
-    async request(endpoint, options = {}) {
+    async request(endpoint, options = {}, maxRetries = 2) {
         const url = `${this.baseURL}${endpoint}`;
         const config = {
             headers: {
@@ -18,20 +18,33 @@ const API = {
             },
             ...options
         };
+
+        let lastError = null;
         
-        try {
-            const response = await fetch(url, config);
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'API request failed');
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+
+                return data;
+            } catch (error) {
+                lastError = error;
+                
+                if (attempt < maxRetries) {
+                    // Wait before retry (exponential backoff: 500ms, 1000ms)
+                    const delay = 500 * Math.pow(2, attempt);
+                    console.warn(`API request failed, retrying in ${delay}ms...`, error);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
             }
-            
-            return data;
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
         }
+        
+        console.error('API Error after retries:', lastError);
+        throw lastError;
     },
     
     /**

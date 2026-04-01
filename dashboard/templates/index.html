@@ -1,159 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulting Jobs Dashboard - India</title>
+    <title>Beyond Career - Consulting Jobs India</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <div class="logo-icon">💼</div>
-                    <div>
-                        <h1>Consulting Jobs</h1>
-                        <p class="subtitle">India Dashboard</p>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <button id="refreshBtn" class="btn btn-outline" title="Refresh data (Press 'r')" aria-label="Refresh data">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                            <path d="M3 3v5h5"></path>
-                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
-                            <path d="M16 21h5v-5"></path>
-                        </svg>
-                        <span>Refresh</span>
-                    </button>
-                    <a href="/about" class="btn btn-outline" aria-label="About this dashboard">
-                        <span>About</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalJobs">-</div>
-                    <div class="stat-label">Total Jobs</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalCities">-</div>
-                    <div class="stat-label">Cities</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalCompanies">-</div>
-                    <div class="stat-label">Companies</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="lastUpdated">-</div>
-                    <div class="stat-label">Last Updated</div>
-                </div>
-            </div>
+    <!-- Tailwind Config -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface-variant": "#bdcac0",
+                        "on-primary": "#003824",
+                        "primary-fixed-dim": "#73daa9",
+                        "inverse-primary": "#006c49",
+                        "surface-container": "#1f1f1f",
+                        "on-primary-fixed-variant": "#005236",
+                        "surface": "#131313",
+                        "on-secondary-container": "#afb9cb",
+                        "error": "#ffb4ab",
+                        "secondary": "#bdc7d9",
+                        "surface-container-low": "#1b1b1b",
+                        "outline": "#87948b",
+                        "outline-variant": "#3e4942",
+                        "surface-tint": "#73daa9",
+                        "inverse-on-surface": "#303030",
+                        "surface-variant": "#353535",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-highest": "#353535",
+                        "on-secondary-fixed": "#121c2a",
+                        "surface-dim": "#131313",
+                        "on-secondary": "#27313f",
+                        "on-background": "#e2e2e2",
+                        "surface-container-high": "#2a2a2a",
+                        "on-primary-container": "#e7ffef",
+                        "primary-container": "#008359",
+                        "secondary-fixed-dim": "#bdc7d9",
+                        "on-error": "#690005",
+                        "background": "#131313",
+                        "inverse-surface": "#e2e2e2",
+                        "on-primary-fixed": "#002113",
+                        "primary": "#73daa9",
+                        "on-secondary-fixed-variant": "#3d4756",
+                        "secondary-container": "#404a59",
+                        "surface-bright": "#393939",
+                        "primary-fixed": "#90f7c4",
+                        "secondary-fixed": "#d9e3f6",
+                        "on-error-container": "#ffdad6",
+                        "on-surface": "#e2e2e2"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            background-color: #000000; 
+            color: #e2e2e2; 
+        }
+        .material-symbols-outlined { 
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; 
+        }
+        .inner-glow { 
+            border-top: 1px solid rgba(62, 73, 66, 0.2); 
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353535;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e4942;
+        }
+    </style>
+</head>
+<body class="font-body selection:bg-primary/30">
+    <!-- Top Navigation Bar -->
+    <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4">
+        <div class="text-2xl font-bold tracking-tighter text-emerald-500 font-headline">Beyond Career</div>
+        
+        <div class="hidden md:flex items-center space-x-8 font-manrope tracking-tight">
+            <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1" href="#">Jobs</a>
+            <a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="/about">About</a>
         </div>
-    </div>
+        
+        <div class="flex items-center gap-6">
+            <div class="relative hidden lg:block">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+                <input 
+                    class="bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/30 w-64 transition-all" 
+                    placeholder="Search opportunities..." 
+                    type="text"
+                    id="searchInput"
+                />
+            </div>
+            <button id="refreshBtn" class="bg-surface-container-highest text-on-surface px-4 py-2 rounded-lg font-semibold hover:bg-surface-bright transition-all active:scale-95" title="Refresh">
+                <span class="material-symbols-outlined text-sm">refresh</span>
+            </button>
+        </div>
+    </nav>
 
     <!-- Main Content -->
-    <main class="main">
-        <div class="container">
-            <!-- Search and Filters -->
-            <div class="filters-section">
-                <div class="search-box">
-                    <span class="search-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
-                    </span>
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="Search by job title, company, or keywords... (Press / to focus)"
-                        class="search-input"
-                        autocomplete="off"
-                        aria-label="Search jobs"
-                    >
-                    <button class="search-clear" aria-label="Clear search" title="Clear search">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label for="cityFilter">City</label>
-                        <select id="cityFilter" class="filter-select" aria-label="Filter by city">
-                            <option value="">All Cities</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="typeFilter">Employment Type</label>
-                        <select id="typeFilter" class="filter-select" aria-label="Filter by employment type">
-                            <option value="">All Types</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button id="applyFilters" class="btn btn-primary">Apply</button>
-                        <button id="clearFilters" class="btn btn-outline">Clear</button>
-                    </div>
+    <main class="pt-28 pb-32 px-6 md:px-12 max-w-7xl mx-auto">
+        <!-- Header & Stats Bento -->
+        <header class="mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Welcome Message -->
+                <div class="lg:col-span-2 flex flex-col justify-end p-8 rounded-2xl bg-surface-container-low inner-glow relative overflow-hidden h-[240px]">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+                    <h1 class="text-4xl md:text-5xl font-extrabold font-headline tracking-tighter mb-2">
+                        Find your next <span class="text-primary">high-impact</span> role.
+                    </h1>
+                    <p class="text-on-surface-variant max-w-md">
+                        Precision-engineered career opportunities for elite consultants and architects.
+                    </p>
                 </div>
                 
-                <!-- Active Filter Chips -->
-                <div class="filter-chips" id="filterChips"></div>
-            </div>
-
-            <!-- Results Info -->
-            <div class="results-info">
-                <span id="resultsCount">Loading jobs...</span>
-                <div class="auto-refresh-indicator" id="autoRefreshIndicator">
-                    <span class="pulse"></span>
-                    <span>Auto-refresh in <span id="refreshCountdown">60</span>s</span>
+                <!-- Metrics Column -->
+                <div class="grid grid-rows-3 gap-4">
+                    <div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+                        <span class="text-sm font-label uppercase tracking-widest text-outline">Open Jobs</span>
+                        <span class="text-2xl font-bold font-headline text-primary" id="totalJobs">-</span>
+                    </div>
+                    <div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+                        <span class="text-sm font-label uppercase tracking-widest text-outline">Cities</span>
+                        <span class="text-2xl font-bold font-headline text-primary" id="totalCities">-</span>
+                    </div>
+                    <div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+                        <span class="text-sm font-label uppercase tracking-widest text-outline">Companies</span>
+                        <span class="text-2xl font-bold font-headline text-primary" id="totalCompanies">-</span>
+                    </div>
                 </div>
             </div>
+        </header>
 
-            <!-- Jobs Grid -->
-            <div id="jobsGrid" class="jobs-grid">
-                <!-- Loading State -->
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p>Loading jobs...</p>
-                </div>
+        <!-- Filters Row -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
+            <div class="flex items-center gap-3">
+                <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors" id="cityFilterBtn">
+                    <span class="material-symbols-outlined text-sm">location_on</span>
+                    City
+                </button>
+                <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors" id="typeFilterBtn">
+                    <span class="material-symbols-outlined text-sm">work</span>
+                    Job Type
+                </button>
             </div>
-
-            <!-- Pagination -->
-            <div id="pagination" class="pagination">
-                <!-- Pagination will be rendered here -->
-            </div>
+            <div class="text-sm text-outline" id="resultsCount">Loading...</div>
         </div>
+
+        <!-- Job Grid: Asymmetric/Editorial Layout -->
+        <div id="jobsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Loading State -->
+            <div class="skeleton-card rounded-3xl bg-surface-container inner-glow p-6 min-h-[280px] animate-pulse"></div>
+            <div class="skeleton-card rounded-3xl bg-surface-container inner-glow p-6 min-h-[280px] animate-pulse"></div>
+            <div class="skeleton-card rounded-3xl bg-surface-container inner-glow p-6 min-h-[280px] animate-pulse"></div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="flex justify-center items-center gap-2 mt-12"></div>
     </main>
 
+    <!-- Bottom Navigation (Mobile only) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-neutral-950/80 backdrop-blur-2xl shadow-[0_-12px_32px_rgba(0,0,0,0.5)] flex justify-around items-center px-6 pb-6 pt-3 z-50 rounded-t-2xl">
+        <a class="flex flex-col items-center justify-center bg-emerald-950/50 text-emerald-400 rounded-xl p-2 active:scale-90 transition-transform" href="#">
+            <span class="material-symbols-outlined">home</span>
+            <span class="font-inter text-[10px] uppercase tracking-widest mt-1">Home</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="#">
+            <span class="material-symbols-outlined">bookmark</span>
+            <span class="font-inter text-[10px] uppercase tracking-widest mt-1">Saved</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="#">
+            <span class="material-symbols-outlined">assignment_turned_in</span>
+            <span class="font-inter text-[10px] uppercase tracking-widest mt-1">Applied</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="/about">
+            <span class="material-symbols-outlined">person</span>
+            <span class="font-inter text-[10px] uppercase tracking-widest mt-1">About</span>
+        </a>
+    </nav>
+
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>Consulting Jobs Dashboard - India | Data sourced from LinkedIn</p>
-            <p class="footer-note">Jobs are updated automatically every 60 seconds</p>
+    <footer class="w-full py-12 bg-neutral-950 border-t border-emerald-900/20">
+        <div class="flex flex-col md:flex-row justify-between items-center px-12 gap-6 max-w-7xl mx-auto">
+            <div class="flex flex-col items-center md:items-start gap-2">
+                <div class="text-lg font-bold text-emerald-500 font-headline">Beyond Career</div>
+                <p class="font-inter text-sm text-neutral-500 text-center md:text-left">
+                    © 2024 Beyond Career. Precision-engineered for consultants.
+                </p>
+            </div>
+            <div class="flex gap-8">
+                <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="/about">About</a>
+                <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy</a>
+                <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms</a>
+            </div>
         </div>
     </footer>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="toast"></div>
 
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>

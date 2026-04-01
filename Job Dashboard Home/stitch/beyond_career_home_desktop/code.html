@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface-variant": "#bdcac0",
+              "on-primary": "#003824",
+              "tertiary-container": "#b45651",
+              "primary-fixed-dim": "#73daa9",
+              "inverse-primary": "#006c49",
+              "surface-container": "#1f1f1f",
+              "on-primary-fixed-variant": "#005236",
+              "surface": "#131313",
+              "on-secondary-container": "#afb9cb",
+              "error": "#ffb4ab",
+              "secondary": "#bdc7d9",
+              "surface-container-low": "#1b1b1b",
+              "outline": "#87948b",
+              "outline-variant": "#3e4942",
+              "on-tertiary-fixed-variant": "#7c2c29",
+              "surface-tint": "#73daa9",
+              "inverse-on-surface": "#303030",
+              "on-tertiary": "#5e1515",
+              "surface-variant": "#353535",
+              "error-container": "#93000a",
+              "surface-container-lowest": "#0e0e0e",
+              "surface-container-highest": "#353535",
+              "on-secondary-fixed": "#121c2a",
+              "surface-dim": "#131313",
+              "on-secondary": "#27313f",
+              "on-tertiary-container": "#fff8f6",
+              "on-background": "#e2e2e2",
+              "surface-container-high": "#2a2a2a",
+              "on-primary-container": "#e7ffef",
+              "primary-container": "#008359",
+              "secondary-fixed-dim": "#bdc7d9",
+              "tertiary": "#ffb3ae",
+              "on-error": "#690005",
+              "background": "#131313",
+              "inverse-surface": "#e2e2e2",
+              "on-primary-fixed": "#002113",
+              "primary": "#73daa9",
+              "on-secondary-fixed-variant": "#3d4756",
+              "tertiary-fixed-dim": "#ffb3ae",
+              "secondary-container": "#404a59",
+              "surface-bright": "#393939",
+              "primary-fixed": "#90f7c4",
+              "secondary-fixed": "#d9e3f6",
+              "on-error-container": "#ffdad6",
+              "on-tertiary-fixed": "#400104",
+              "on-surface": "#e2e2e2",
+              "tertiary-fixed": "#ffdad7"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #000000; color: #e2e2e2; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .tonal-transition { background: linear-gradient(180deg, rgba(19,19,19,1) 0%, rgba(27,27,27,1) 100%); }
+        .glass-card { backdrop-filter: blur(24px); background: rgba(53, 53, 53, 0.4); }
+        .inner-glow { border-top: 1px solid rgba(62, 73, 66, 0.2); }
+    </style>
+</head>
+<body class="font-body selection:bg-primary/30">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 max-w-full mx-auto">
+<div class="text-2xl font-bold tracking-tighter text-emerald-500 font-headline">Beyond Career</div>
+<div class="hidden md:flex items-center space-x-8 font-manrope tracking-tight">
+<a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1" href="#">Jobs</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Companies</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Analytics</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Resources</a>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/30 w-64 transition-all" placeholder="Search opportunities..." type="text"/>
+</div>
+<button class="bg-primary-container text-on-primary-container px-5 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all active:scale-95 duration-200">
+                Post a Job
+            </button>
+</div>
+</nav>
+<main class="pt-28 pb-32 px-6 md:px-12 max-w-7xl mx-auto">
+<!-- Header & Stats Bento -->
+<header class="mb-12">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Welcome Message -->
+<div class="lg:col-span-2 flex flex-col justify-end p-8 rounded-2xl bg-surface-container-low inner-glow relative overflow-hidden h-[240px]">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+<h1 class="text-4xl md:text-5xl font-extrabold font-headline tracking-tighter mb-2">Find your next <span class="text-primary">high-impact</span> role.</h1>
+<p class="text-on-surface-variant max-w-md">Precision-engineered career opportunities for elite consultants and architects.</p>
+</div>
+<!-- Metrics Column -->
+<div class="grid grid-rows-3 gap-4">
+<div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+<span class="text-sm font-label uppercase tracking-widest text-outline">Open Jobs</span>
+<span class="text-2xl font-bold font-headline text-primary">1,284</span>
+</div>
+<div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+<span class="text-sm font-label uppercase tracking-widest text-outline">Top Cities</span>
+<span class="text-2xl font-bold font-headline text-primary">42</span>
+</div>
+<div class="flex items-center justify-between p-5 rounded-xl bg-surface-container-high inner-glow">
+<span class="text-sm font-label uppercase tracking-widest text-outline">Partner Companies</span>
+<span class="text-2xl font-bold font-headline text-primary">156</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Filters Row -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-10">
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-sm">location_on</span> City
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-sm">work</span> Job Type
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-sm">payments</span> Salary Range
+                </button>
+</div>
+<div class="text-sm text-outline">Showing 128 results</div>
+</div>
+<!-- Job Grid: Asymmetric/Editorial Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Job Card 1 (Featured) -->
+<div class="lg:col-span-2 group relative p-8 rounded-3xl bg-surface-container-high inner-glow transition-all hover:translate-y-[-4px] duration-300">
+<div class="flex flex-col md:flex-row justify-between items-start gap-6">
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-4">
+<span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">Featured</span>
+<span class="text-outline text-xs">2 hours ago</span>
+</div>
+<h3 class="text-3xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">Senior Strategy Consultant</h3>
+<p class="text-on-surface-variant text-lg mb-6">McKinsey &amp; Company</p>
+<div class="flex flex-wrap gap-6 text-sm text-on-surface/80">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">location_on</span> New York, NY
+                            </div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">schedule</span> Full-time
+                            </div>
+<div class="flex items-center gap-2 font-semibold text-primary">
+<span class="material-symbols-outlined text-base">payments</span> $180k - $240k
+                            </div>
+</div>
+</div>
+<div class="w-full md:w-auto flex flex-col gap-4">
+<img class="w-20 h-20 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="modern glass architectural building reflecting a clear blue sky with sharp geometric lines and high contrast" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX4lo3Q7ZWb2iu-LzgZuIq9Sek5-lD6uLE5Yw5D2vRCVyxoXEBsZfgOuB-Mq8msZFCQtUbtTAOugyd9OL4miZ-EXEfLsuMxUY1jwbbKKO4BHmKAgz63ExYHfORAS1MHfAhA_HAYIl6Sb-MgGGMSNhn48iT_Bgijin0X9rIIzQGB5MA2-CZP6a-KdjS0wjPK41H3rRookEVcBuomoVUgOFmS7k7yFDPNT48_OcMuumoyqbeF5iaVZib-j5GVL6oZU6HUAV8u_WUF34g"/>
+<button class="w-full bg-primary-container text-on-primary-container py-3 px-6 rounded-xl font-bold hover:bg-primary transition-colors">View Details</button>
+</div>
+</div>
+</div>
+<!-- Job Card 2 -->
+<div class="group p-6 rounded-3xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] duration-300">
+<div class="mb-6">
+<img class="w-full h-40 rounded-2xl object-cover mb-6 grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="interior of a luxury high-end office with minimalist furniture and warm lighting accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDb12xPxt4k46G_f31VoxKrtwjmKNm1e0jikTDbRG9tcGUOZi09_kzzVV24BST3WUDGGINKdfZHyF_Mq53o5WxlcTnsGT9pg0wbI6TtUdJs1EhU8Jtera6gQ8liAS_9EENVD0L4z8J1Q4AL9YWteXwf-9v6UuDhKT8ce4YJhMeWlmkvr3t7-mBV_aqHEpV6nU65k-f51QyZyxjrbmwxhQPtn225TpOAcVCC3bN9gHGHZK39sMXUnm7FUv6IeVs74iAI-__dgacyelD"/>
+<div class="flex items-center gap-2 mb-3">
+<span class="text-outline text-xs">Remote</span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+<span class="text-outline text-xs">Posted 1d ago</span>
+</div>
+<h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">Principal UX Architect</h3>
+<p class="text-on-surface-variant text-sm mb-4">Design Systems Inc.</p>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-primary font-bold">$165k+</span>
+<button class="p-2 rounded-full border border-outline/20 hover:bg-primary/10 hover:border-primary/40 transition-all">
+<span class="material-symbols-outlined text-primary">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Job Card 3 -->
+<div class="group p-6 rounded-3xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] duration-300">
+<div class="mb-6 flex justify-between">
+<div>
+<h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">Operations Director</h3>
+<p class="text-on-surface-variant text-sm">Logistics Global</p>
+</div>
+<div class="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-outline">apartment</span>
+</div>
+</div>
+<div class="space-y-3 mb-8">
+<div class="flex items-center gap-2 text-sm text-on-surface/60">
+<span class="material-symbols-outlined text-xs">location_on</span> London, UK
+                    </div>
+<div class="flex items-center gap-2 text-sm text-on-surface/60">
+<span class="material-symbols-outlined text-xs">payments</span> £120k - £150k
+                    </div>
+</div>
+<button class="w-full py-3 rounded-xl border border-primary/20 text-primary font-semibold group-hover:bg-primary-container group-hover:text-on-primary-container transition-all">View Details</button>
+</div>
+<!-- Job Card 4 -->
+<div class="group p-6 rounded-3xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] duration-300">
+<div class="mb-6 flex justify-between">
+<div>
+<h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">AI Product Manager</h3>
+<p class="text-on-surface-variant text-sm">Neural Core</p>
+</div>
+<div class="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-outline">neurology</span>
+</div>
+</div>
+<div class="space-y-3 mb-8">
+<div class="flex items-center gap-2 text-sm text-on-surface/60">
+<span class="material-symbols-outlined text-xs">location_on</span> San Francisco, CA
+                    </div>
+<div class="flex items-center gap-2 text-sm text-on-surface/60 text-primary font-medium">
+<span class="material-symbols-outlined text-xs">payments</span> $210k + Equity
+                    </div>
+</div>
+<button class="w-full py-3 rounded-xl border border-primary/20 text-primary font-semibold group-hover:bg-primary-container group-hover:text-on-primary-container transition-all">View Details</button>
+</div>
+<!-- Job Card 5 (Horizontal Asymmetry) -->
+<div class="lg:col-span-2 group p-6 rounded-3xl bg-surface-container-high inner-glow transition-all hover:translate-y-[-4px] duration-300 flex flex-col md:flex-row gap-6">
+<div class="md:w-1/3 h-full min-h-[160px] rounded-2xl overflow-hidden relative">
+<img class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" data-alt="overhead view of a team collaborating around a dark table with laptops and documents in a moody workspace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqDGXGYzUpH8SwPs0UvfW_K-IRbYDVeFllDvTYsy3uy7-KOhzjyVDWsZR7dcl2-gsuigbBpjHrvszDtvmloZBunkrDHu5_J6pcs5lrOOu4gPK9M1j2vujKiq281d-TkxxkAxhKLB5eccSKCraJKC6CUlqnTjkB77LeEvl2rsW8VqVFhSsnayD0u2N3fWwgI7VvvrY_lu3Zrp5E48LgsD5kkI6rmxwnJnkrNJMAZIpyINxEYfLzHJCon7eUgBfCDZbTtnJIsYxTAoZ6"/>
+<div class="absolute inset-0 bg-gradient-to-t from-neutral-950/80 to-transparent"></div>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<h3 class="text-2xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">Lead Data Scientist</h3>
+<p class="text-on-surface-variant mb-4">Quant Solutions</p>
+<p class="text-sm text-on-surface/60 line-clamp-2 mb-6">Architect large-scale machine learning pipelines for high-frequency trading platforms. Requires PhD or equivalent experience.</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex gap-4">
+<span class="text-xs px-3 py-1 rounded-full bg-surface-variant text-outline">Hybrid</span>
+<span class="text-xs px-3 py-1 rounded-full bg-surface-variant text-outline">Full-time</span>
+</div>
+<button class="text-primary font-bold flex items-center gap-2 text-sm group-hover:underline">
+                            View Details <span class="material-symbols-outlined text-sm">arrow_outward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-neutral-950/80 backdrop-blur-2xl shadow-[0_-12px_32px_rgba(0,0,0,0.5)] flex justify-around items-center px-6 pb-6 pt-3 z-50 rounded-t-2xl">
+<a class="flex flex-col items-center justify-center bg-emerald-950/50 text-emerald-400 rounded-xl p-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-inter text-[10px] uppercase tracking-widest mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">bookmark</span>
+<span class="font-inter text-[10px] uppercase tracking-widest mt-1">Saved</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">assignment_turned_in</span>
+<span class="font-inter text-[10px] uppercase tracking-widest mt-1">Applied</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-inter text-[10px] uppercase tracking-widest mt-1">Profile</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-12 bg-neutral-950 border-t border-emerald-900/20">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 gap-6 max-w-7xl mx-auto">
+<div class="flex flex-col items-center md:items-start gap-2">
+<div class="text-lg font-bold text-emerald-500 font-headline">Beyond Career</div>
+<p class="font-inter text-sm text-neutral-500 text-center md:text-left">© 2024 Beyond Career. Precision-engineered for consultants.</p>
+</div>
+<div class="flex gap-8">
+<a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy Policy</a>
+<a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms of Service</a>
+<a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

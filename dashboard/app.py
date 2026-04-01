@@ -45,7 +45,19 @@ def index():
 @app.route('/job/<job_id>')
 def job_detail(job_id):
     """Job detail page."""
-    return render_template('job_detail.html', job_id=job_id)
+    try:
+        # Fetch job data
+        job = fetcher.get_job_by_id(job_id)
+        
+        if not job:
+            # If job not found, redirect to home
+            return redirect(url_for('index'))
+        
+        return render_template('job_detail.html', job=job)
+    except Exception as e:
+        # If error, redirect to home with error message
+        print(f"Error loading job {job_id}: {e}")
+        return redirect(url_for('index'))
 
 
 @app.route('/about')

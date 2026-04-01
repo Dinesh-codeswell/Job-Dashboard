@@ -47,13 +47,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializeDashboard() {
     try {
-        // Load initial data in parallel
-        await Promise.all([
-            loadStats(),
-            loadCities(),
-            loadEmploymentTypes(),
-            loadJobs()
-        ]);
+        // Load initial data - handle errors individually to prevent complete failure
+        const loadPromises = [
+            loadStats().catch(err => console.warn('Stats load failed:', err)),
+            loadCities().catch(err => console.warn('Cities load failed:', err)),
+            loadEmploymentTypes().catch(err => console.warn('Employment types load failed:', err)),
+            loadJobs().catch(err => {
+                console.error('Jobs load failed:', err);
+                throw err; // Jobs are critical, so re-throw
+            })
+        ];
+        
+        await Promise.all(loadPromises);
 
         // Setup event listeners
         setupEventListeners();
@@ -67,7 +72,10 @@ async function initializeDashboard() {
         console.log('✅ Dashboard initialized');
     } catch (error) {
         console.error('❌ Dashboard initialization failed:', error);
-        showError('Failed to initialize dashboard. Please refresh the page.');
+        // Only show error if jobs failed to load
+        if (!Dashboard.jobs || Dashboard.jobs.length === 0) {
+            showError('Failed to load jobs. Please try again.');
+        }
     }
 }
 
@@ -151,19 +159,19 @@ async function loadJobs(page = 1) {
         console.log('Already loading, skipping...');
         return;
     }
-    
+
     try {
         Dashboard.isLoading = true;
         showSkeletonLoading();
         showLoadingProgress();
 
         console.log('Loading jobs:', { page, limit: Dashboard.limit, filters: Dashboard.filters });
-        
+
         const response = await API.getJobs(page, Dashboard.limit, Dashboard.filters);
-        
+
         console.log('Jobs response:', response);
 
-        if (response.success || response.jobs) {
+        if (response.success || (response.jobs && response.jobs.length >= 0)) {
             Dashboard.jobs = response.jobs || [];
             Dashboard.currentPage = response.pagination?.page || page;
             Dashboard.totalPages = response.pagination?.total_pages || 1;
@@ -171,13 +179,25 @@ async function loadJobs(page = 1) {
             renderJobs();
             renderPagination();
             updateResultsCount(response.pagination?.total || 0);
+            
+            // Hide error if previously shown
+            const errorEl = document.querySelector('.error-state');
+            if (errorEl && Dashboard.jobs.length > 0) {
+                errorEl.remove();
+            }
         } else {
             console.error('API returned unsuccessful response:', response);
-            showError('Failed to load jobs: ' + (response.error || 'Unknown error'));
+            // Don't show error immediately, might be temporary
+            if (Dashboard.jobs.length === 0) {
+                showSkeletonLoading(); // Keep showing skeletons
+            }
         }
     } catch (error) {
         console.error('Error loading jobs:', error);
-        showError('Failed to load jobs: ' + error.message);
+        // Only show error if we have no jobs at all
+        if (Dashboard.jobs.length === 0) {
+            showError('Failed to load jobs. Please try again.');
+        }
     } finally {
         Dashboard.isLoading = false;
         setTimeout(hideLoadingProgress, 500);
@@ -271,51 +291,72 @@ function createJobCard(job, index = 0) {
     const location = Utils.escapeHtml(job.location || 'Location');
     const type = Utils.escapeHtml(job.employment_type || 'Full-time');
     const posted = Utils.formatRelativeTime(job.posted_date);
-    const city = Utils.escapeHtml(job.search_city || '');
     const isNew = isNewJob(job.posted_date);
     
     // Encode job ID properly for URL
     const jobId = encodeURIComponent(job.id || job.linkedin_url);
+    
+    // First job is featured (spans 2 columns)
+    const isFeatured = index === 0;
 
-    return `
-        <article class="job-card ${isNew ? 'new-job' : ''}" 
-                 data-index="${index}" 
-                 data-new="${isNew}"
-                 onclick="navigateToJob('${jobId}')"
-                 tabindex="0"
-                 role="button"
-                 aria-label="View ${title} position at ${company}">
-            <div class="job-card-header">
-                <div>
-                    <h3 class="job-card-title">${title}</h3>
-                    <p class="job-card-company">${company}</p>
+    if (isFeatured) {
+        // Featured card layout (lg:col-span-2)
+        return `
+            <div class="group relative p-8 rounded-3xl bg-surface-container-high inner-glow transition-all hover:translate-y-[-4px] duration-300 lg:col-span-2" onclick="navigateToJob('${jobId}')">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">Featured</span>
+                            <span class="text-outline text-xs">${posted}</span>
+                        </div>
+                        <h3 class="text-3xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">${title}</h3>
+                        <p class="text-on-surface-variant text-lg mb-6">${company}</p>
+                        <div class="flex flex-wrap gap-6 text-sm text-on-surface/80">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-base">location_on</span>
+                                ${location}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-base">schedule</span>
+                                ${type}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-auto flex flex-col gap-4">
+                        <button class="w-full bg-primary-container text-on-primary-container py-3 px-6 rounded-xl font-bold hover:bg-primary transition-colors" onclick="event.stopPropagation(); navigateToJob('${jobId}')">
+                            View Details
+                        </button>
+                    </div>
                 </div>
-                ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}
             </div>
-
-            <div class="job-card-badges">
-                <span class="badge badge-type" role="status">${type}</span>
-                <span class="badge badge-location" role="status">${city || location}</span>
-            </div>
-
-            <div class="job-card-meta">
-                <div class="meta-item">
-                    <span class="meta-icon">⏰</span>
-                    <span>${posted}</span>
+        `;
+    } else {
+        // Standard card layout
+        return `
+            <div class="group p-6 rounded-3xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] duration-300" onclick="navigateToJob('${jobId}')">
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-outline text-xs">${type}</span>
+                        <span class="w-1 h-1 bg-outline rounded-full"></span>
+                        <span class="text-outline text-xs">${posted}</span>
+                    </div>
+                    <h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">${title}</h3>
+                    <p class="text-on-surface-variant text-sm mb-4">${company}</p>
                 </div>
-                <div class="meta-item">
-                    <span class="meta-icon">📍</span>
-                    <span>${location}</span>
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center gap-2 text-sm text-on-surface/60">
+                        <span class="material-symbols-outlined text-xs">location_on</span>
+                        ${location}
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                    <button class="w-full py-3 rounded-xl border border-primary/20 text-primary font-semibold group-hover:bg-primary-container group-hover:text-on-primary-container transition-all" onclick="event.stopPropagation(); navigateToJob('${jobId}')">
+                        View Details
+                    </button>
                 </div>
             </div>
-
-            <div class="job-card-footer">
-                <button class="view-job-btn" onclick="event.stopPropagation(); navigateToJob('${jobId}')">
-                    View Details →
-                </button>
-            </div>
-        </article>
-    `;
+        `;
+    }
 }
 
 function isNewJob(postedDate) {

@@ -1,231 +1,324 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Details - Consulting Jobs Dashboard</title>
+    <title>{{ job['Job Title'] }} at {{ job['Company'] }} | Beyond Career</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface-variant": "#bdcac0",
+                        "on-primary": "#003824",
+                        "primary-fixed-dim": "#73daa9",
+                        "inverse-primary": "#006c49",
+                        "surface-container": "#1f1f1f",
+                        "on-primary-fixed-variant": "#005236",
+                        "surface": "#131313",
+                        "on-secondary-container": "#afb9cb",
+                        "error": "#ffb4ab",
+                        "secondary": "#bdc7d9",
+                        "surface-container-low": "#1b1b1b",
+                        "outline": "#87948b",
+                        "outline-variant": "#3e4942",
+                        "surface-tint": "#73daa9",
+                        "inverse-on-surface": "#303030",
+                        "surface-variant": "#353535",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-highest": "#353535",
+                        "on-secondary-fixed": "#121c2a",
+                        "surface-dim": "#131313",
+                        "on-secondary": "#27313f",
+                        "on-background": "#e2e2e2",
+                        "surface-container-high": "#2a2a2a",
+                        "on-primary-container": "#e7ffef",
+                        "primary-container": "#008359",
+                        "secondary-fixed-dim": "#bdc7d9",
+                        "on-error": "#690005",
+                        "background": "#131313",
+                        "inverse-surface": "#e2e2e2",
+                        "on-primary-fixed": "#002113",
+                        "primary": "#73daa9",
+                        "on-secondary-fixed-variant": "#3d4756",
+                        "secondary-container": "#404a59",
+                        "surface-bright": "#393939",
+                        "primary-fixed": "#90f7c4",
+                        "secondary-fixed": "#d9e3f6",
+                        "on-error-container": "#ffdad6",
+                        "on-surface": "#e2e2e2"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            background-color: #131313; 
+            color: #e2e2e2; 
+        }
+        .material-symbols-outlined { 
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; 
+        }
+        .inner-glow { 
+            border-top: 1px solid rgba(62, 73, 66, 0.2); 
+        }
+        .glass-panel {
+            background: rgba(53, 53, 53, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
 </head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <a href="/" class="back-link">
-                    <span class="icon">←</span>
-                    <span>Back to Dashboard</span>
-                </a>
-                <div class="header-actions">
-                    <button id="shareBtn" class="btn btn-outline" title="Share job">
-                        <span class="icon">↗</span>
-                        <span>Share</span>
-                    </button>
-                </div>
-            </div>
+<body class="font-body selection:bg-primary selection:text-on-primary">
+    <!-- Top Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 font-manrope tracking-tight">
+        <div class="text-2xl font-bold tracking-tighter text-emerald-500">Beyond Career</div>
+        
+        <div class="hidden md:flex items-center gap-8">
+            <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1 hover:text-emerald-300 transition-colors duration-300" href="/">Jobs</a>
+            <a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="/about">About</a>
         </div>
-    </header>
+        
+        <div class="flex items-center gap-6">
+            <div class="hidden lg:block relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">search</span>
+                <input class="bg-surface-container-highest border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/30 w-64" placeholder="Search..." type="text"/>
+            </div>
+            <a href="{{ job['Job URL'] }}" target="_blank" class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all duration-300 active:scale-95">
+                Apply Now
+            </a>
+        </div>
+    </nav>
 
     <!-- Main Content -->
-    <main class="main">
-        <div class="container">
-            <!-- Job Detail Loading -->
-            <div id="jobDetailContainer">
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p>Loading job details...</p>
+    <main class="pt-32 pb-24 px-8 max-w-7xl mx-auto">
+        <!-- Back Button -->
+        <button onclick="window.history.back()" class="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-12">
+            <span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+            <span class="font-medium">Back to Jobs</span>
+        </button>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            <!-- Left Column: Primary Content (8 cols) -->
+            <div class="lg:col-span-8">
+                <!-- Job Header -->
+                <header class="mb-12">
+                    <div class="flex flex-wrap gap-3 mb-6">
+                        {% if 'Remote' in job['Location'] %}
+                        <span class="px-3 py-1 rounded-full bg-emerald-950/30 text-primary text-xs font-bold tracking-widest uppercase border border-primary/20">Remote</span>
+                        {% endif %}
+                        <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">{{ job['Employment Type'] or 'Full-Time' }}</span>
+                        <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">Consulting</span>
+                    </div>
+                    
+                    <h1 class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4 text-on-surface leading-tight">
+                        {{ job['Job Title'] }}
+                    </h1>
+                    
+                    <div class="flex items-center gap-4 text-xl text-on-surface-variant font-medium">
+                        <p>{{ job['Company'] }}</p>
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                        <p>{{ job['Location'] }}</p>
+                    </div>
+                </header>
+
+                <!-- Featured Image / Visual Break -->
+                <div class="mb-12 relative h-80 rounded-2xl overflow-hidden">
+                    <img 
+                        class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" 
+                        src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&h=400" 
+                        alt="Office interior"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+                </div>
+
+                <!-- Main Details -->
+                <div class="space-y-16">
+                    <!-- About the Role -->
+                    <section>
+                        <h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
+                            <span class="w-8 h-1 bg-primary"></span>
+                            About the Role
+                        </h2>
+                        <div class="space-y-4 text-on-surface-variant leading-relaxed text-lg font-light">
+                            <p>{{ job['Job Description'] or 'Join our team as a ' + job['Job Title'] + ' at ' + job['Company'] + '. This is an exciting opportunity to work on challenging projects and make a real impact.' }}</p>
+                            <p>We're looking for an exceptional professional who is passionate about delivering breakthrough results. You'll work with a talented team on complex problems facing leading organizations.</p>
+                        </div>
+                    </section>
+
+                    <!-- Key Requirements -->
+                    <section>
+                        <h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
+                            <span class="w-8 h-1 bg-primary"></span>
+                            Key Requirements
+                        </h2>
+                        <ul class="space-y-6">
+                            <li class="flex items-start gap-4">
+                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                <div class="text-lg text-on-surface-variant">
+                                    <strong class="text-on-surface">Experience:</strong> 
+                                    Minimum 3+ years of relevant experience in consulting or related field.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                <div class="text-lg text-on-surface-variant">
+                                    <strong class="text-on-surface">Education:</strong> 
+                                    Bachelor's or Master's degree from a top-tier institution.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                <div class="text-lg text-on-surface-variant">
+                                    <strong class="text-on-surface">Skills:</strong> 
+                                    Strong analytical, problem-solving, and communication skills.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                <div class="text-lg text-on-surface-variant">
+                                    <strong class="text-on-surface">Leadership:</strong> 
+                                    Proven ability to lead workstreams and manage client relationships.
+                                </div>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Bento Section: Perks -->
+                    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+                            <span class="material-symbols-outlined text-primary mb-4">payments</span>
+                            <h3 class="font-headline font-bold mb-2">Compensation</h3>
+                            <p class="text-sm text-on-surface-variant">Highly competitive base + performance-based bonus structures.</p>
+                        </div>
+                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+                            <span class="material-symbols-outlined text-primary mb-4">flight</span>
+                            <h3 class="font-headline font-bold mb-2">Global Mobility</h3>
+                            <p class="text-sm text-on-surface-variant">Opportunities for international projects and secondments.</p>
+                        </div>
+                        <div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+                            <span class="material-symbols-outlined text-primary mb-4">psychology</span>
+                            <h3 class="font-headline font-bold mb-2">Learning</h3>
+                            <p class="text-sm text-on-surface-variant">World-class training programs and mentorship opportunities.</p>
+                        </div>
+                    </section>
                 </div>
             </div>
+
+            <!-- Right Column: Sidebar (4 cols) -->
+            <aside class="lg:col-span-4 sticky top-32 space-y-8">
+                <!-- Action Card -->
+                <div class="bg-surface-container-high p-8 rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] border-t border-outline-variant/20">
+                    <a href="{{ job['Job URL'] }}" target="_blank" class="w-full py-4 rounded-lg bg-gradient-to-br from-primary-container to-primary text-on-primary-container font-headline font-extrabold text-lg shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 mb-6 inline-block text-center">
+                        Apply Now
+                    </a>
+                    <button class="w-full py-4 rounded-lg border border-outline-variant/30 text-on-surface font-headline font-bold hover:bg-surface-variant/30 transition-all mb-8">
+                        Save for Later
+                    </button>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-on-surface-variant">Posted on</span>
+                            <span class="text-on-surface font-medium">{{ job['Posted'] or 'Recently' }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-on-surface-variant">Location</span>
+                            <span class="text-on-surface font-medium">{{ job['Location'] }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-on-surface-variant">Role Type</span>
+                            <span class="text-on-surface font-medium">{{ job['Employment Type'] or 'Full-time' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company Info Card -->
+                <div class="bg-surface-container-low p-8 rounded-2xl">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-16 h-16 rounded-xl bg-white flex items-center justify-center p-2">
+                            <img alt="{{ job['Company'] }} Logo" class="w-full h-auto" src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=200&h=200"/>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-headline font-bold text-on-surface">{{ job['Company'] }}</h3>
+                            <p class="text-sm text-primary">Consulting</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-primary/60">groups</span>
+                            <div>
+                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Size</p>
+                                <p class="text-on-surface font-medium">1,000+ Employees</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-primary/60">language</span>
+                            <div>
+                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Industry</p>
+                                <p class="text-on-surface font-medium">Management Consulting</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-primary/60">location_on</span>
+                            <div>
+                                <p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Headquarters</p>
+                                <p class="text-on-surface font-medium">{{ job['Location'] }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 pt-8 border-t border-outline-variant/10">
+                        <a href="{{ job['Job URL'] }}" target="_blank" class="inline-flex items-center gap-2 text-primary font-bold group">
+                            View on LinkedIn
+                            <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+            </aside>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>Consulting Jobs Dashboard - India | Data sourced from LinkedIn</p>
+    <footer class="bg-neutral-950 w-full py-12 border-t border-emerald-900/20 flex flex-col md:flex-row justify-between items-center px-12 gap-6 font-inter text-sm">
+        <div class="flex flex-col gap-2">
+            <div class="text-lg font-bold text-emerald-500">Beyond Career</div>
+            <p class="text-neutral-500">© 2024 Beyond Career. Precision-engineered for consultants.</p>
+        </div>
+        <div class="flex gap-8 text-neutral-500">
+            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="/about">About</a>
+            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy Policy</a>
+            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms of Service</a>
+            <a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Contact</a>
         </div>
     </footer>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="toast"></div>
-
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script>
-        // Load job details
-        const jobId = decodeURIComponent('{{ job_id }}');
-        console.log('Loading job with ID:', jobId);
-        
-        async function loadJobDetail() {
-            try {
-                console.log('Fetching job from API:', `/api/jobs/${jobId}`);
-                const response = await API.getJob(jobId);
-                console.log('API Response:', response);
-                
-                if (response.success) {
-                    renderJobDetail(response.job);
-                    document.title = `${response.job['Job Title']} - Consulting Jobs Dashboard`;
-                } else {
-                    console.error('Job not found:', response.error);
-                    showError('Job not found. The job may have been removed or the URL is incorrect.');
-                }
-            } catch (error) {
-                console.error('Error loading job:', error);
-                showError('Failed to load job details. Please check your connection and try again.');
-            }
-        }
-        
-        function renderJobDetail(job) {
-            const container = document.getElementById('jobDetailContainer');
-
-            const applyUrl = job['Job URL'] || '#';
-            const postedDate = job['Posted'] || 'Not specified';
-            const employmentType = job['Employment Type'] || 'Not specified';
-            const location = job['Location'] || 'Not specified';
-            const company = job['Company'] || 'Company';
-            const title = job['Job Title'] || 'Job Position';
-            const description = job['Job Description'] || 'No description available';
-            const searchCity = job['Search City'] || '';
-
-            container.innerHTML = `
-                <div class="job-detail-card">
-                    <!-- Header -->
-                    <div class="job-detail-header">
-                        <div class="job-detail-title">
-                            <h1>${Utils.escapeHtml(title)}</h1>
-                            <h2>${Utils.escapeHtml(company)}</h2>
-                        </div>
-                        <div class="job-detail-badges">
-                            <span class="badge badge-type">${Utils.escapeHtml(employmentType)}</span>
-                            <span class="badge badge-location">${Utils.escapeHtml(location)}</span>
-                        </div>
-                    </div>
-
-                    <!-- Meta Info -->
-                    <div class="job-detail-meta">
-                        <div class="meta-item">
-                            <span class="meta-icon">📍</span>
-                            <span>${Utils.escapeHtml(searchCity || location)}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-icon">⏰</span>
-                            <span>Posted ${Utils.escapeHtml(postedDate)}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-icon">🔗</span>
-                            <span>LinkedIn Job</span>
-                        </div>
-                    </div>
-
-                    <!-- Apply Button -->
-                    <div class="job-detail-actions">
-                        <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-large">
-                            <span class="icon">🚀</span>
-                            <span>Apply Now</span>
-                        </a>
-                        <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-large">
-                            <span class="icon">🔗</span>
-                            <span>View on LinkedIn</span>
-                        </a>
-                    </div>
-
-                    <!-- Job Description -->
-                    <div class="job-detail-section">
-                        <h3>Job Description</h3>
-                        <div class="job-description">
-                            ${formatDescription(description)}
-                        </div>
-                    </div>
-
-                    <!-- Additional Info -->
-                    <div class="job-detail-section job-detail-info">
-                        <h4>Job Information</h4>
-                        <table class="info-table">
-                            <tr>
-                                <td><strong>Job Title:</strong></td>
-                                <td>${Utils.escapeHtml(title)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Company:</strong></td>
-                                <td>${Utils.escapeHtml(company)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Employment Type:</strong></td>
-                                <td>${Utils.escapeHtml(employmentType)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Location:</strong></td>
-                                <td>${Utils.escapeHtml(location)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Posted:</strong></td>
-                                <td>${Utils.escapeHtml(postedDate)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>City:</strong></td>
-                                <td>${Utils.escapeHtml(searchCity)}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        function formatDescription(description) {
-            if (!description) return '<p>No description available</p>';
-            
-            // Convert line breaks to paragraphs
-            const paragraphs = description.split('\n\n').filter(p => p.trim());
-
-            if (paragraphs.length === 0) {
-                // If no double line breaks, try single line breaks
-                const lines = description.split('\n').filter(l => l.trim());
-                return lines.map(line => `<p>${Utils.escapeHtml(line)}</p>`).join('');
-            }
-
-            return paragraphs.map(p => `<p>${Utils.escapeHtml(p)}</p>`).join('');
-        }
-        
-        function showError(message) {
-            const container = document.getElementById('jobDetailContainer');
-            container.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">❌</div>
-                    <h2>Job Not Found</h2>
-                    <p>${message}</p>
-                    <a href="/" class="btn btn-primary">Back to Dashboard</a>
-                </div>
-            `;
-        }
-        
-        // Share functionality
-        document.getElementById('shareBtn').addEventListener('click', async () => {
-            const shareData = {
-                title: document.title,
-                text: 'Check out this consulting job opportunity!',
-                url: window.location.href
-            };
-            
-            if (navigator.share) {
-                try {
-                    await navigator.share(shareData);
-                    showToast('Shared successfully!');
-                } catch (err) {
-                    copyToClipboard(window.location.href);
-                }
-            } else {
-                copyToClipboard(window.location.href);
-            }
-        });
-        
-        // Load job on page load
-        loadJobDetail();
-    </script>
 </body>
 </html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Job Detail | Beyond Career</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface-variant": "#bdcac0",
+                        "on-primary": "#003824",
+                        "tertiary-container": "#b45651",
+                        "primary-fixed-dim": "#73daa9",
+                        "inverse-primary": "#006c49",
+                        "surface-container": "#1f1f1f",
+                        "on-primary-fixed-variant": "#005236",
+                        "surface": "#131313",
+                        "on-secondary-container": "#afb9cb",
+                        "error": "#ffb4ab",
+                        "secondary": "#bdc7d9",
+                        "surface-container-low": "#1b1b1b",
+                        "outline": "#87948b",
+                        "outline-variant": "#3e4942",
+                        "on-tertiary-fixed-variant": "#7c2c29",
+                        "surface-tint": "#73daa9",
+                        "inverse-on-surface": "#303030",
+                        "on-tertiary": "#5e1515",
+                        "surface-variant": "#353535",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-highest": "#353535",
+                        "on-secondary-fixed": "#121c2a",
+                        "surface-dim": "#131313",
+                        "on-secondary": "#27313f",
+                        "on-tertiary-container": "#fff8f6",
+                        "on-background": "#e2e2e2",
+                        "surface-container-high": "#2a2a2a",
+                        "on-primary-container": "#e7ffef",
+                        "primary-container": "#008359",
+                        "secondary-fixed-dim": "#bdc7d9",
+                        "tertiary": "#ffb3ae",
+                        "on-error": "#690005",
+                        "background": "#131313",
+                        "inverse-surface": "#e2e2e2",
+                        "on-primary-fixed": "#002113",
+                        "primary": "#73daa9",
+                        "on-secondary-fixed-variant": "#3d4756",
+                        "tertiary-fixed-dim": "#ffb3ae",
+                        "secondary-container": "#404a59",
+                        "surface-bright": "#393939",
+                        "primary-fixed": "#90f7c4",
+                        "secondary-fixed": "#d9e3f6",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#400104",
+                        "on-surface": "#e2e2e2",
+                        "tertiary-fixed": "#ffdad7"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-transition {
+            background: linear-gradient(to bottom, transparent, #1b1b1b);
+        }
+        body {
+            background-color: #131313;
+            color: #e2e2e2;
+        }
+        .glass-panel {
+            background: rgba(53, 53, 53, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="font-body selection:bg-primary selection:text-on-primary">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 max-w-full mx-auto font-manrope tracking-tight">
+<div class="text-2xl font-bold tracking-tighter text-emerald-500">Beyond Career</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1 hover:text-emerald-300 transition-colors duration-300" href="#">Jobs</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Companies</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Analytics</a>
+<a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="#">Resources</a>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:block relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">search</span>
+<input class="bg-surface-container-highest border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/30 w-64" placeholder="Search..." type="text"/>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all duration-300 active:scale-95">Post a Job</button>
+</div>
+</nav>
+<main class="pt-32 pb-24 px-8 max-w-7xl mx-auto">
+<!-- Back Button -->
+<button class="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-12">
+<span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+<span class="font-medium">Back to Jobs</span>
+</button>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+<!-- Left Column: Primary Content -->
+<div class="lg:col-span-8">
+<!-- Job Header -->
+<header class="mb-12">
+<div class="flex flex-wrap gap-3 mb-6">
+<span class="px-3 py-1 rounded-full bg-emerald-950/30 text-primary text-xs font-bold tracking-widest uppercase border border-primary/20">Remote</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">Full-Time</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold tracking-widest uppercase">Consulting</span>
+</div>
+<h1 class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4 text-on-surface leading-tight">
+                        Senior Strategy Consultant
+                    </h1>
+<div class="flex items-center gap-4 text-xl text-on-surface-variant font-medium">
+<p>McKinsey &amp; Company</p>
+<span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+<p>London, UK</p>
+</div>
+</header>
+<!-- Featured Image / Visual Break -->
+<div class="mb-12 relative h-80 rounded-2xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Modern minimalist office interior with floor to ceiling windows, sleek black furniture, and soft cinematic lighting at dusk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8azXU7Q3pct4ah-Sj0OdyXoqIw3NcMZjX29G4QPubwyRVT0h7nEcAXbDb5xTIzh9hxTxH0rESmDmb10Hf6WOEBv3vXMQg74MXMYEmKcsFXExSY5_tL_3KFg2KFJxpfy1eCLcsjpYRTyIZE2OVNsBxGZOSieB_CvzOD1gQeKfq-5c6Riwv0U400lCIhMkq44CVT-cy8uOGMQ81htxj7sYCxS81NHLCopHp3RLrRE-oqefkabTqPZiXduLr16uTdiEswPbt8_3R1i7G"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+</div>
+<!-- Main Details -->
+<div class="space-y-16">
+<section>
+<h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
+<span class="w-8 h-1 bg-primary"></span>
+                            About the Role
+                        </h2>
+<div class="space-y-4 text-on-surface-variant leading-relaxed text-lg font-light">
+<p>As a Senior Strategy Consultant at McKinsey &amp; Company, you will work on the most challenging problems facing the world's leading organizations. You will join a team of exceptional professionals who are passionate about delivering breakthrough impact.</p>
+<p>You will lead workstreams, manage complex analytical projects, and build strong relationships with clients ranging from Fortune 500 CEOs to government leaders. This role requires a unique blend of analytical rigor, creative problem solving, and empathetic leadership.</p>
+</div>
+</section>
+<section>
+<h2 class="text-2xl font-headline font-bold mb-6 text-on-surface flex items-center gap-3">
+<span class="w-8 h-1 bg-primary"></span>
+                            Key Requirements
+                        </h2>
+<ul class="space-y-6">
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="text-lg text-on-surface-variant"><strong class="text-on-surface">Experience:</strong> Minimum 5+ years of strategy consulting experience from a Tier 1 firm.</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="text-lg text-on-surface-variant"><strong class="text-on-surface">Education:</strong> MBA or advanced degree from a top-tier academic institution.</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="text-lg text-on-surface-variant"><strong class="text-on-surface">Analytical Depth:</strong> Proven ability to synthesize complex data into actionable strategic insights.</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="text-lg text-on-surface-variant"><strong class="text-on-surface">Communication:</strong> Exceptional storytelling and executive presentation skills.</div>
+</li>
+</ul>
+</section>
+<!-- Bento Section: Perks -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-4" data-icon="payments">payments</span>
+<h3 class="font-headline font-bold mb-2">Compensation</h3>
+<p class="text-sm text-on-surface-variant">Highly competitive base + performance-based bonus structures.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-4" data-icon="flight">flight</span>
+<h3 class="font-headline font-bold mb-2">Global Mobility</h3>
+<p class="text-sm text-on-surface-variant">Opportunities for international secondments and projects.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-2xl border-t border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-4" data-icon="psychology">psychology</span>
+<h3 class="font-headline font-bold mb-2">Learning</h3>
+<p class="text-sm text-on-surface-variant">World-class training programs and mentorship opportunities.</p>
+</div>
+</section>
+</div>
+</div>
+<!-- Right Column: Sidebar -->
+<aside class="lg:col-span-4 sticky top-32 space-y-8">
+<!-- Action Card -->
+<div class="bg-surface-container-high p-8 rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] border-t border-outline-variant/20">
+<button class="w-full py-4 rounded-lg bg-gradient-to-br from-primary-container to-primary text-on-primary-container font-headline font-extrabold text-lg shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 mb-6">
+                        Apply Now
+                    </button>
+<button class="w-full py-4 rounded-lg border border-outline-variant/30 text-on-surface font-headline font-bold hover:bg-surface-variant/30 transition-all mb-8">
+                        Save for Later
+                    </button>
+<div class="space-y-4">
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Posted on</span>
+<span class="text-on-surface font-medium">Oct 24, 2023</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Applications</span>
+<span class="text-on-surface font-medium">142 applicants</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Role Type</span>
+<span class="text-on-surface font-medium">Full-time Employee</span>
+</div>
+</div>
+</div>
+<!-- Company Info Card -->
+<div class="bg-surface-container-low p-8 rounded-2xl">
+<div class="flex items-center gap-4 mb-8">
+<div class="w-16 h-16 rounded-xl bg-white flex items-center justify-center p-2">
+<img alt="McKinsey Logo" class="w-full h-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1ij12MNJAbFq1t4rH6hTIAClbUT1qa90YgLuVnJXCxwPLIGrp1kKfuH9XLPxMP1qn86js4lKgHjJKEd2eKqDNKoiVrIAODouEgnB2h-pPRZmJT-rqZptb1EFF8qXhx41-h62wvR3Za9VInHG6WR5eCevfXVh1hOGR9k-tNeqyOP-xf2geaJ93uVJ02mVRwPwoNue5uC_87kKlrFoKAjmqLgkt8q5NslZ4GMYkJd_9ul-j59VYzsacSGNvmmsXMkPR0nMH71Y0C-U9"/>
+</div>
+<div>
+<h3 class="text-xl font-headline font-bold text-on-surface">McKinsey &amp; Co.</h3>
+<p class="text-sm text-primary">Strategy Consulting</p>
+</div>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary/60">groups</span>
+<div>
+<p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Size</p>
+<p class="text-on-surface font-medium">30,000+ Employees</p>
+</div>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary/60">language</span>
+<div>
+<p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Website</p>
+<a class="text-on-surface font-medium hover:text-primary transition-colors" href="#">www.mckinsey.com</a>
+</div>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary/60">location_on</span>
+<div>
+<p class="text-xs text-neutral-500 uppercase tracking-widest font-bold">Headquarters</p>
+<p class="text-on-surface font-medium">New York City, NY</p>
+</div>
+</div>
+</div>
+<div class="mt-10 pt-8 border-t border-outline-variant/10">
+<a class="inline-flex items-center gap-2 text-primary font-bold group" href="#">
+                            View Company Profile
+                            <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-neutral-950 w-full py-12 border-t border-emerald-900/20 flex flex-col md:flex-row justify-between items-center px-12 gap-6 font-inter text-sm">
+<div class="flex flex-col gap-2">
+<div class="text-lg font-bold text-emerald-500">Beyond Career</div>
+<p class="text-neutral-500">© 2024 Beyond Career. Precision-engineered for consultants.</p>
+</div>
+<div class="flex gap-8 text-neutral-500">
+<a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy Policy</a>
+<a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms of Service</a>
+<a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Cookie Settings</a>
+<a class="hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Contact</a>
+</div>
+</footer>
+<!-- Bottom Nav (Mobile Only Suppressed for now as per rules, but included for system integrity) -->
+<div class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-6 pb-6 pt-3 bg-neutral-950/80 backdrop-blur-2xl shadow-[0_-12px_32px_rgba(0,0,0,0.5)] z-50 rounded-t-2xl">
+<div class="flex flex-col items-center justify-center bg-emerald-950/50 text-emerald-400 rounded-xl p-2 font-inter text-[10px] uppercase tracking-widest">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span>Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-neutral-500 font-inter text-[10px] uppercase tracking-widest">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+<span>Saved</span>
+</div>
+<div class="flex flex-col items-center justify-center text-neutral-500 font-inter text-[10px] uppercase tracking-widest">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span>Applied</span>
+</div>
+<div class="flex flex-col items-center justify-center text-neutral-500 font-inter text-[10px] uppercase tracking-widest">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span>Profile</span>
+</div>
+</div>
+</body></html>
