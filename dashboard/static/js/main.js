@@ -147,30 +147,40 @@ function setupKeyboardShortcuts() {
 // ============================================================================
 
 async function loadJobs(page = 1) {
-    if (Dashboard.isLoading) return;
+    if (Dashboard.isLoading) {
+        console.log('Already loading, skipping...');
+        return;
+    }
     
     try {
         Dashboard.isLoading = true;
         showSkeletonLoading();
+        showLoadingProgress();
 
+        console.log('Loading jobs:', { page, limit: Dashboard.limit, filters: Dashboard.filters });
+        
         const response = await API.getJobs(page, Dashboard.limit, Dashboard.filters);
+        
+        console.log('Jobs response:', response);
 
-        if (response.success) {
-            Dashboard.jobs = response.jobs;
-            Dashboard.currentPage = response.pagination.page;
-            Dashboard.totalPages = response.pagination.total_pages;
+        if (response.success || response.jobs) {
+            Dashboard.jobs = response.jobs || [];
+            Dashboard.currentPage = response.pagination?.page || page;
+            Dashboard.totalPages = response.pagination?.total_pages || 1;
 
             renderJobs();
             renderPagination();
-            updateResultsCount(response.pagination.total);
+            updateResultsCount(response.pagination?.total || 0);
         } else {
-            showError('Failed to load jobs');
+            console.error('API returned unsuccessful response:', response);
+            showError('Failed to load jobs: ' + (response.error || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error loading jobs:', error);
-        showError('Failed to load jobs. Please refresh the page.');
+        showError('Failed to load jobs: ' + error.message);
     } finally {
         Dashboard.isLoading = false;
+        setTimeout(hideLoadingProgress, 500);
     }
 }
 
@@ -604,18 +614,7 @@ function showError(message) {
 }
 
 // ============================================================================
-// Expose functions globally
-// ============================================================================
-
-window.Dashboard = Dashboard;
-window.navigateToJob = navigateToJob;
-window.goToPage = goToPage;
-window.applyFilters = applyFilters;
-window.clearAllFilters = clearAllFilters;
-window.handleManualRefresh = handleManualRefresh;
-
-// ============================================================================
-// Additional Features (Optional Enhancements)
+// Additional Features
 // ============================================================================
 
 // Scroll to Top Button
@@ -722,17 +721,14 @@ function hideLoadingProgress() {
     }
 }
 
-// Enhanced job loading with progress
-const originalLoadJobs = loadJobs;
-loadJobs = async function(page = 1) {
-    if (Dashboard.isLoading) return;
-    
-    try {
-        Dashboard.isLoading = true;
-        showLoadingProgress();
-        await originalLoadJobs(page);
-    } finally {
-        Dashboard.isLoading = false;
-        setTimeout(hideLoadingProgress, 500);
-    }
-};
+// ============================================================================
+// Expose functions globally
+// ============================================================================
+
+window.Dashboard = Dashboard;
+window.navigateToJob = navigateToJob;
+window.goToPage = goToPage;
+window.applyFilters = applyFilters;
+window.clearAllFilters = clearAllFilters;
+window.handleManualRefresh = handleManualRefresh;
+window.removeFilter = removeFilter;
