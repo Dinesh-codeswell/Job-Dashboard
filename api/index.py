@@ -42,8 +42,20 @@ def get_fetcher():
         from dotenv import load_dotenv
         load_dotenv()
         
-        # Import data_fetcher from same directory
-        from data_fetcher import get_data_fetcher
+        # Import data_fetcher - try multiple methods for Vercel compatibility
+        import importlib.util
+        import os
+        from pathlib import Path
+        
+        # Try direct import first
+        try:
+            from data_fetcher import get_data_fetcher
+        except ImportError:
+            # Fallback: load from file path (for Vercel)
+            spec = importlib.util.spec_from_file_location("data_fetcher", Path(__file__).parent / "data_fetcher.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            get_data_fetcher = module.get_data_fetcher
         
         sheet_id = os.getenv('GOOGLE_SHEET_ID')
         

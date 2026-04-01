@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(c:\\users\\%username%\\appdata\\local\\programs\\python\\python311\\python.exe *)"
+      "Bash(c:\\users\\%username%\\appdata\\local\\programs\\python\\python311\\python.exe *)",
+      "Bash(git *)"
     ]
   },
   "$version": 3
