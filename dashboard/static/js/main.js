@@ -1,6 +1,6 @@
 /**
  * Main Dashboard JavaScript for Consulting Jobs Dashboard
- * Handles job listing, pagination, filters, and auto-refresh
+ * Enhanced with modern UX patterns and performance optimizations
  */
 
 // ============================================================================
@@ -17,18 +17,22 @@ const Dashboard = {
         city: '',
         type: ''
     },
-    
+
     // Auto-refresh
     autoRefreshInterval: 60, // seconds
     refreshCountdown: 60,
     refreshTimer: null,
     lastUpdated: null,
-    
+
     // Cache
     jobs: [],
     stats: null,
     cities: [],
-    employmentTypes: []
+    employmentTypes: [],
+    
+    // Performance
+    isLoading: false,
+    observer: null
 };
 
 // ============================================================================
@@ -37,24 +41,105 @@ const Dashboard = {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeDashboard();
+    setupScrollObserver();
+    setupKeyboardShortcuts();
 });
 
 async function initializeDashboard() {
-    // Load initial data
-    await Promise.all([
-        loadStats(),
-        loadCities(),
-        loadEmploymentTypes(),
-        loadJobs()
-    ]);
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    // Start auto-refresh
-    startAutoRefresh();
-    
-    console.log('Dashboard initialized');
+    try {
+        // Load initial data in parallel
+        await Promise.all([
+            loadStats(),
+            loadCities(),
+            loadEmploymentTypes(),
+            loadJobs()
+        ]);
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Start auto-refresh
+        startAutoRefresh();
+
+        // Setup header scroll effect
+        setupHeaderScroll();
+
+        console.log('✅ Dashboard initialized');
+    } catch (error) {
+        console.error('❌ Dashboard initialization failed:', error);
+        showError('Failed to initialize dashboard. Please refresh the page.');
+    }
+}
+
+function setupScrollObserver() {
+    // Lazy load job cards as they enter viewport
+    Dashboard.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                const index = card.dataset.index;
+                if (index !== undefined) {
+                    card.style.setProperty('--index', index);
+                }
+                Dashboard.observer.unobserve(card);
+            }
+        });
+    }, { threshold: 0.1 });
+}
+
+function setupHeaderScroll() {
+    const header = document.querySelector('.header');
+    if (!header) return;
+
+    const handleScroll = Utils.debounce(() => {
+        if (window.scrollY > 10) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    }, 10);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Don't trigger shortcuts when typing in inputs
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        // '/' to focus search
+        if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }
+
+        // 'r' to refresh
+        if (e.key === 'r' && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            handleManualRefresh();
+        }
+
+        // 'j' for next page
+        if (e.key === 'j' && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            if (Dashboard.currentPage < Dashboard.totalPages) {
+                goToPage(Dashboard.currentPage + 1);
+            }
+        }
+
+        // 'k' for previous page
+        if (e.key === 'k' && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            if (Dashboard.currentPage > 1) {
+                goToPage(Dashboard.currentPage - 1);
+            }
+        }
+    });
 }
 
 // ============================================================================
@@ -62,16 +147,19 @@ async function initializeDashboard() {
 // ============================================================================
 
 async function loadJobs(page = 1) {
+    if (Dashboard.isLoading) return;
+    
     try {
-        showLoading();
-        
+        Dashboard.isLoading = true;
+        showSkeletonLoading();
+
         const response = await API.getJobs(page, Dashboard.limit, Dashboard.filters);
-        
+
         if (response.success) {
             Dashboard.jobs = response.jobs;
             Dashboard.currentPage = response.pagination.page;
             Dashboard.totalPages = response.pagination.total_pages;
-            
+
             renderJobs();
             renderPagination();
             updateResultsCount(response.pagination.total);
@@ -81,13 +169,15 @@ async function loadJobs(page = 1) {
     } catch (error) {
         console.error('Error loading jobs:', error);
         showError('Failed to load jobs. Please refresh the page.');
+    } finally {
+        Dashboard.isLoading = false;
     }
 }
 
 async function loadStats() {
     try {
         const response = await API.getStats();
-        
+
         if (response.success) {
             Dashboard.stats = response.stats;
             Dashboard.lastUpdated = response.stats.last_updated;
@@ -101,7 +191,7 @@ async function loadStats() {
 async function loadCities() {
     try {
         const response = await API.getCities();
-        
+
         if (response.success) {
             Dashboard.cities = response.cities;
             populateCityFilter();
@@ -114,7 +204,7 @@ async function loadCities() {
 async function loadEmploymentTypes() {
     try {
         const response = await API.getEmploymentTypes();
-        
+
         if (response.success) {
             Dashboard.employmentTypes = response.types;
             populateTypeFilter();
@@ -128,12 +218,26 @@ async function loadEmploymentTypes() {
 // Rendering
 // ============================================================================
 
+function showSkeletonLoading() {
+    const grid = document.getElementById('jobsGrid');
+    if (!grid) return;
+
+    // Show skeletons instead of spinner
+    grid.innerHTML = `
+        <div class="skeleton-grid">
+            ${Array(6).fill(`
+                <div class="skeleton-card"></div>
+            `).join('')}
+        </div>
+    `;
+}
+
 function renderJobs() {
     const grid = document.getElementById('jobsGrid');
-    
+
     if (!Dashboard.jobs || Dashboard.jobs.length === 0) {
         grid.innerHTML = `
-            <div class="loading-state" style="grid-column: 1 / -1;">
+            <div class="error-state" style="grid-column: 1 / -1;">
                 <div class="error-icon">📭</div>
                 <h2>No Jobs Found</h2>
                 <p>Try adjusting your search or filters</p>
@@ -142,32 +246,48 @@ function renderJobs() {
         `;
         return;
     }
+
+    // Render with staggered animation
+    grid.innerHTML = Dashboard.jobs.map((job, index) => createJobCard(job, index)).join('');
     
-    grid.innerHTML = Dashboard.jobs.map(job => createJobCard(job)).join('');
+    // Observe cards for lazy animation
+    const cards = grid.querySelectorAll('.job-card');
+    cards.forEach(card => Dashboard.observer?.observe(card));
 }
 
-function createJobCard(job) {
+function createJobCard(job, index = 0) {
     const title = Utils.escapeHtml(job.job_title || 'Position');
     const company = Utils.escapeHtml(job.company || 'Company');
     const location = Utils.escapeHtml(job.location || 'Location');
     const type = Utils.escapeHtml(job.employment_type || 'Full-time');
     const posted = Utils.formatRelativeTime(job.posted_date);
     const city = Utils.escapeHtml(job.search_city || '');
+    const isNew = isNewJob(job.posted_date);
     
+    // Encode job ID properly for URL
+    const jobId = encodeURIComponent(job.id || job.linkedin_url);
+
     return `
-        <div class="job-card" onclick="navigateToJob('${job.id}')">
+        <article class="job-card ${isNew ? 'new-job' : ''}" 
+                 data-index="${index}" 
+                 data-new="${isNew}"
+                 onclick="navigateToJob('${jobId}')"
+                 tabindex="0"
+                 role="button"
+                 aria-label="View ${title} position at ${company}">
             <div class="job-card-header">
                 <div>
                     <h3 class="job-card-title">${title}</h3>
                     <p class="job-card-company">${company}</p>
                 </div>
+                ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}
             </div>
-            
+
             <div class="job-card-badges">
-                <span class="badge badge-type">${type}</span>
-                <span class="badge badge-location">${city || location}</span>
+                <span class="badge badge-type" role="status">${type}</span>
+                <span class="badge badge-location" role="status">${city || location}</span>
             </div>
-            
+
             <div class="job-card-meta">
                 <div class="meta-item">
                     <span class="meta-icon">⏰</span>
@@ -178,93 +298,131 @@ function createJobCard(job) {
                     <span>${location}</span>
                 </div>
             </div>
-            
+
             <div class="job-card-footer">
-                <button class="view-job-btn">View Details →</button>
+                <button class="view-job-btn" onclick="event.stopPropagation(); navigateToJob('${jobId}')">
+                    View Details →
+                </button>
             </div>
-        </div>
+        </article>
     `;
+}
+
+function isNewJob(postedDate) {
+    if (!postedDate) return false;
+    
+    const now = new Date();
+    const posted = new Date(postedDate);
+    const hoursDiff = (now - posted) / (1000 * 60 * 60);
+    
+    return hoursDiff < 24;
 }
 
 function renderPagination() {
     const container = document.getElementById('pagination');
-    
+
     if (Dashboard.totalPages <= 1) {
         container.innerHTML = '';
         return;
     }
-    
+
     let html = `
-        <button onclick="goToPage(${Dashboard.currentPage - 1})" 
-                ${Dashboard.currentPage === 1 ? 'disabled' : ''}>
+        <button onclick="goToPage(${Dashboard.currentPage - 1})"
+                ${Dashboard.currentPage === 1 ? 'disabled' : ''}
+                aria-label="Go to previous page">
             ← Previous
         </button>
     `;
-    
+
     // Page numbers
     const maxVisible = 5;
     let startPage = Math.max(1, Dashboard.currentPage - Math.floor(maxVisible / 2));
     let endPage = Math.min(Dashboard.totalPages, startPage + maxVisible - 1);
-    
+
     if (endPage - startPage < maxVisible - 1) {
         startPage = Math.max(1, endPage - maxVisible + 1);
     }
-    
+
     if (startPage > 1) {
-        html += `<button onclick="goToPage(1)">1</button>`;
+        html += `<button onclick="goToPage(1)" aria-label="Go to page 1">1</button>`;
         if (startPage > 2) {
             html += `<span class="pagination-info">...</span>`;
         }
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         html += `
-            <button onclick="goToPage(${i})" 
-                    class="${i === Dashboard.currentPage ? 'active' : ''}">
+            <button onclick="goToPage(${i})"
+                    class="${i === Dashboard.currentPage ? 'active' : ''}"
+                    aria-label="Go to page ${i}"
+                    ${i === Dashboard.currentPage ? 'aria-current="page"' : ''}>
                 ${i}
             </button>
         `;
     }
-    
+
     if (endPage < Dashboard.totalPages) {
         if (endPage < Dashboard.totalPages - 1) {
             html += `<span class="pagination-info">...</span>`;
         }
-        html += `<button onclick="goToPage(${Dashboard.totalPages})">${Dashboard.totalPages}</button>`;
+        html += `<button onclick="goToPage(${Dashboard.totalPages})" aria-label="Go to page ${Dashboard.totalPages}">${Dashboard.totalPages}</button>`;
     }
-    
+
     html += `
-        <button onclick="goToPage(${Dashboard.currentPage + 1})" 
-                ${Dashboard.currentPage === Dashboard.totalPages ? 'disabled' : ''}>
+        <button onclick="goToPage(${Dashboard.currentPage + 1})"
+                ${Dashboard.currentPage === Dashboard.totalPages ? 'disabled' : ''}
+                aria-label="Go to next page">
             Next →
         </button>
         <span class="pagination-info" style="margin-left: 1rem;">
             Page ${Dashboard.currentPage} of ${Dashboard.totalPages}
         </span>
     `;
-    
+
     container.innerHTML = html;
 }
 
 function renderStats() {
     if (!Dashboard.stats) return;
-    
+
     const { total_jobs, cities, companies, last_updated } = Dashboard.stats;
-    
-    document.getElementById('totalJobs').textContent = total_jobs || 0;
+
+    // Animate stat numbers
+    animateValue('totalJobs', 0, total_jobs || 0, 500);
     document.getElementById('totalCities').textContent = Object.keys(cities || {}).length;
     document.getElementById('totalCompanies').textContent = Object.keys(companies || {}).length;
-    
+
     if (last_updated) {
-        const date = new Date(last_updated);
         document.getElementById('lastUpdated').textContent = Utils.formatDate(last_updated);
     }
+}
+
+function animateValue(elementId, start, end, duration) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    element.classList.add('counting');
+    
+    const range = end - start;
+    const increment = range / (duration / 16);
+    let current = start;
+
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= end) {
+            element.textContent = end.toLocaleString();
+            element.classList.remove('counting');
+            clearInterval(timer);
+        } else {
+            element.textContent = Math.floor(current).toLocaleString();
+        }
+    }, 16);
 }
 
 function populateCityFilter() {
     const select = document.getElementById('cityFilter');
     select.innerHTML = '<option value="">All Cities</option>' +
-        Dashboard.cities.map(city => `<option value="${Utils.escapeHtml(city)}">${Utils.escapeHtml(city)}</option>`).join('');
+        Dashboard.cities.map(city => `<option value="${Utils.escapeHtml(city)}">${Utils.escapeHtml(city)} (${Dashboard.cities.filter(c => c === city).length})</option>`).join('');
 }
 
 function populateTypeFilter() {
@@ -274,8 +432,15 @@ function populateTypeFilter() {
 }
 
 function updateResultsCount(total) {
-    document.getElementById('resultsCount').textContent = 
-        `${total} job${total !== 1 ? 's' : ''} found`;
+    const element = document.getElementById('resultsCount');
+    if (!element) return;
+    
+    element.classList.add('updating');
+    element.textContent = `${total.toLocaleString()} job${total !== 1 ? 's' : ''} found`;
+    
+    setTimeout(() => {
+        element.classList.remove('updating');
+    }, 300);
 }
 
 // ============================================================================
@@ -283,32 +448,43 @@ function updateResultsCount(total) {
 // ============================================================================
 
 function setupEventListeners() {
-    // Search input with debounce
+    // Search input with reduced debounce (200ms instead of 500ms)
     const searchInput = document.getElementById('searchInput');
+    const searchClear = document.querySelector('.search-clear');
+    
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            Dashboard.filters.search = '';
+            goToPage(1);
+            searchInput.focus();
+        });
+    }
+    
     const debouncedSearch = Utils.debounce((e) => {
         Dashboard.filters.search = e.target.value.trim();
         goToPage(1);
-    }, 500);
+    }, 200); // Reduced from 500ms for faster feedback
     searchInput.addEventListener('input', debouncedSearch);
-    
+
     // City filter
     document.getElementById('cityFilter').addEventListener('change', (e) => {
         Dashboard.filters.city = e.target.value;
         goToPage(1);
     });
-    
+
     // Type filter
     document.getElementById('typeFilter').addEventListener('change', (e) => {
         Dashboard.filters.type = e.target.value;
         goToPage(1);
     });
-    
+
     // Apply filters button
     document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    
+
     // Clear filters button
     document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
-    
+
     // Refresh button
     document.getElementById('refreshBtn').addEventListener('click', handleManualRefresh);
 }
@@ -318,9 +494,7 @@ function setupEventListeners() {
 // ============================================================================
 
 function navigateToJob(jobId) {
-    // Ensure jobId is properly encoded for URL
-    const encodedId = encodeURIComponent(jobId);
-    window.location.href = `/job/${encodedId}`;
+    window.location.href = `/job/${jobId}`;
 }
 
 function goToPage(page) {
@@ -331,6 +505,7 @@ function goToPage(page) {
 }
 
 function applyFilters() {
+    updateFilterChips();
     goToPage(1);
 }
 
@@ -339,6 +514,7 @@ function clearAllFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('cityFilter').value = '';
     document.getElementById('typeFilter').value = '';
+    updateFilterChips();
     goToPage(1);
 }
 
@@ -349,11 +525,11 @@ function clearAllFilters() {
 function startAutoRefresh() {
     Dashboard.refreshCountdown = Dashboard.autoRefreshInterval;
     updateRefreshIndicator();
-    
+
     Dashboard.refreshTimer = setInterval(() => {
         Dashboard.refreshCountdown--;
         updateRefreshIndicator();
-        
+
         if (Dashboard.refreshCountdown <= 0) {
             autoRefresh();
         }
@@ -370,15 +546,15 @@ function updateRefreshIndicator() {
 async function autoRefresh() {
     try {
         const response = await API.getStats();
-        
+
         if (response.success) {
             const newLastUpdated = response.stats.last_updated;
-            
+
             // Check if data has changed
             if (newLastUpdated !== Dashboard.lastUpdated) {
                 showNewJobsNotification();
             }
-            
+
             Dashboard.lastUpdated = newLastUpdated;
             Dashboard.refreshCountdown = Dashboard.autoRefreshInterval;
         }
@@ -396,40 +572,27 @@ function handleManualRefresh() {
 
 function showNewJobsNotification() {
     const indicator = document.getElementById('autoRefreshIndicator');
-    if (indicator) {
-        indicator.style.background = 'rgba(16, 185, 129, 0.1)';
-        indicator.style.padding = '0.5rem 1rem';
-        indicator.style.borderRadius = 'var(--radius-md)';
-        indicator.innerHTML = '<span class="pulse"></span><span>New jobs available! Refreshing...</span>';
-        
-        setTimeout(() => {
-            indicator.style.background = '';
-            indicator.style.padding = '';
-            indicator.style.borderRadius = '';
-            loadJobs(Dashboard.currentPage);
-            loadStats();
-        }, 2000);
-    }
+    if (!indicator) return;
+    
+    indicator.classList.add('refreshing');
+    indicator.innerHTML = '<span class="pulse"></span><span>New jobs available! Refreshing...</span>';
+
+    setTimeout(() => {
+        indicator.classList.remove('refreshing');
+        indicator.innerHTML = '<span class="pulse"></span><span>Auto-refresh in <span id="refreshCountdown">60</span>s</span>';
+        loadJobs(Dashboard.currentPage);
+        loadStats();
+    }, 2000);
 }
 
 // ============================================================================
 // UI Helpers
 // ============================================================================
 
-function showLoading() {
-    const grid = document.getElementById('jobsGrid');
-    if (grid && grid.innerHTML === '') {
-        grid.innerHTML = `
-            <div class="loading-state" style="grid-column: 1 / -1;">
-                <div class="spinner"></div>
-                <p>Loading jobs...</p>
-            </div>
-        `;
-    }
-}
-
 function showError(message) {
     const grid = document.getElementById('jobsGrid');
+    if (!grid) return;
+    
     grid.innerHTML = `
         <div class="error-state" style="grid-column: 1 / -1;">
             <div class="error-icon">❌</div>
@@ -450,3 +613,126 @@ window.goToPage = goToPage;
 window.applyFilters = applyFilters;
 window.clearAllFilters = clearAllFilters;
 window.handleManualRefresh = handleManualRefresh;
+
+// ============================================================================
+// Additional Features (Optional Enhancements)
+// ============================================================================
+
+// Scroll to Top Button
+function setupScrollToTop() {
+    const scrollBtn = document.createElement('button');
+    scrollBtn.className = 'scroll-to-top';
+    scrollBtn.setAttribute('aria-label', 'Scroll to top');
+    scrollBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 15l-6-6-6 6"/>
+        </svg>
+    `;
+    document.body.appendChild(scrollBtn);
+
+    const handleScroll = Utils.debounce(() => {
+        if (window.scrollY > 500) {
+            scrollBtn.classList.add('visible');
+        } else {
+            scrollBtn.classList.remove('visible');
+        }
+    }, 10);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    scrollBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+// Initialize scroll to top on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupScrollToTop);
+} else {
+    setupScrollToTop();
+}
+
+// Filter Chips Display
+function updateFilterChips() {
+    const container = document.querySelector('.filter-chips');
+    if (!container) return;
+    
+    const activeFilters = [];
+    
+    if (Dashboard.filters.search) {
+        activeFilters.push({ type: 'search', label: `Search: "${Dashboard.filters.search}"` });
+    }
+    if (Dashboard.filters.city) {
+        activeFilters.push({ type: 'city', label: Dashboard.filters.city });
+    }
+    if (Dashboard.filters.type) {
+        activeFilters.push({ type: 'type', label: Dashboard.filters.type });
+    }
+    
+    if (activeFilters.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = activeFilters.map(filter => `
+        <span class="filter-chip">
+            ${filter.label}
+            <button class="filter-chip-remove" onclick="removeFilter('${filter.type}')" aria-label="Remove ${filter.type} filter">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </span>
+    `).join('');
+}
+
+function removeFilter(type) {
+    if (type === 'search') {
+        Dashboard.filters.search = '';
+        document.getElementById('searchInput').value = '';
+    } else if (type === 'city') {
+        Dashboard.filters.city = '';
+        document.getElementById('cityFilter').value = '';
+    } else if (type === 'type') {
+        Dashboard.filters.type = '';
+        document.getElementById('typeFilter').value = '';
+    }
+    goToPage(1);
+}
+
+window.removeFilter = removeFilter;
+
+// Loading Progress Bar
+function showLoadingProgress() {
+    let progressEl = document.querySelector('.loading-progress');
+    if (!progressEl) {
+        progressEl = document.createElement('div');
+        progressEl.className = 'loading-progress';
+        progressEl.innerHTML = '<div class="loading-progress-bar"></div>';
+        document.body.insertBefore(progressEl, document.body.firstChild);
+    }
+    progressEl.classList.add('active');
+}
+
+function hideLoadingProgress() {
+    const progressEl = document.querySelector('.loading-progress');
+    if (progressEl) {
+        progressEl.classList.remove('active');
+    }
+}
+
+// Enhanced job loading with progress
+const originalLoadJobs = loadJobs;
+loadJobs = async function(page = 1) {
+    if (Dashboard.isLoading) return;
+    
+    try {
+        Dashboard.isLoading = true;
+        showLoadingProgress();
+        await originalLoadJobs(page);
+    } finally {
+        Dashboard.isLoading = false;
+        setTimeout(hideLoadingProgress, 500);
+    }
+};

@@ -1,0 +1,261 @@
+# 🎯 LinkedIn Jobs → Notion Setup Summary
+
+## ✅ What's Been Configured
+
+### Your Notion Database
+```
+Database: High Growth Roles Tracker
+ID: 2e7e82acc24f80f781f1ef088dbff443
+URL: https://www.notion.so/High-Growth-Roles-Tracker-...
+```
+
+### Columns Mapped
+```
+LinkedIn Job Data → Notion Column
+─────────────────────────────────────────
+Company Name      → Company (Rich text)
+Job Title         → Position (Rich text)
+Today's Date      → Date Posted (Date, YYYY/MM/DD)
+Job Location      → Location (Rich text)
+Job URL           → Application Link (URL)
+```
+
+---
+
+## 📋 What You Need to Do (3 Steps)
+
+### □ Step 1: Create Notion Integration
+1. Visit: https://www.notion.so/my-integrations
+2. Click **+ New integration**
+3. Name: "LinkedIn Job Scraper"
+4. Copy token: `secret_xxxxxxxxxxxxxxxxxxxxx`
+
+### □ Step 2: Connect Integration to Database
+1. Open: https://www.notion.so/High-Growth-Roles-Tracker-Updated-every-hour-2e7e82acc24f80f781f1ef088dbff443
+2. Click **⋯** → **Add connections**
+3. Select "LinkedIn Job Scraper"
+4. Confirm
+
+### □ Step 3: Create .env File
+```bash
+# Copy template
+copy .env.example.notion .env
+
+# Edit .env and add:
+NOTION_API_KEY=secret_your_token_here
+NOTION_DATABASE_ID=2e7e82acc24f80f781f1ef088dbff443
+```
+
+---
+
+## 🚀 Run the Scraper
+
+### Quick Run
+```bash
+# Option 1: Batch file (easiest)
+run_notion_scraper.bat
+
+# Option 2: Python command
+python scrape_india_jobs_notion.py
+```
+
+### Advanced Options
+```bash
+# Scrape 20 jobs per keyword
+python scrape_india_jobs_notion.py --limit 20
+
+# Target Bangalore only
+python scrape_india_jobs_notion.py --location Bangalore
+
+# Run with visible browser (debug mode)
+python scrape_india_jobs_notion.py --headless False
+
+# Specific keywords only
+python scrape_india_jobs_notion.py --keywords "SDE" "Product Manager"
+```
+
+---
+
+## 📊 Scraping Workflow
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  1. Search LinkedIn for each keyword in India           │
+│     • 50+ core technical/business roles                 │
+│     • Excludes: accountant, copywriter, video editor... │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  2. For each job found:                                  │
+│     ✓ Check posted in past 24 hours                     │
+│     ✓ Check it's a core role (not excluded)             │
+│     ✓ Check not already in Notion (duplicate)           │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  3. Add to Notion Database                               │
+│     • Company, Position, Date Posted, Location, URL     │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  4. Summary Report                                       │
+│     • Jobs found, scraped, added, skipped               │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Target Roles
+
+### ✅ INCLUDED (Core Technical/Business)
+```
+Engineering:
+  SDE, Software Engineer, Backend, Frontend, Full Stack,
+  DevOps, SRE, Site Reliability
+
+Product:
+  Product Manager, PM, Associate Product Manager, APM,
+  Technical Product Manager
+
+Data/ML:
+  Data Analyst, Business Analyst, Product Analyst,
+  Data Scientist, ML Engineer, AI Engineer, Deep Learning
+
+Growth/Business:
+  Growth Manager, Strategy Manager, Operations Manager,
+  Business Development Manager
+
+Architecture:
+  Solutions Architect, Cloud Architect, Enterprise Architect,
+  Staff Engineer, Principal Engineer
+
+Design:
+  Product Designer, UX Designer, UI Designer,
+  Interaction Designer
+
+Consulting:
+  Management Consultant, Technology Consultant,
+  Digital Consultant, IT Consultant, Strategy Consultant
+
+Program Management:
+  Technical Program Manager, TPM, Program Manager,
+  Project Manager, Scrum Master
+```
+
+### ❌ EXCLUDED (Basic Roles)
+```
+Accountant, Accounting
+Copywriter, Copy Writer
+Video Editor, Video Editing
+Data Entry
+Content Writer, Content Writing
+Customer Support, Customer Service, Call Center
+Telecaller
+Sales Executive (basic)
+HR Executive, Recruiter
+Graphic Designer
+Social Media Manager
+SEO Executive, Digital Marketing Executive
+```
+
+---
+
+## 📁 Files Created
+
+```
+C:\linkedin_scraper\
+├── scrape_india_jobs_notion.py        # Main scraper script
+├── run_notion_scraper.bat             # Quick runner (double-click)
+├── .env.example.notion                # Environment template
+├── linkedin_scraper/
+│   └── integrations/
+│       └── notion.py                  # Notion API integration
+├── YOUR_SETUP_READY.md                # ← START HERE
+├── NOTION_SETUP.md                    # Detailed setup guide
+├── NOTION_JOBS_README.md              # Quick reference
+└── SETUP_SUMMARY.txt                  # This file
+```
+
+---
+
+## ⏰ Recommended Schedule
+
+### Best Times to Run
+- **Morning:** 9:00 - 10:00 AM (jobs posted overnight)
+- **Evening:** 6:00 - 7:00 PM (jobs posted during day)
+
+### Automation
+Set up Windows Task Scheduler to run daily at 9 AM:
+```
+Program: C:\Users\katal\AppData\Local\Programs\Python\Python311\python.exe
+Args: scrape_india_jobs_notion.py --limit 15
+Start in: C:\linkedin_scraper
+```
+
+---
+
+## 🔧 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Failed to connect to Notion" | Check API key starts with `secret_`, verify integration connected |
+| "No jobs added" | Check LinkedIn session, run in morning/evening for more 24h jobs |
+| "Session not found" | Run `python samples/create_session.py` |
+| "Column mismatch" | Your columns are already correct! (Company/Rich text, Position/Rich text, Date Posted/Date, Location/Rich text, Application Link/URL) |
+
+---
+
+## 📞 Quick Reference
+
+### Your Database ID
+```
+2e7e82acc24f80f781f1ef088dbff443
+```
+
+### Your Database URL
+```
+https://www.notion.so/High-Growth-Roles-Tracker-Updated-every-hour-2e7e82acc24f80f781f1ef088dbff443
+```
+
+### Environment Variables
+```env
+NOTION_API_KEY=secret_your_token_here
+NOTION_DATABASE_ID=2e7e82acc24f80f781f1ef088dbff443
+```
+
+### Common Commands
+```bash
+# Basic run
+python scrape_india_jobs_notion.py
+
+# More jobs
+python scrape_india_jobs_notion.py --limit 20
+
+# Specific city
+python scrape_india_jobs_notion.py --location Bangalore
+
+# Debug mode (visible browser)
+python scrape_india_jobs_notion.py --headless False
+```
+
+---
+
+## ✅ Checklist
+
+Before first run:
+
+- [ ] Created Notion integration
+- [ ] Connected integration to database
+- [ ] Copied `.env.example.notion` to `.env`
+- [ ] Added `NOTION_API_KEY` to `.env`
+- [ ] Verified `NOTION_DATABASE_ID` is set
+- [ ] LinkedIn session exists (`linkedin_session.json`)
+- [ ] Installed `notion-client` (`pip install notion-client`)
+
+---
+
+**🎉 You're ready to start scraping!**
+
+Run: `python scrape_india_jobs_notion.py --headless False`
+
+For help: See `YOUR_SETUP_READY.md` or `NOTION_SETUP.md`

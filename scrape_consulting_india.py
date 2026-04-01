@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
 LinkedIn Consulting Jobs Scraper - India
+⚡ FRESH CONSULTING JOBS - 48 HOURS ONLY ⚡
 
-Automatically scrapes consulting roles from major Indian cities and uploads to Google Sheets.
+Automatically scrapes consulting roles from major Indian cities posted in the PAST 2 DAYS
+and uploads to Google Sheets.
 
 Target Cities:
 - Chennai, Mumbai, Pune, Gurugram, New Delhi, Noida
@@ -18,13 +20,15 @@ Target Roles:
 - HR Consultant
 - And all other consulting roles
 
+⚡ CRITICAL: Only jobs posted in past 48 hours are included!
+
 Usage:
     python scrape_consulting_india.py
-    
+
     # With options
     python scrape_consulting_india.py --limit-per-city 10
-    python scrape_consulting_india.py --include-internships
     python scrape_consulting_india.py --headless False
+    python scrape_consulting_india.py --max-days 2
 """
 import asyncio
 import argparse
@@ -181,18 +185,19 @@ class ConsultingJobsScraper:
         keywords: List[str],
         limit_per_keyword: int = 5,
         skip_duplicates: bool = True,
-        max_days_old: int = 14
+        max_days_old: int = 2  # CRITICAL: Only 2 days (48 hours)
     ) -> Dict[str, Any]:
         """
         Scrape consulting jobs from a specific city.
-        
+
         Args:
             browser: Browser manager instance
             city: City name
             keywords: List of consulting keywords
             limit_per_keyword: Jobs to scrape per keyword
             skip_duplicates: Skip jobs already in sheet
-            
+            max_days_old: Maximum job age in days (default: 2)
+
         Returns:
             Dictionary with scraping results
         """
@@ -200,8 +205,10 @@ class ConsultingJobsScraper:
             "city": city,
             "jobs_found": 0,
             "jobs_scraped": 0,
+            "jobs_fresh": 0,  # Jobs from past 2 days
             "jobs_uploaded": 0,
             "duplicates_skipped": 0,
+            "jobs_old_skipped": 0,
             "errors": []
         }
         
@@ -240,7 +247,10 @@ class ConsultingJobsScraper:
                         # Check if job is too old
                         if not self._is_job_recent(job.posted_date, max_days_old):
                             results["jobs_old_skipped"] += 1
+                            logger.debug(f"  ⏰ Excluded (older than {max_days_old} days): {job.job_title}")
                             continue
+
+                        results["jobs_fresh"] += 1
 
                         # Clean and prepare data
                         job_data = self._clean_job_data(job, city)
@@ -328,46 +338,53 @@ class ConsultingJobsScraper:
             "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     
-    def _is_job_recent(self, posted_date: Optional[str], max_days: int = 14) -> bool:
+    def _is_job_recent(self, posted_date: Optional[str], max_days: int = 2) -> bool:
         """
         Check if a job is recent enough (not older than max_days).
-        
+        CRITICAL: Default is 2 DAYS (48 hours) for fresh jobs only!
+
         Args:
             posted_date: Posted date string from LinkedIn
-            max_days: Maximum age in days (default: 14)
-            
+            max_days: Maximum age in days (default: 2)
+
         Returns:
             True if job is recent, False if too old
         """
         if not posted_date:
-            return True
-        
+            return False
+
         posted_lower = posted_date.lower().strip()
-        
+
         try:
             import re
             match = re.search(r'(\d+)\s*(minute|hour|day|week|month)', posted_lower)
-            
+
             if not match:
-                return True
-            
+                return False
+
             value = int(match.group(1))
             unit = match.group(2)
-            
+
             days_ago = 0
-            if unit == 'minute' or unit == 'hour':
-                days_ago = value / (24 * 60) if unit == 'minute' else value / 24
+            if unit == 'minute':
+                days_ago = value / (24 * 60)
+            elif unit == 'hour':
+                days_ago = value / 24
             elif unit == 'day':
+                # "1 day ago" could be 24-48 hours
+                # "2 days ago" is definitely > 48 hours
+                if value >= 3:
+                    return False
                 days_ago = value
             elif unit == 'week':
                 days_ago = value * 7
             elif unit == 'month':
                 days_ago = value * 30
-            
+
             return days_ago <= max_days
-            
+
         except Exception:
-            return True
+            return False
     
     async def run(
         self,
@@ -395,23 +412,26 @@ class ConsultingJobsScraper:
             "cities_searched": 0,
             "total_jobs_found": 0,
             "total_jobs_scraped": 0,
+            "total_jobs_fresh": 0,  # Jobs from past 2 days
             "total_jobs_uploaded": 0,
             "total_duplicates_skipped": 0,
+            "total_jobs_old_skipped": 0,
             "errors": [],
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Use defaults if not specified
         cities = cities or INDIAN_CITIES
         keywords = keywords or CONSULTING_KEYWORDS
-        
+
         print("\n" + "="*70)
-        print("🇮🇳 LinkedIn Consulting Jobs Scraper - India")
+        print("⚡ FRESH CONSULTING JOBS - India (48 HOURS ONLY)")
         print("="*70)
         print(f"📍 Cities: {len(cities)}")
         print(f"📍 Keywords: {len(keywords)} consulting roles")
         print(f"📍 Limit per city: {limit_per_city} jobs")
         print(f"📍 Include Remote: {include_remote}")
+        print(f"⚡ Time Filter: PAST 2 DAYS ONLY")
         print("="*70 + "\n")
         
         # Connect to Google Sheets
@@ -453,15 +473,19 @@ class ConsultingJobsScraper:
                 results["cities_searched"] += 1
                 results["total_jobs_found"] += city_results["jobs_found"]
                 results["total_jobs_scraped"] += city_results["jobs_scraped"]
+                results["total_jobs_fresh"] += city_results["jobs_fresh"]
                 results["total_jobs_uploaded"] += city_results["jobs_uploaded"]
                 results["total_duplicates_skipped"] += city_results["duplicates_skipped"]
+                results["total_jobs_old_skipped"] += city_results["jobs_old_skipped"]
                 results["errors"].extend(city_results["errors"])
                 
                 print(f"\n📊 City Summary: {city}")
                 print(f"   Found: {city_results['jobs_found']}")
                 print(f"   Scraped: {city_results['jobs_scraped']}")
+                print(f"   ⚡ Fresh Jobs (<2 days): {city_results['jobs_fresh']}")
                 print(f"   Uploaded: {city_results['jobs_uploaded']}")
-                print(f"   Skipped: {city_results['duplicates_skipped']}")
+                print(f"   Skipped (dupes): {city_results['duplicates_skipped']}")
+                print(f"   Skipped (old): {city_results['jobs_old_skipped']}")
                 
                 # Delay between cities to avoid rate limiting
                 if i < len(cities):
@@ -484,8 +508,10 @@ class ConsultingJobsScraper:
                 
                 results["total_jobs_found"] += remote_results["jobs_found"]
                 results["total_jobs_scraped"] += remote_results["jobs_scraped"]
+                results["total_jobs_fresh"] += remote_results.get("jobs_fresh", 0)
                 results["total_jobs_uploaded"] += remote_results["jobs_uploaded"]
                 results["total_duplicates_skipped"] += remote_results["duplicates_skipped"]
+                results["total_jobs_old_skipped"] += remote_results.get("jobs_old_skipped", 0)
         
         # Print summary
         results["success"] = results["total_jobs_uploaded"] > 0
@@ -502,18 +528,21 @@ class ConsultingJobsScraper:
         print(f"🏙️  Cities Searched: {results['cities_searched']}")
         print(f"📍 Total Jobs Found: {results['total_jobs_found']}")
         print(f"📄 Total Jobs Scraped: {results['total_jobs_scraped']}")
+        print(f"⚡ FRESH JOBS (<2 days): {results['total_jobs_fresh']}")
         print(f"📊 Total Jobs Uploaded: {results['total_jobs_uploaded']}")
         print(f"⚠️  Duplicates Skipped: {results['total_duplicates_skipped']}")
-        
+        print(f"❌ Old Jobs Skipped: {results['total_jobs_old_skipped']}")
+
         if results["errors"]:
             print(f"\n❌ Errors ({len(results['errors'])}):")
             for error in results["errors"][:5]:  # Show first 5 errors
                 print(f"   - {error}")
             if len(results["errors"]) > 5:
                 print(f"   ... and {len(results['errors']) - 5} more")
-        
+
         print("="*70)
         print(f"⏰ Completed at: {results['timestamp']}")
+        print(f"💡 Tip: Run every 12-24 hours for freshest jobs")
         print("="*70 + "\n")
 
 

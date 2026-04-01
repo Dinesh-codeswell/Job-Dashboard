@@ -103,6 +103,7 @@ class GoogleSheetsIntegration:
     def _setup_headers(self):
         """Setup column headers in the worksheet."""
         headers = [
+            "Company",  # NEW: Company column first
             "Job Title",
             "Employment Type",
             "Posted",
@@ -113,24 +114,25 @@ class GoogleSheetsIntegration:
             "Date Added"
         ]
         self.worksheet.append_row(headers, value_input_option="USER_ENTERED")
-        
+
         # Format header row (bold)
-        self.worksheet.format('A1:H1', {'textFormat': {'bold': True}})
+        self.worksheet.format('A1:I1', {'textFormat': {'bold': True}})
     
     def upload_job(self, job_data: Dict[str, Any]) -> bool:
         """
         Upload a single job to Google Sheets.
-        
+
         Args:
             job_data: Dictionary containing job information
-            
+
         Returns:
             True if upload successful
         """
         try:
             from datetime import datetime
-            
+
             row_data = [
+                job_data.get("company", ""),  # NEW: Company column
                 job_data.get("job_title", ""),
                 job_data.get("employment_type", ""),
                 job_data.get("posted_date", ""),
@@ -140,11 +142,11 @@ class GoogleSheetsIntegration:
                 job_data.get("search_city", ""),
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             ]
-            
+
             self.worksheet.append_row(row_data, value_input_option="USER_ENTERED")
             logger.info(f"Uploaded job: {job_data.get('job_title')} at {job_data.get('company')}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to upload job: {e}")
             return False
@@ -218,18 +220,18 @@ class GoogleSheetsIntegration:
     def check_duplicate(self, job_url: str) -> bool:
         """
         Check if a job URL already exists in the sheet.
-        
+
         Args:
             job_url: LinkedIn job URL to check
-            
+
         Returns:
             True if duplicate found
         """
         if not self.worksheet:
             return False
-        
+
         try:
-            all_values = self.worksheet.col_values(6)  # Job URL column (column F = 6)
+            all_values = self.worksheet.col_values(7)  # Job URL column (column G = 7, after Company)
             return job_url in all_values
         except Exception:
             return False

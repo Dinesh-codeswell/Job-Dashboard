@@ -6,6 +6,9 @@ pydantic>=2.0.0
 python-dotenv>=1.0.0
 aiofiles>=23.0.0
 
+# Notion Integration
+notion-client>=2.0.0
+
 # Database
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
