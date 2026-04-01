@@ -42,10 +42,8 @@ def get_fetcher():
         from dotenv import load_dotenv
         load_dotenv()
         
-        try:
-            from api.data_fetcher import get_data_fetcher
-        except ImportError:
-            from data_fetcher import get_data_fetcher
+        # Import data_fetcher from same directory
+        from data_fetcher import get_data_fetcher
         
         sheet_id = os.getenv('GOOGLE_SHEET_ID')
         creds_file = os.getenv('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
@@ -61,6 +59,8 @@ def get_fetcher():
     except Exception as e:
         _fetcher_error = str(e)
         print(f"Fetcher error: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # ============================================================================
