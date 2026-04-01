@@ -1,0 +1,1271 @@
+{
+  "project": {
+    "name": "LinkedIn Jobs Dashboard - India",
+    "type": "Job Aggregation Dashboard",
+    "description": "A high-performance job dashboard that scrapes LinkedIn for fresh consulting and tech jobs posted in the past 24-48 hours in India, displaying them in a modern, filterable interface with Google Sheets and Notion integration.",
+    "goal": "Redesign and optimize the UI/UX of the job dashboard and individual job pages to match top-tier job boards like LinkedIn, Product Space, and Otta",
+    "target_users": [
+      "Job seekers in India looking for consulting roles",
+      "Tech professionals (SDE, PM, Data Scientists)",
+      "Recent graduates and experienced professionals",
+      "Users who want the freshest jobs (24-48 hours old)"
+    ]
+  },
+
+  "design_system": {
+    "current_framework": "Vanilla CSS with CSS Variables",
+    "color_palette": {
+      "primary": "#8A8575",
+      "accent": "#2299DD",
+      "background": "#F5F5EE",
+      "surface": "#FFFFFF",
+      "text_primary": "#16140F",
+      "text_secondary": "#5C5952",
+      "text_muted": "#6B6860",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "border": "#D8D6D0"
+    },
+    "typography": {
+      "heading_font": "Outfit (sans-serif)",
+      "body_font": "Source Serif 4 (serif)",
+      "font_sizes": {
+        "xs": "12px",
+        "sm": "14px",
+        "base": "16px",
+        "lg": "18px",
+        "xl": "21px",
+        "2xl": "24px",
+        "3xl": "30px"
+      }
+    },
+    "spacing": {
+      "base_unit": "8px",
+      "scale": [8, 16, 24, 32, 40, 48, 64]
+    },
+    "border_radius": {
+      "none": "0px",
+      "sm": "4px",
+      "md": "8px",
+      "lg": "12px",
+      "xl": "16px",
+      "2xl": "20px",
+      "full": "9999px"
+    },
+    "shadows": {
+      "elevation_1": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+      "elevation_2": "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+      "elevation_3": "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+      "elevation_4": "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+    }
+  },
+
+  "pages": {
+    "home_dashboard": {
+      "route": "/",
+      "name": "Jobs Dashboard - Home Page",
+      "description": "Main dashboard displaying all scraped jobs in a grid layout with search, filters, and pagination",
+      
+      "layout": {
+        "type": "Single Column with Sticky Header",
+        "structure": {
+          "header": {
+            "position": "sticky",
+            "top": "0",
+            "z_index": "100",
+            "height": "auto",
+            "components": ["logo", "stats_bar", "refresh_button", "about_link"]
+          },
+          "stats_bar": {
+            "position": "sticky",
+            "top": "64px",
+            "z_index": "99",
+            "layout": "4-column grid",
+            "metrics": ["total_jobs", "total_cities", "total_companies", "last_updated"]
+          },
+          "main_content": {
+            "padding": "48px 0",
+            "max_width": "1400px",
+            "components": ["filters_section", "results_info", "jobs_grid", "pagination"]
+          },
+          "footer": {
+            "position": "static",
+            "height": "auto",
+            "components": ["copyright", "data_source_info"]
+          }
+        }
+      },
+
+      "components": {
+        "header": {
+          "logo": {
+            "type": "flex_container",
+            "alignment": "center",
+            "gap": "24px",
+            "elements": [
+              {
+                "type": "icon",
+                "content": "💼",
+                "size": "40x40px",
+                "background": "linear-gradient(135deg, #FF6600, #FF8533)",
+                "border_radius": "8px"
+              },
+              {
+                "type": "text_group",
+                "elements": [
+                  {"text": "Consulting Jobs", "font_size": "18px", "font_weight": "700"},
+                  {"text": "India Dashboard", "font_size": "12px", "color": "text_muted", "text_transform": "uppercase"}
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "type": "button_group",
+            "gap": "16px",
+            "buttons": [
+              {
+                "id": "refreshBtn",
+                "label": "Refresh",
+                "icon": "↻",
+                "style": "outline",
+                "tooltip": "Refresh data (Press 'r')"
+              },
+              {
+                "id": "aboutLink",
+                "label": "About",
+                "href": "/about",
+                "style": "outline"
+              }
+            ]
+          }
+        },
+
+        "stats_bar": {
+          "layout": "grid_4_columns",
+          "gap": "32px",
+          "cards": [
+            {
+              "metric": "totalJobs",
+              "label": "Total Jobs",
+              "value_type": "number",
+              "animation": "count_up",
+              "icon": "💼"
+            },
+            {
+              "metric": "totalCities",
+              "label": "Cities",
+              "value_type": "number",
+              "icon": "📍"
+            },
+            {
+              "metric": "totalCompanies",
+              "label": "Companies",
+              "value_type": "number",
+              "icon": "🏢"
+            },
+            {
+              "metric": "lastUpdated",
+              "label": "Last Updated",
+              "value_type": "datetime",
+              "format": "relative",
+              "icon": "⏰"
+            }
+          ]
+        },
+
+        "filters_section": {
+          "container": {
+            "background": "surface",
+            "border": "1px solid border",
+            "border_radius": "12px",
+            "padding": "32px",
+            "shadow": "elevation_1"
+          },
+          "search_box": {
+            "type": "input_group",
+            "position": "relative",
+            "margin_bottom": "24px",
+            "elements": [
+              {
+                "type": "icon",
+                "content": "🔍",
+                "position": "absolute_left",
+                "size": "20px",
+                "color": "text_muted"
+              },
+              {
+                "type": "input",
+                "id": "searchInput",
+                "placeholder": "Search by job title, company, or keywords... (Press / to focus)",
+                "padding": "16px 16px 16px 48px",
+                "height": "48px",
+                "border_radius": "8px",
+                "background": "background",
+                "autocomplete": "off"
+              },
+              {
+                "type": "button",
+                "class": "search-clear",
+                "icon": "×",
+                "position": "absolute_right",
+                "visible_on": "input_not_empty"
+              }
+            ]
+          },
+          "filters_grid": {
+            "layout": "grid_3_columns",
+            "columns": ["1fr", "1fr", "auto"],
+            "gap": "24px",
+            "align_items": "end",
+            "elements": [
+              {
+                "type": "select_group",
+                "id": "cityFilter",
+                "label": "City",
+                "options": "dynamic_from_api",
+                "default": "All Cities"
+              },
+              {
+                "type": "select_group",
+                "id": "typeFilter",
+                "label": "Employment Type",
+                "options": "dynamic_from_api",
+                "default": "All Types"
+              },
+              {
+                "type": "button_group",
+                "buttons": [
+                  {"id": "applyFilters", "label": "Apply", "style": "primary"},
+                  {"id": "clearFilters", "label": "Clear", "style": "outline"}
+                ]
+              }
+            ]
+          },
+          "filter_chips": {
+            "type": "container",
+            "position": "below_filters",
+            "display": "flex_wrap",
+            "gap": "8px",
+            "margin_top": "24px",
+            "padding_top": "24px",
+            "border_top": "1px solid border",
+            "chip": {
+              "background": "background",
+              "border": "1px solid border",
+              "border_radius": "9999px",
+              "padding": "4px 12px",
+              "font_size": "12px",
+              "font_weight": "600",
+              "remove_button": {
+                "icon": "×",
+                "background": "text_muted",
+                "color": "white",
+                "size": "16x16px",
+                "border_radius": "50%"
+              }
+            }
+          }
+        },
+
+        "results_info": {
+          "layout": "flex_row",
+          "justify_content": "space_between",
+          "align_items": "center",
+          "margin_bottom": "32px",
+          "elements": [
+            {
+              "type": "text",
+              "id": "resultsCount",
+              "content": "X jobs found",
+              "font_size": "14px",
+              "color": "text_secondary",
+              "font_weight": "500"
+            },
+            {
+              "type": "auto_refresh_indicator",
+              "id": "autoRefreshIndicator",
+              "layout": "flex_row",
+              "gap": "8px",
+              "elements": [
+                {"type": "pulse_dot", "size": "6px", "color": "success"},
+                {"type": "text", "content": "Auto-refresh in Xs", "font_size": "12px"}
+              ]
+            }
+          ]
+        },
+
+        "jobs_grid": {
+          "layout": "grid_responsive",
+          "grid_template": "repeat(auto-fill, minmax(340px, 1fr))",
+          "gap": "32px",
+          "margin_bottom": "48px",
+          "card": {
+            "type": "article",
+            "background": "surface",
+            "border": "1px solid border_light",
+            "border_radius": "8px",
+            "padding": "32px",
+            "min_height": "280px",
+            "transition": ["transform 200ms", "box-shadow 200ms", "border-color 200ms"],
+            "hover": {
+              "transform": "translateY(-4px)",
+              "box_shadow": "elevation_3",
+              "border_color": "border"
+            },
+            "active": {
+              "transform": "translateY(-4px) scale(0.98)"
+            },
+            "structure": {
+              "header": {
+                "layout": "flex_row",
+                "justify_content": "space_between",
+                "align_items": "flex_start",
+                "gap": "16px",
+                "elements": [
+                  {
+                    "type": "text_group",
+                    "elements": [
+                      {
+                        "type": "h3",
+                        "field": "job_title",
+                        "font_size": "18px",
+                        "font_weight": "600",
+                        "color": "text_primary",
+                        "line_height": "1.4",
+                        "margin_bottom": "4px"
+                      },
+                      {
+                        "type": "p",
+                        "field": "company",
+                        "font_size": "14px",
+                        "color": "text_muted",
+                        "font_weight": "500"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "badge",
+                    "condition": "job_is_new (<24h)",
+                    "content": "NEW",
+                    "background": "rgba(16, 185, 129, 0.1)",
+                    "color": "success",
+                    "border": "1px solid success",
+                    "border_radius": "9999px",
+                    "padding": "4px 8px",
+                    "font_size": "11px",
+                    "font_weight": "700",
+                    "animation": "pulse 2s infinite"
+                  }
+                ]
+              },
+              "badges": {
+                "type": "flex_wrap",
+                "gap": "4px",
+                "margin_top": "16px",
+                "elements": [
+                  {
+                    "type": "badge",
+                    "field": "employment_type",
+                    "style": "type",
+                    "background": "transparent",
+                    "color": "primary",
+                    "border": "1px solid primary"
+                  },
+                  {
+                    "type": "badge",
+                    "field": "location_or_city",
+                    "style": "location",
+                    "background": "transparent",
+                    "color": "accent",
+                    "border": "1px solid accent"
+                  }
+                ]
+              },
+              "meta": {
+                "type": "flex_wrap",
+                "gap": "24px",
+                "margin_top": "24px",
+                "padding_top": "24px",
+                "border_top": "1px solid border_light",
+                "font_size": "14px",
+                "color": "text_muted",
+                "elements": [
+                  {
+                    "type": "meta_item",
+                    "icon": "⏰",
+                    "field": "posted_date",
+                    "format": "relative_time"
+                  },
+                  {
+                    "type": "meta_item",
+                    "icon": "📍",
+                    "field": "location",
+                    "format": "text"
+                  }
+                ]
+              },
+              "footer": {
+                "type": "flex_row",
+                "justify_content": "space_between",
+                "align_items": "center",
+                "margin_top": "auto",
+                "padding_top": "24px",
+                "elements": [
+                  {
+                    "type": "button",
+                    "class": "view-job-btn",
+                    "label": "View Details →",
+                    "style": "primary",
+                    "background": "black",
+                    "color": "white",
+                    "border_radius": "9999px",
+                    "padding": "8px 24px",
+                    "font_weight": "600",
+                    "width": "100%"
+                  },
+                  {
+                    "type": "button",
+                    "class": "bookmark-button",
+                    "icon": "bookmark",
+                    "style": "outline",
+                    "size": "36x36px",
+                    "border_radius": "50%",
+                    "hover": {
+                      "transform": "scale(1.05)"
+                    },
+                    "bookmarked": {
+                      "color": "accent",
+                      "background": "rgba(34, 153, 221, 0.1)"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+
+        "pagination": {
+          "layout": "flex_row",
+          "justify_content": "center",
+          "align_items": "center",
+          "gap": "8px",
+          "padding": "48px 0",
+          "elements": [
+            {
+              "type": "button",
+              "label": "← Previous",
+              "disabled_condition": "current_page == 1"
+            },
+            {
+              "type": "page_numbers",
+              "max_visible": 5,
+              "ellipsis": true,
+              "active_style": {
+                "background": "black",
+                "color": "white"
+              }
+            },
+            {
+              "type": "button",
+              "label": "Next →",
+              "disabled_condition": "current_page == total_pages"
+            },
+            {
+              "type": "text",
+              "content": "Page X of Y",
+              "margin_left": "24px",
+              "font_size": "14px",
+              "color": "text_muted"
+            }
+          ]
+        }
+      },
+
+      "interactions": {
+        "keyboard_shortcuts": [
+          {"key": "/", "action": "focus_search", "description": "Focus search input"},
+          {"key": "r", "action": "refresh_data", "description": "Refresh job data"},
+          {"key": "j", "action": "next_page", "description": "Go to next page"},
+          {"key": "k", "action": "previous_page", "description": "Go to previous page"},
+          {"key": "Tab", "action": "navigate_forward", "description": "Navigate to next focusable element"},
+          {"key": "Enter", "action": "activate_focused", "description": "Activate focused element"}
+        ],
+        "auto_refresh": {
+          "interval": "60_seconds",
+          "indicator": "visible_countdown",
+          "notification": "show_when_new_jobs_available"
+        },
+        "search": {
+          "debounce": "200ms",
+          "min_characters": 1,
+          "clear_button": "visible_on_input"
+        },
+        "filters": {
+          "apply_on": "button_click",
+          "clear_all": "available",
+          "active_filters_display": "chips_with_remove"
+        }
+      },
+
+      "loading_states": {
+        "initial_load": {
+          "type": "skeleton_cards",
+          "count": 6,
+          "animation": "shimmer_1.5s_infinite"
+        },
+        "pagination": {
+          "type": "progress_bar",
+          "position": "top_fixed",
+          "height": "3px",
+          "color": "accent"
+        }
+      },
+
+      "empty_states": {
+        "no_jobs_found": {
+          "icon": "📭",
+          "size": "4rem",
+          "title": "No Jobs Found",
+          "message": "Try adjusting your search or filters",
+          "action": {
+            "type": "button",
+            "label": "Clear Filters",
+            "style": "primary",
+            "action": "clear_all_filters"
+          }
+        },
+        "no_results_after_filter": {
+          "icon": "🔍",
+          "title": "No matches found",
+          "message": "Try different keywords or remove some filters",
+          "suggestions": ["Check spelling", "Use broader terms", "Remove location filter"]
+        }
+      },
+
+      "error_states": {
+        "network_error": {
+          "icon": "❌",
+          "title": "Connection Error",
+          "message": "Unable to load jobs. Please check your internet connection.",
+          "action": {
+            "type": "button",
+            "label": "Try Again",
+            "style": "primary",
+            "action": "retry_load"
+          }
+        },
+        "api_error": {
+          "icon": "⚠️",
+          "title": "Server Error",
+          "message": "Something went wrong. Please try again later.",
+          "action": {
+            "type": "button",
+            "label": "Refresh Page",
+            "style": "primary",
+            "action": "reload_page"
+          }
+        }
+      }
+    },
+
+    "job_detail": {
+      "route": "/job/:jobId",
+      "name": "Job Detail Page",
+      "description": "Individual job posting page with complete job information, company details, and application link",
+      
+      "layout": {
+        "type": "Single Column Centered",
+        "max_width": "900px",
+        "margin": "0 auto",
+        "padding": "48px 32px",
+        "structure": {
+          "back_button": {
+            "position": "top_left",
+            "margin_bottom": "32px"
+          },
+          "job_card": {
+            "background": "surface",
+            "border": "1px solid border_light",
+            "border_radius": "12px",
+            "padding": "48px",
+            "shadow": "elevation_1"
+          },
+          "sidebar": {
+            "position": "right",
+            "width": "300px",
+            "sticky": true,
+            "components": ["company_info", "apply_button", "share_options"]
+          }
+        }
+      },
+
+      "components": {
+        "back_button": {
+          "type": "button",
+          "label": "← Back to Jobs",
+          "style": "outline",
+          "border_radius": "9999px",
+          "padding": "8px 24px",
+          "hover": {
+            "transform": "translateX(-4px)",
+            "border_color": "text_primary"
+          },
+          "active": {
+            "transform": "translateX(-4px) scale(0.98)"
+          }
+        },
+
+        "job_header": {
+          "layout": "flex_row",
+          "justify_content": "space_between",
+          "align_items": "flex_start",
+          "gap": "32px",
+          "margin_bottom": "40px",
+          "padding_bottom": "40px",
+          "border_bottom": "2px solid border",
+          "elements": [
+            {
+              "type": "text_group",
+              "elements": [
+                {
+                  "type": "h1",
+                  "field": "job_title",
+                  "font_size": "clamp(24px, 3vw, 30px)",
+                  "font_weight": "700",
+                  "color": "text_primary",
+                  "line_height": "1.3",
+                  "margin_bottom": "8px"
+                },
+                {
+                  "type": "h2",
+                  "field": "company",
+                  "font_size": "18px",
+                  "font_weight": "400",
+                  "color": "text_muted",
+                  "margin_bottom": "16px"
+                },
+                {
+                  "type": "badges_group",
+                  "layout": "flex_wrap",
+                  "gap": "8px",
+                  "elements": [
+                    {"type": "badge", "field": "employment_type"},
+                    {"type": "badge", "field": "location"},
+                    {"type": "badge", "field": "posted_date", "format": "relative_time"},
+                    {"type": "badge", "condition": "is_remote", "content": "🏠 Remote", "style": "remote"}
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "actions_group",
+              "layout": "flex_column",
+              "gap": "12px",
+              "elements": [
+                {
+                  "type": "button",
+                  "id": "applyButton",
+                  "label": "Apply Now →",
+                  "href": "job.linkedin_url",
+                  "target": "_blank",
+                  "style": "primary",
+                  "size": "large",
+                  "min_height": "48px",
+                  "padding": "16px 32px",
+                  "font_size": "16px",
+                  "hover": {
+                    "transform": "translateY(-2px)",
+                    "box_shadow": "elevation_3"
+                  }
+                },
+                {
+                  "type": "button",
+                  "id": "bookmarkButton",
+                  "label": "Save Job",
+                  "icon": "bookmark",
+                  "style": "outline",
+                  "size": "medium"
+                },
+                {
+                  "type": "button",
+                  "id": "shareButton",
+                  "label": "Share",
+                  "icon": "share",
+                  "style": "outline",
+                  "size": "medium"
+                }
+              ]
+            }
+          ]
+        },
+
+        "job_meta": {
+          "type": "info_bar",
+          "background": "background",
+          "border_radius": "8px",
+          "padding": "24px",
+          "margin_bottom": "40px",
+          "layout": "flex_wrap",
+          "gap": "32px",
+          "elements": [
+            {
+              "type": "meta_item",
+              "icon": "⏰",
+              "label": "Posted",
+              "field": "posted_date",
+              "format": "relative_time"
+            },
+            {
+              "type": "meta_item",
+              "icon": "📍",
+              "label": "Location",
+              "field": "location"
+            },
+            {
+              "type": "meta_item",
+              "icon": "💼",
+              "label": "Job Type",
+              "field": "employment_type"
+            },
+            {
+              "type": "meta_item",
+              "icon": "🏢",
+              "label": "Company",
+              "field": "company"
+            },
+            {
+              "type": "meta_item",
+              "icon": "📊",
+              "label": "Experience",
+              "field": "experience_level",
+              "optional": true
+            }
+          ]
+        },
+
+        "job_description": {
+          "type": "section",
+          "margin_bottom": "40px",
+          "elements": [
+            {
+              "type": "h3",
+              "content": "About the Role",
+              "font_size": "21px",
+              "font_weight": "700",
+              "margin_bottom": "24px"
+            },
+            {
+              "type": "content",
+              "field": "job_description",
+              "font_family": "body",
+              "font_size": "16px",
+              "line_height": "1.9",
+              "color": "text_primary",
+              "formatting": {
+                "paragraphs": {
+                  "margin_bottom": "24px"
+                },
+                "lists": {
+                  "margin_left": "24px",
+                  "margin_bottom": "24px"
+                },
+                "bold": {
+                  "font_weight": "600"
+                },
+                "links": {
+                  "color": "link",
+                  "text_decoration": "underline",
+                  "hover": {
+                    "color": "accent"
+                  }
+                }
+              }
+            }
+          ]
+        },
+
+        "job_requirements": {
+          "type": "section",
+          "margin_bottom": "40px",
+          "condition": "requirements_available",
+          "elements": [
+            {
+              "type": "h3",
+              "content": "Requirements",
+              "font_size": "21px",
+              "font_weight": "700",
+              "margin_bottom": "24px"
+            },
+            {
+              "type": "list",
+              "field": "requirements",
+              "style": "bullet",
+              "item": {
+                "margin_bottom": "12px",
+                "padding_left": "24px"
+              }
+            }
+          ]
+        },
+
+        "company_info_sidebar": {
+          "type": "sidebar_card",
+          "position": "right",
+          "sticky": true,
+          "top_offset": "120px",
+          "background": "background",
+          "border_radius": "12px",
+          "padding": "32px",
+          "elements": [
+            {
+              "type": "company_logo",
+              "field": "company_logo_url",
+              "size": "80x80px",
+              "border_radius": "8px",
+              "margin_bottom": "24px"
+            },
+            {
+              "type": "h4",
+              "field": "company",
+              "font_size": "18px",
+              "font_weight": "700",
+              "margin_bottom": "16px"
+            },
+            {
+              "type": "info_table",
+              "rows": [
+                {"label": "Industry", "field": "company_industry"},
+                {"label": "Size", "field": "company_size"},
+                {"label": "Website", "field": "company_website", "type": "link"},
+                {"label": "Headquarters", "field": "company_hq"}
+              ]
+            },
+            {
+              "type": "button",
+              "label": "View Company Profile",
+              "href": "company.linkedin_url",
+              "target": "_blank",
+              "style": "outline",
+              "width": "100%",
+              "margin_top": "24px"
+            }
+          ]
+        }
+      },
+
+      "interactions": {
+        "apply_button": {
+          "on_click": "open_linkedin_url_in_new_tab",
+          "tracking": "track_application_click"
+        },
+        "bookmark_button": {
+          "on_click": "toggle_bookmark",
+          "storage": "localStorage",
+          "visual_feedback": "fill_icon_and_change_color"
+        },
+        "share_button": {
+          "on_click": "open_share_modal",
+          "options": ["copy_link", "twitter", "linkedin", "email"]
+        },
+        "back_button": {
+          "on_click": "navigate_to_dashboard",
+          "preserve_filters": true
+        }
+      },
+
+      "seo": {
+        "title_template": "{job_title} at {company} | Consulting Jobs India",
+        "description_template": "Apply for {job_title} position at {company} in {location}. Posted {posted_date}. View full job description and apply now.",
+        "structured_data": {
+          "@type": "JobPosting",
+          "fields": ["title", "company", "location", "datePosted", "employmentType", "description"]
+        }
+      }
+    },
+
+    "about_page": {
+      "route": "/about",
+      "name": "About Page",
+      "description": "Information about the dashboard, features, and how to use it",
+      
+      "layout": {
+        "type": "Single Column Centered",
+        "max_width": "800px",
+        "margin": "0 auto",
+        "padding": "64px 32px"
+      },
+
+      "components": {
+        "header": {
+          "type": "h1",
+          "content": "About Consulting Jobs Dashboard",
+          "font_size": "30px",
+          "font_weight": "700",
+          "text_align": "center",
+          "margin_bottom": "64px"
+        },
+
+        "sections": [
+          {
+            "type": "card",
+            "title": "What is this?",
+            "content": "A high-performance job dashboard that automatically scrapes LinkedIn for consulting and tech jobs posted in the past 24-48 hours across India.",
+            "features": [
+              "Real-time job scraping from LinkedIn",
+              "Only fresh jobs (24-48 hours old)",
+              "Advanced search and filters",
+              "Auto-refresh every 60 seconds",
+              "Google Sheets & Notion integration"
+            ]
+          },
+          {
+            "type": "card",
+            "title": "Target Roles",
+            "content": "We focus on high-quality consulting and tech roles:",
+            "list_type": "grid_2_columns",
+            "items": [
+              "Management Consultant",
+              "Business Consultant",
+              "Strategy Consultant",
+              "IT Consultant",
+              "Software Engineer (SDE)",
+              "Product Manager",
+              "Data Scientist",
+              "Business Analyst"
+            ]
+          },
+          {
+            "type": "card",
+            "title": "Target Cities",
+            "content": "Covering major Indian tech and consulting hubs:",
+            "list_type": "tags",
+            "items": [
+              "Bangalore", "Mumbai", "Pune", "Hyderabad",
+              "Chennai", "Gurugram", "New Delhi", "Noida"
+            ]
+          },
+          {
+            "type": "card",
+            "title": "How to Use",
+            "steps": [
+              "Browse jobs on the dashboard",
+              "Use search and filters to find relevant roles",
+              "Click on a job card to view details",
+              "Click 'Apply Now' to apply on LinkedIn",
+              "Bookmark jobs to apply later"
+            ]
+          }
+        ]
+      }
+    }
+  },
+
+  "data_structure": {
+    "job_object": {
+      "id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique job identifier"
+      },
+      "job_title": {
+        "type": "string",
+        "required": true,
+        "max_length": 200,
+        "example": "Senior Management Consultant"
+      },
+      "company": {
+        "type": "string",
+        "required": true,
+        "max_length": 200,
+        "example": "McKinsey & Company"
+      },
+      "employment_type": {
+        "type": "string",
+        "required": true,
+        "enum": ["Full-time", "Part-time", "Contract", "Internship", "Temporary"],
+        "example": "Full-time"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "max_length": 200,
+        "example": "Bangalore, Karnataka, India"
+      },
+      "posted_date": {
+        "type": "datetime",
+        "required": true,
+        "format": "ISO8601",
+        "example": "2026-04-01T10:30:00Z"
+      },
+      "linkedin_url": {
+        "type": "string",
+        "required": true,
+        "format": "url",
+        "example": "https://www.linkedin.com/jobs/view/123456789"
+      },
+      "job_description": {
+        "type": "text",
+        "required": false,
+        "max_length": 50000,
+        "format": "html_or_markdown"
+      },
+      "search_city": {
+        "type": "string",
+        "required": true,
+        "example": "Bangalore"
+      },
+      "date_added": {
+        "type": "datetime",
+        "required": true,
+        "format": "ISO8601",
+        "description": "When job was added to dashboard"
+      },
+      "salary_range": {
+        "type": "object",
+        "required": false,
+        "properties": {
+          "min": {"type": "number"},
+          "max": {"type": "number"},
+          "currency": {"type": "string", "default": "INR"},
+          "period": {"type": "string", "default": "yearly"}
+        }
+      },
+      "experience_level": {
+        "type": "string",
+        "required": false,
+        "enum": ["Entry", "Mid", "Senior", "Executive"],
+        "example": "Mid-Senior level"
+      },
+      "is_remote": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "skills": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "example": ["Strategy", "Management Consulting", "Business Analysis"]
+      }
+    }
+  },
+
+  "api_endpoints": {
+    "get_jobs": {
+      "method": "GET",
+      "path": "/api/jobs",
+      "parameters": {
+        "page": {"type": "integer", "default": 1},
+        "limit": {"type": "integer", "default": 30, "max": 100},
+        "search": {"type": "string", "optional": true},
+        "city": {"type": "string", "optional": true},
+        "type": {"type": "string", "optional": true}
+      },
+      "response": {
+        "success": "boolean",
+        "jobs": "array<job_object>",
+        "pagination": {
+          "page": "integer",
+          "total_pages": "integer",
+          "total": "integer"
+        }
+      }
+    },
+    "get_job_by_id": {
+      "method": "GET",
+      "path": "/api/jobs/:id",
+      "response": {
+        "success": "boolean",
+        "job": "job_object"
+      }
+    },
+    "get_stats": {
+      "method": "GET",
+      "path": "/api/stats",
+      "response": {
+        "success": "boolean",
+        "stats": {
+          "total_jobs": "integer",
+          "cities": "object",
+          "companies": "object",
+          "last_updated": "datetime"
+        }
+      }
+    },
+    "get_cities": {
+      "method": "GET",
+      "path": "/api/cities",
+      "response": {
+        "success": "boolean",
+        "cities": "array<string>"
+      }
+    },
+    "get_employment_types": {
+      "method": "GET",
+      "path": "/api/employment-types",
+      "response": {
+        "success": "boolean",
+        "types": "array<string>"
+      }
+    }
+  },
+
+  "responsive_breakpoints": {
+    "mobile": {
+      "max_width": "640px",
+      "adjustments": {
+        "jobs_grid": "1_column",
+        "stats_bar": "2_columns",
+        "filters_grid": "1_column_stacked",
+        "header": "column_layout",
+        "job_card": "full_width",
+        "padding": "16px"
+      }
+    },
+    "tablet": {
+      "min_width": "641px",
+      "max_width": "1024px",
+      "adjustments": {
+        "jobs_grid": "2_columns",
+        "stats_bar": "2_columns",
+        "filters_grid": "2_columns",
+        "padding": "24px"
+      }
+    },
+    "desktop": {
+      "min_width": "1025px",
+      "adjustments": {
+        "jobs_grid": "3_columns_auto_fill",
+        "stats_bar": "4_columns",
+        "filters_grid": "3_columns",
+        "max_width": "1400px",
+        "padding": "32px"
+      }
+    }
+  },
+
+  "accessibility_requirements": {
+    "wcag_level": "AA",
+    "requirements": [
+      "All interactive elements must be keyboard accessible",
+      "Focus states must be visible (2px outline, 2px offset)",
+      "Color contrast ratio minimum 4.5:1 for normal text",
+      "Color contrast ratio minimum 3:1 for large text",
+      "All images must have alt text",
+      "All form inputs must have labels",
+      "ARIA labels on all interactive elements",
+      "Support for prefers-reduced-motion",
+      "Touch targets minimum 44x44px",
+      "Screen reader compatible"
+    ],
+    "keyboard_navigation": {
+      "tab_order": "logical_sequential",
+      "focus_trap": "modals_only",
+      "skip_links": ["Skip to main content", "Skip to search"]
+    }
+  },
+
+  "performance_requirements": {
+    "lighthouse_scores": {
+      "performance": "90+",
+      "accessibility": "90+",
+      "best_practices": "95+",
+      "seo": "90+"
+    },
+    "metrics": {
+      "first_contentful_paint": "<1.5s",
+      "time_to_interactive": "<2.5s",
+      "largest_contentful_paint": "<2.5s",
+      "cumulative_layout_shift": "<0.1",
+      "total_blocking_time": "<200ms"
+    },
+    "optimizations": [
+      "Lazy load job cards below fold",
+      "Skeleton loaders instead of spinners",
+      "Debounce search input (200ms)",
+      "GPU-accelerated animations (transform, opacity only)",
+      "Compress and optimize images",
+      "Minify CSS and JavaScript",
+      "Use CSS containment for job cards",
+      "Implement intersection observer for animations"
+    ]
+  },
+
+  "reference_inspiration": {
+    "linkedin_jobs": {
+      "url": "https://www.linkedin.com/jobs/",
+      "liked_aspects": [
+        "Clean card layout",
+        "Easy-to-scan information hierarchy",
+        "Effective use of filters",
+        "Quick apply functionality"
+      ]
+    },
+    "otta": {
+      "url": "https://otta.com",
+      "liked_aspects": [
+        "Modern, friendly design",
+        "Card-based layout",
+        "Company culture highlights",
+        "Matching algorithm display"
+      ]
+    },
+    "product_space": {
+      "url": "https://www.productspace.in",
+      "liked_aspects": [
+        "Clean, minimal interface",
+        "Focus on product roles",
+        "Company profiles integration"
+      ]
+    },
+    "wellfound": {
+      "url": "https://wellfound.com",
+      "liked_aspects": [
+        "Startup-focused design",
+        "Transparent salary information",
+        "Direct founder contact"
+      ]
+    }
+  },
+
+  "design_goals": {
+    "primary": [
+      "Match or exceed quality of LinkedIn, Otta, and Product Space",
+      "Make job scanning fast and efficient (3-second rule)",
+      "Create professional, trustworthy appearance",
+      "Ensure mobile-first responsive design",
+      "Achieve 90+ Lighthouse scores"
+    ],
+    "secondary": [
+      "Add delightful micro-interactions",
+      "Implement dark mode support",
+      "Add salary transparency where available",
+      "Create shareable job cards",
+      "Add company culture indicators"
+    ]
+  },
+
+  "redesign_instructions": {
+    "for_google_stitch": "Using the detailed specifications above, generate modern, professional mockups for the job dashboard and individual job pages. Focus on creating a clean, scannable interface that matches top-tier job boards. Prioritize information hierarchy, visual clarity, and ease of use. Ensure all interactive elements are clearly distinguishable and accessible. Use the provided color palette and typography as a starting point, but feel free to suggest improvements. Generate multiple variations showing different layout options, card designs, and filter arrangements.",
+    "key_focus_areas": [
+      "Job card design - make it scannable in 3 seconds",
+      "Filter section - intuitive and easy to use",
+      "Search experience - fast and responsive",
+      "Job detail page - comprehensive but not overwhelming",
+      "Mobile experience - fully functional on small screens",
+      "Loading states - engaging skeleton loaders",
+      "Empty states - helpful and actionable",
+      "Error states - clear recovery paths"
+    ],
+    "deliverables_expected": [
+      "Desktop mockup of home dashboard",
+      "Mobile mockup of home dashboard",
+      "Desktop mockup of job detail page",
+      "Mobile mockup of job detail page",
+      "Component library (buttons, cards, badges, inputs)",
+      "Interaction specifications (hover states, animations)",
+      "Responsive behavior documentation"
+    ]
+  }
+}
