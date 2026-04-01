@@ -9,9 +9,17 @@
         "runtime": "python3.11",
         "maxDuration": 60
       }
+    },
+    {
+      "src": "dashboard/static/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "dashboard/static/$1"
+    },
     {
       "src": "/api/(.*)",
       "dest": "api/index.py"
@@ -27,10 +35,6 @@
     {
       "src": "/test",
       "dest": "api/index.py"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "dashboard/static/$1"
     },
     {
       "src": "/(.*)",
