@@ -166,6 +166,13 @@ def get_jobs():
             limit=1000
         )
         
+        # DEBUG: Print first job from search_jobs
+        if jobs and len(jobs) > 0:
+            print(f"\n=== DEBUG: First job from search_jobs ===")
+            print(f"Keys: {list(jobs[0].keys())}")
+            print(f"Company Logo value: {jobs[0].get('Company Logo', 'MISSING')}")
+            print(f"company_logo value: {jobs[0].get('company_logo', 'MISSING')}\n")
+
         total = len(jobs)
         total_pages = (total + limit - 1) // limit
         page = max(1, min(page, total_pages)) if total_pages > 0 else 1
@@ -174,17 +181,32 @@ def get_jobs():
         end = start + limit
         page_jobs = jobs[start:end]
         
-        simplified_jobs = [{
-            'id': job.get('id', ''),
-            'job_title': job.get('Job Title', ''),
-            'company': job.get('Company', ''),
-            'employment_type': job.get('Employment Type', ''),
-            'location': job.get('Location', ''),
-            'posted_date': job.get('Posted', ''),
-            'search_city': job.get('Search City', ''),
-            'date_added': job.get('Date Added', '')
-        } for job in page_jobs]
+        simplified_jobs = []
+        for job in page_jobs:
+            simplified_job = {
+                'id': job.get('id', ''),
+                'job_title': job.get('Job Title', ''),
+                'company': job.get('Company', ''),
+                'employment_type': job.get('Employment Type', ''),
+                'location': job.get('Location', ''),
+                'posted_date': job.get('Posted', ''),
+                'search_city': job.get('Search City', ''),
+                'date_added': job.get('Date Added', ''),
+                # Always include company_logo field, even if empty
+                'company_logo': job.get('Company Logo', '') or job.get('company_logo', '') or job.get('Company_Logo', '') or ''
+            }
+            
+            simplified_jobs.append(simplified_job)
         
+        # DEBUG: Log first simplified job
+        if simplified_jobs:
+            print(f"\n=== API DEBUG ===")
+            print(f"Simplified job keys: {list(simplified_jobs[0].keys())}")
+            print(f"Logo field present: {'company_logo' in simplified_jobs[0]}")
+            print(f"Logo value: '{simplified_jobs[0].get('company_logo', 'NOT SET')}'")
+            print(f"Original job keys: {list(page_jobs[0].keys())}")
+            print(f"Original Company Logo: '{page_jobs[0].get('Company Logo', 'MISSING')}'\n")
+
         return jsonify({
             'success': True,
             'jobs': simplified_jobs,

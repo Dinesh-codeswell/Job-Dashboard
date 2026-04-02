@@ -118,7 +118,7 @@ def get_jobs():
         # Simplify job data for list view
         simplified_jobs = []
         for job in page_jobs:
-            simplified_jobs.append({
+            simplified_job = {
                 'id': job.get('id', ''),
                 'job_title': job.get('Job Title', ''),
                 'company': job.get('Company', ''),
@@ -126,9 +126,12 @@ def get_jobs():
                 'location': job.get('Location', ''),
                 'posted_date': job.get('Posted', ''),
                 'search_city': job.get('Search City', ''),
-                'date_added': job.get('Date Added', '')
-            })
-        
+                'date_added': job.get('Date Added', ''),
+                # Include company logo
+                'company_logo': job.get('Company Logo', '') or job.get('company_logo', '') or ''
+            }
+            simplified_jobs.append(simplified_job)
+
         return jsonify({
             'success': True,
             'jobs': simplified_jobs,
@@ -267,6 +270,168 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+
+
+# ============================================================================
+# SIMILAR JOBS ENDPOINT
+# ============================================================================
+
+@app.route('/api/jobs/<job_id>/similar', methods=['GET'])
+def get_similar_jobs(job_id):
+    """
+    Get similar jobs based on multiple similarity factors.
+    
+    Similarity Algorithm (100 points total):
+    1. Same city (40 points) - Location matters most
+    2. Same employment type (30 points) - Job arrangement
+    3. Similar job title keywords (30 points) - Role similarity
+    4. Same company (20 points) - Other positions at same company
+    
+    Returns top 3 most similar jobs.
+    """
+    try:
+        # Use the global fetcher object
+        current_job = fetcher.get_job_by_id(job_id)
+        if not current_job:
+            return jsonify({'success': False, 'error': 'Job not found'}), 404
+
+        # Get all other jobs
+        all_jobs = fetcher.fetch_all_jobs()
+        other_jobs = [j for j in all_jobs if j.get('id') != job_id]
+        
+        if not other_jobs:
+            return jsonify({'success': True, 'similar_jobs': [], 'count': 0})
+        
+        # Calculate similarity scores
+        similar_jobs = []
+        
+        for job in other_jobs:
+            score = 0
+            reasons = []
+            
+            # Factor 1: Same city (40 points)
+            current_city = current_job.get('Search City', '')
+            job_city = job.get('Search City', '')
+            if current_city and job_city:
+                if current_city.lower() == job_city.lower():
+                    score += 40
+                    reasons.append(f"Same location: {current_city}")
+                elif current_city.lower() in job_city.lower() or job_city.lower() in current_city.lower():
+                    score += 20
+                    reasons.append(f"Nearby location")
+            
+            # Factor 2: Same employment type (30 points)
+            current_type = current_job.get('Employment Type', '')
+            job_type = job.get('Employment Type', '')
+            if current_type and job_type:
+                if current_type.lower() == job_type.lower():
+                    score += 30
+                    reasons.append(f"Same type: {current_type}")
+                elif any(word in job_type.lower() for word in current_type.lower().split()):
+                    score += 15
+            
+            # Factor 3: Similar job title (30 points)
+            current_title = current_job.get('Job Title', '').lower()
+            job_title = job.get('Job Title', '').lower()
+            
+            # Extract keywords from titles
+            current_keywords = set(extract_title_keywords(current_title))
+            job_keywords = set(extract_title_keywords(job_title))
+            
+            if current_keywords and job_keywords:
+                common = current_keywords & job_keywords
+                if common:
+                    keyword_score = min(30, len(common) * 10)
+                    score += keyword_score
+                    reasons.append(f"Similar role: {', '.join(list(common)[:2])}")
+            
+            # Factor 4: Same company (20 points)
+            current_company = current_job.get('Company', '')
+            job_company = job.get('Company', '')
+            if current_company and job_company:
+                if current_company.lower() == job_company.lower():
+                    score += 20
+                    reasons.append(f"Same company")
+            
+            # Add job with score (even if score is 0)
+            similar_jobs.append({
+                'job': job,
+                'score': score,
+                'match_reasons': reasons if reasons else ['Other opportunities']
+            })
+        
+        # Sort by score (highest first) and take top 3
+        similar_jobs.sort(key=lambda x: x['score'], reverse=True)
+        top_similar = similar_jobs[:3]
+        
+        # Format response
+        result = []
+        for item in top_similar:
+            job_data = item['job']
+            result.append({
+                'id': job_data.get('id', ''),
+                'job_title': job_data.get('Job Title', ''),
+                'company': job_data.get('Company', ''),
+                'company_logo': job_data.get('Company Logo', '') or job_data.get('company_logo', ''),
+                'location': job_data.get('Location', ''),
+                'employment_type': job_data.get('Employment Type', ''),
+                'posted_date': job_data.get('Posted', ''),
+                'match_score': item['score'],
+                'match_reasons': item['match_reasons']
+            })
+        
+        return jsonify({
+            'success': True,
+            'similar_jobs': result,
+            'count': len(result)
+        })
+        
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"ERROR in get_similar_jobs: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+
+
+def extract_title_keywords(title):
+    """
+    Extract important keywords from job title.
+    Removes common words and keeps technical/specific terms.
+    """
+    # Words to ignore
+    stop_words = {
+        'the', 'a', 'an', 'and', 'or', 'for', 'in', 'at', 'on', 'with',
+        'senior', 'junior', 'lead', 'principal', 'manager', 'director',
+        'executive', 'head', 'chief', 'vice', 'president', 'assistant',
+        'associate', 'intern', 'internship', 'trainee', 'entry', 'level'
+    }
+    
+    # Split and clean
+    words = title.replace('-', ' ').replace('/', ' ').split()
+    keywords = [word.lower() for word in words if word.lower() not in stop_words and len(word) > 2]
+    
+    return keywords
+
+
+def get_match_reasons(score, current_city, job_city, current_type, job_type, current_keywords, job_keywords, current_company, job_company):
+    """Generate human-readable match reasons."""
+    reasons = []
+    
+    if current_city and job_city and current_city == job_city:
+        reasons.append(f"Same location: {current_city}")
+    
+    if current_type and job_type and current_type.lower() == job_type.lower():
+        reasons.append(f"Same type: {current_type}")
+    
+    if current_keywords and job_keywords:
+        common = current_keywords & job_keywords
+        if common:
+            reasons.append(f"Similar role: {', '.join(list(common)[:2])}")
+    
+    if current_company and job_company and current_company.lower() == job_company.lower():
+        reasons.append(f"Same company: {current_company}")
+    
+    return reasons
 
 
 # ============================================================================

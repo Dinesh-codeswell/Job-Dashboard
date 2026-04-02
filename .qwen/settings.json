@@ -5,7 +5,9 @@
       "Bash(git *)",
       "Bash(python3 *)",
       "Bash(c:\\users\\katal\\appdata\\local\\programs\\python\\python311\\python.exe *)",
-      "Bash(py *)"
+      "Bash(py *)",
+      "Bash(.\\run_notion_optimized.bat *)",
+      "Bash(select-object *)"
     ]
   },
   "$version": 3

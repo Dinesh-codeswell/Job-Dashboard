@@ -66,6 +66,9 @@ class JobScraper(BaseScraper):
         company = await self._get_company()
         await self.callback.on_progress("Got company name", 30)
 
+        company_logo = await self._get_company_logo()
+        await self.callback.on_progress("Got company logo", 35)
+
         employment_type = await self._get_employment_type()
         await self.callback.on_progress(f"Got employment type: {employment_type}", 40)
 
@@ -83,6 +86,7 @@ class JobScraper(BaseScraper):
             linkedin_url=linkedin_url,
             job_title=job_title,
             company=company,
+            company_logo=company_logo,
             employment_type=employment_type,
             location=location,
             posted_date=posted_date,
@@ -208,46 +212,118 @@ class JobScraper(BaseScraper):
             pass
         return None
 
+    async def _get_company_logo(self) -> Optional[str]:
+        """Extract company logo image URL."""
+        try:
+            # Method 1: Find logo image in company link
+            company_links = await self.page.locator('a[href*="/company/"]').all()
+            for link in company_links:
+                # Look for img tags within the company link
+                images = await link.locator('img').all()
+                for img in images:
+                    try:
+                        # Try different attributes that might contain the logo URL
+                        logo_url = await img.get_attribute('src')
+                        if logo_url and logo_url.strip():
+                            # Clean up the URL
+                            if logo_url.startswith('//'):
+                                logo_url = 'https:' + logo_url
+                            elif not logo_url.startswith('http'):
+                                logo_url = f'https://www.linkedin.com{logo_url}'
+                            return logo_url
+                    except:
+                        continue
+                
+                # Method 2: Check for background-image or style attributes
+                try:
+                    style = await link.get_attribute('style')
+                    if style and 'background-image' in style:
+                        import re
+                        match = re.search(r'url\(["\']?([^"\')]+)["\']?\)', style)
+                        if match:
+                            logo_url = match.group(1)
+                            if logo_url.startswith('//'):
+                                logo_url = 'https:' + logo_url
+                            elif not logo_url.startswith('http'):
+                                logo_url = f'https://www.linkedin.com{logo_url}'
+                            return logo_url
+                except:
+                    continue
+            
+            # Method 3: Look for any logo images on the page
+            logo_selectors = [
+                'img[src*="logo"]',
+                'img[alt*="logo"]',
+                'img[data-test-logo]',
+                '[data-test-company-logo] img',
+                '.company-logo img'
+            ]
+            
+            for selector in logo_selectors:
+                try:
+                    img = self.page.locator(selector).first
+                    if await img.count() > 0:
+                        logo_url = await img.get_attribute('src')
+                        if logo_url and logo_url.strip():
+                            if logo_url.startswith('//'):
+                                logo_url = 'https:' + logo_url
+                            elif not logo_url.startswith('http'):
+                                logo_url = f'https://www.linkedin.com{logo_url}'
+                            return logo_url
+                except:
+                    continue
+            
+            return None
+        except:
+            return None
+
     async def _get_employment_type(self) -> Optional[str]:
-        """Extract employment type (Full-time/Part-time/Remote etc.)."""
+        """Extract employment type (Full-time/Part-time/Remote/Internship etc.)."""
         try:
             # Get all text from main content
             main_content = self.page.locator('main').first
             if await main_content.count() > 0:
                 text = await main_content.inner_text()
                 lines = [line.strip().lower() for line in text.split('\n')]
-                
-                # Look for employment type patterns
-                employment_types = ['full-time', 'part-time', 'contract', 'temporary', 'internship', 'freelance']
-                
+
+                # Look for employment type patterns - CHECK INTERNSHIP FIRST
+                employment_types = ['internship', 'full-time', 'part-time', 'contract', 'temporary', 'freelance']
+
                 for line in lines:
                     for emp_type in employment_types:
                         if emp_type in line:
                             # Return capitalized version
+                            if emp_type == 'internship':
+                                return 'Internship'
                             return emp_type.replace('-', ' ').title()
-                
-                # Also check for "Remote" as employment type indicator
-                for line in lines:
-                    if 'remote' in line and len(line) < 20:
-                        return 'Remote'
-            
-            # Fallback: check specific elements
-            text_elements = await self.page.locator('span, div').all()
-            for elem in text_elements:
+
+                # Also check for "Intern" in job title (backup for internship detection)
                 try:
-                    text = await elem.inner_text()
-                    text_lower = text.strip().lower()
-                    
-                    for emp_type in ['full-time', 'part-time', 'contract', 'temporary', 'internship']:
-                        if emp_type in text_lower:
-                            return emp_type.replace('-', ' ').title()
-                    
-                    if 'remote' in text_lower and len(text.strip()) < 20:
-                        return 'Remote'
+                    job_title = await self._get_job_title()
+                    if job_title and 'intern' in job_title.lower():
+                        return 'Internship'
                 except:
-                    continue
-            
-            return None
+                    pass
+
+                # Fallback: check specific elements
+                text_elements = await self.page.locator('span, div').all()
+                for elem in text_elements:
+                    try:
+                        text = await elem.inner_text()
+                        text_lower = text.strip().lower()
+
+                        for emp_type in employment_types:
+                            if emp_type in text_lower:
+                                if emp_type == 'internship':
+                                    return 'Internship'
+                                return emp_type.replace('-', ' ').title()
+
+                        if 'remote' in text_lower and len(text.strip()) < 20:
+                            return 'Remote'
+                    except:
+                        continue
+
+                return None
         except:
             return None
 
@@ -340,78 +416,111 @@ class JobScraper(BaseScraper):
         return None
     
     async def _get_description(self) -> Optional[str]:
-        """Extract complete job description from page."""
+        """
+        Extract complete job description from LinkedIn.
+        Returns formatted HTML with proper structure.
+        """
         try:
-            # Method 1: Find "About the job" section and get all text after it
+            # Find "About the job" section
             about_heading = self.page.locator('h2:has-text("About the job")').first
             if await about_heading.count() > 0:
-                # Get the parent section containing the description
-                parent = about_heading.locator('xpath=ancestor::*[2]')
+                # Get parent container
+                parent = about_heading.locator('xpath=ancestor::div[@class][2]')
                 if await parent.count() > 0:
-                    # Get all text content from the parent
-                    description = await parent.inner_text()
-                    # Clean up the description
-                    lines = description.split('\n')
-                    cleaned_lines = []
-                    in_description = False
-                    
-                    for line in lines:
-                        line = line.strip()
-                        if 'About the job' in line:
-                            in_description = True
-                            continue
-                        if in_description and line:
-                            cleaned_lines.append(line)
-                    
-                    if cleaned_lines:
-                        return '\n'.join(cleaned_lines)
+                    # Get all text
+                    text = await parent.inner_text()
+                    if text and len(text) > 100:
+                        # Format it properly
+                        return self._format_description_text(text)
             
-            # Method 2: Look for article element with job description
-            articles = await self.page.locator('article').all()
-            for article in articles:
-                text = await article.inner_text()
-                if text and len(text) > 500:  # Job descriptions are typically long
-                    # Check if it contains typical job description keywords
-                    if any(word in text.lower() for word in ['responsibilities', 'requirements', 'qualifications', 'benefits', 'about the job']):
-                        return text.strip()
-            
-            # Method 3: Get all text from main content after "About the job"
-            try:
-                main_content = self.page.locator('main').first
-                if await main_content.count() > 0:
-                    text = await main_content.inner_text()
-                    # Find "About the job" and get everything after it
-                    if 'About the job' in text:
-                        description = text.split('About the job')[1]
-                        # Clean up extra whitespace
-                        lines = [line.strip() for line in description.split('\n') if line.strip()]
-                        if lines:
-                            return '\n'.join(lines)
-            except:
-                pass
-            
-            # Method 4: Fallback - get all text from the page (excluding header/nav)
-            try:
-                # Remove navigation and header elements
-                content = self.page.locator('main')
-                if await content.count() > 0:
-                    text = await content.inner_text()
-                    # Skip first few lines (company, title, location)
-                    lines = [line.strip() for line in text.split('\n') if line.strip()]
-                    # Start from after location/time info
-                    start_idx = 0
-                    for i, line in enumerate(lines):
-                        if 'ago' in line.lower() or 'clicked' in line.lower() or 'apply' in line.lower():
-                            start_idx = i + 1
-                            break
-                    
-                    if start_idx < len(lines):
-                        description = '\n'.join(lines[start_idx:])
-                        if len(description) > 200:  # Ensure it's substantial
-                            return description
-            except:
-                pass
+            # Fallback: Get main content
+            main_content = self.page.locator('main').first
+            if await main_content.count() > 0:
+                text = await main_content.inner_text()
+                if 'About the job' in text:
+                    description = text.split('About the job')[1] if 'About the job' in text else text
+                    if description and len(description) > 100:
+                        return self._format_description_text(description.strip())
             
             return None
         except Exception as e:
+            logger.error(f"Error extracting description: {e}")
             return None
+
+    def _format_description_text(self, text: str) -> str:
+        """
+        Convert plain text to formatted HTML with clear structure.
+        """
+        if not text:
+            return None
+        
+        lines = text.split('\n')
+        html_parts = []
+        current_list = []
+        current_paragraph = []
+        
+        # Emoji markers for sections
+        section_emojis = ['📌', '📍', '🏢', '🕒', '🔎', '💰', '👤', '✅', '⭐', '🎯', '📋', '💼']
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines - they separate sections
+            if not line:
+                # Save current paragraph
+                if current_paragraph:
+                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                    current_paragraph = []
+                # Save current list
+                if current_list:
+                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
+                    current_list = []
+                continue
+            
+            # Check for section headers (emoji, ALL CAPS, or ends with :)
+            is_header = (
+                any(line.startswith(emoji) for emoji in section_emojis) or
+                (line.isupper() and len(line) > 3 and len(line) < 100) or
+                line.endswith(':')
+            )
+            
+            if is_header:
+                # Save current content first
+                if current_paragraph:
+                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                    current_paragraph = []
+                if current_list:
+                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
+                    current_list = []
+                # Add header
+                html_parts.append(f'<h3>{line}</h3>')
+            
+            # Check for bullet points
+            elif line.startswith(('•', '▪', '▸', '◦', '-', '*', '➤')):
+                if current_paragraph:
+                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                    current_paragraph = []
+                current_list.append(line[1:].strip())
+            
+            # Check for numbered lists
+            elif len(line) > 3 and line[0].isdigit() and '.' in line[:3]:
+                if current_paragraph:
+                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                    current_paragraph = []
+                current_list.append(line.split('. ', 1)[-1] if '. ' in line else line)
+            
+            # Regular text - add to paragraph
+            else:
+                if current_list:
+                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
+                    current_list = []
+                current_paragraph.append(line)
+        
+        # Don't forget remaining content
+        if current_paragraph:
+            html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+        if current_list:
+            html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
+        
+        result = '\n\n'.join(html_parts)
+        return result if result and len(result) > 50 else None

@@ -11,7 +11,7 @@ const Dashboard = {
     // Current state
     currentPage: 1,
     totalPages: 1,
-    limit: 30,
+    limit: 11,
     filters: {
         search: '',
         city: '',
@@ -264,6 +264,15 @@ function showSkeletonLoading() {
 
 function renderJobs() {
     const grid = document.getElementById('jobsGrid');
+    if (!grid) return;
+
+    console.log('=== RENDER JOBS CALLED ===');
+    console.log('Total jobs:', Dashboard.jobs.length);
+    if (Dashboard.jobs.length > 0) {
+        console.log('First job:', Dashboard.jobs[0]);
+        console.log('First job keys:', Object.keys(Dashboard.jobs[0]));
+        console.log('First job company_logo value:', Dashboard.jobs[0].company_logo);
+    }
 
     if (!Dashboard.jobs || Dashboard.jobs.length === 0) {
         grid.innerHTML = `
@@ -293,9 +302,24 @@ function createJobCard(job, index = 0) {
     const posted = Utils.formatRelativeTime(job.posted_date);
     const isNew = isNewJob(job.posted_date);
     
+    // Debug: Log the entire job object for first job
+    if (index === 0) {
+        console.log('=== FIRST JOB OBJECT ===', job);
+        console.log('company_logo field:', job.company_logo);
+        console.log('Type:', typeof job.company_logo);
+    }
+    
+    // Get logo URL - API returns it as 'company_logo'
+    const logoUrl = job.company_logo || '';
+    
+    // Debug logging for first few jobs
+    if (index < 3) {
+        console.log(`Job ${index}: ${title} | Company: ${company} | Logo URL:`, logoUrl, '| Length:', logoUrl ? logoUrl.length : 0);
+    }
+
     // Encode job ID properly for URL
     const jobId = encodeURIComponent(job.id || job.linkedin_url);
-    
+
     // First job is featured (spans 2 columns)
     const isFeatured = index === 0;
 
@@ -304,21 +328,28 @@ function createJobCard(job, index = 0) {
         return `
             <div class="group relative p-8 rounded-3xl bg-surface-container-high inner-glow transition-all hover:translate-y-[-4px] duration-300 lg:col-span-2" onclick="navigateToJob('${jobId}')">
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-4">
-                            <span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">Featured</span>
-                            <span class="text-outline text-xs">${posted}</span>
+                    <div class="flex items-start gap-6 flex-1">
+                        <div class="flex-shrink-0 w-16 h-16 rounded-xl bg-surface-container-low flex items-center justify-center overflow-hidden border-2 border-outline-variant/30">
+                            ${logoUrl ? `
+                            <img src="${Utils.escapeHtml(logoUrl)}" alt="${company}" class="w-14 h-14 object-contain" onload="console.log('Logo loaded:', '${logoUrl}')" onerror="console.log('Logo failed:', '${logoUrl}'); this.parentElement.innerHTML='<div class=\\'w-14 h-14 rounded bg-primary/5 flex items-center justify-center text-primary/20 text-xs font-bold\\'>${company.charAt(0).toUpperCase()}</div>';">
+                            ` : `<div class="w-14 h-14 rounded bg-primary/5 flex items-center justify-center text-primary/20 text-xs font-bold">${company.charAt(0).toUpperCase()}</div>`}
                         </div>
-                        <h3 class="text-3xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">${title}</h3>
-                        <p class="text-on-surface-variant text-lg mb-6">${company}</p>
-                        <div class="flex flex-wrap gap-6 text-sm text-on-surface/80">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary text-base">location_on</span>
-                                ${location}
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">Featured</span>
+                                <span class="text-outline text-xs">${posted}</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary text-base">schedule</span>
-                                ${type}
+                            <h3 class="text-3xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">${title}</h3>
+                            <p class="text-on-surface-variant text-lg mb-6">${company}</p>
+                            <div class="flex flex-wrap gap-6 text-sm text-on-surface/80">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-base">location_on</span>
+                                    ${location}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-base">schedule</span>
+                                    ${type}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -335,13 +366,22 @@ function createJobCard(job, index = 0) {
         return `
             <div class="group p-6 rounded-3xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] duration-300" onclick="navigateToJob('${jobId}')">
                 <div class="mb-6">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="text-outline text-xs">${type}</span>
-                        <span class="w-1 h-1 bg-outline rounded-full"></span>
-                        <span class="text-outline text-xs">${posted}</span>
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-14 h-14 rounded-lg bg-surface-container-low flex items-center justify-center overflow-hidden border-2 border-outline-variant/30">
+                            ${logoUrl ? `
+                            <img src="${Utils.escapeHtml(logoUrl)}" alt="${company}" class="w-12 h-12 object-contain" onload="console.log('Logo loaded:', '${logoUrl}')" onerror="console.log('Logo failed:', '${logoUrl}'); this.parentElement.innerHTML='<div class=\\'w-12 h-12 rounded bg-primary/5 flex items-center justify-center text-primary/20 text-xs font-bold\\'>${company.charAt(0).toUpperCase()}</div>';">
+                            ` : `<div class="w-12 h-12 rounded bg-primary/5 flex items-center justify-center text-primary/20 text-xs font-bold">${company.charAt(0).toUpperCase()}</div>`}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-outline text-xs">${type}</span>
+                                <span class="w-1 h-1 bg-outline rounded-full"></span>
+                                <span class="text-outline text-xs">${posted}</span>
+                            </div>
+                            <h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">${title}</h3>
+                            <p class="text-on-surface-variant text-sm mb-4">${company}</p>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">${title}</h3>
-                    <p class="text-on-surface-variant text-sm mb-4">${company}</p>
                 </div>
                 <div class="space-y-3 mb-8">
                     <div class="flex items-center gap-2 text-sm text-on-surface/60">
@@ -440,11 +480,14 @@ function renderStats() {
 
     // Animate stat numbers
     animateValue('totalJobs', 0, total_jobs || 0, 500);
-    document.getElementById('totalCities').textContent = Object.keys(cities || {}).length;
-    document.getElementById('totalCompanies').textContent = Object.keys(companies || {}).length;
+    const totalCitiesEl = document.getElementById('totalCities');
+    if (totalCitiesEl) totalCitiesEl.textContent = Object.keys(cities || {}).length;
+    const totalCompaniesEl = document.getElementById('totalCompanies');
+    if (totalCompaniesEl) totalCompaniesEl.textContent = Object.keys(companies || {}).length;
 
     if (last_updated) {
-        document.getElementById('lastUpdated').textContent = Utils.formatDate(last_updated);
+        const lastUpdatedEl = document.getElementById('lastUpdated');
+        if (lastUpdatedEl) lastUpdatedEl.textContent = Utils.formatDate(last_updated);
     }
 }
 
@@ -472,12 +515,14 @@ function animateValue(elementId, start, end, duration) {
 
 function populateCityFilter() {
     const select = document.getElementById('cityFilter');
+    if (!select) return;
     select.innerHTML = '<option value="">All Cities</option>' +
         Dashboard.cities.map(city => `<option value="${Utils.escapeHtml(city)}">${Utils.escapeHtml(city)} (${Dashboard.cities.filter(c => c === city).length})</option>`).join('');
 }
 
 function populateTypeFilter() {
     const select = document.getElementById('typeFilter');
+    if (!select) return;
     select.innerHTML = '<option value="">All Types</option>' +
         Dashboard.employmentTypes.map(type => `<option value="${Utils.escapeHtml(type)}">${Utils.escapeHtml(type)}</option>`).join('');
 }
@@ -499,10 +544,13 @@ function updateResultsCount(total) {
 // ============================================================================
 
 function setupEventListeners() {
+    // Initialize combo box filters
+    initFilterComboBoxes();
+
     // Search input with reduced debounce (200ms instead of 500ms)
     const searchInput = document.getElementById('searchInput');
     const searchClear = document.querySelector('.search-clear');
-    
+
     if (searchClear) {
         searchClear.addEventListener('click', () => {
             searchInput.value = '';
@@ -511,33 +559,76 @@ function setupEventListeners() {
             searchInput.focus();
         });
     }
-    
-    const debouncedSearch = Utils.debounce((e) => {
-        Dashboard.filters.search = e.target.value.trim();
-        goToPage(1);
-    }, 200); // Reduced from 500ms for faster feedback
-    searchInput.addEventListener('input', debouncedSearch);
 
-    // City filter
-    document.getElementById('cityFilter').addEventListener('change', (e) => {
-        Dashboard.filters.city = e.target.value;
-        goToPage(1);
-    });
-
-    // Type filter
-    document.getElementById('typeFilter').addEventListener('change', (e) => {
-        Dashboard.filters.type = e.target.value;
-        goToPage(1);
-    });
-
-    // Apply filters button
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-
-    // Clear filters button
-    document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
+    if (searchInput) {
+        const debouncedSearch = Utils.debounce((e) => {
+            Dashboard.filters.search = e.target.value.trim();
+            goToPage(1);
+        }, 200);
+        searchInput.addEventListener('input', debouncedSearch);
+    }
 
     // Refresh button
-    document.getElementById('refreshBtn').addEventListener('click', handleManualRefresh);
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', handleManualRefresh);
+    }
+}
+
+function initFilterComboBoxes() {
+    // City combo box
+    const cityComboBox = new ComboBox('cityComboBox', {
+        placeholder: 'All Cities',
+        darkTheme: true,
+        onChange: (item) => {
+            Dashboard.filters.city = item.value;
+            goToPage(1);
+        }
+    });
+
+    // Type combo box
+    const typeComboBox = new ComboBox('typeComboBox', {
+        placeholder: 'Job Type',
+        darkTheme: true,
+        onChange: (item) => {
+            Dashboard.filters.type = item.value;
+            goToPage(1);
+        }
+    });
+
+    // Load cities and types from API
+    loadFilterOptions(cityComboBox, typeComboBox);
+}
+
+async function loadFilterOptions(cityComboBox, typeComboBox) {
+    try {
+        // Load cities from existing /api/cities endpoint
+        const citiesResponse = await fetch('/api/cities');
+        const citiesData = await citiesResponse.json();
+        if (citiesData.success) {
+            // Format as combo box items
+            const citiesWithCounts = citiesData.cities.map(city => ({
+                value: city,
+                label: city,
+                secondary: ''
+            }));
+            cityComboBox.setItems(citiesWithCounts);
+        }
+
+        // Load job types from existing /api/employment-types endpoint
+        const typesResponse = await fetch('/api/employment-types');
+        const typesData = await typesResponse.json();
+        if (typesData.success) {
+            const typesWithCounts = typesData.types.map(type => ({
+                value: type,
+                label: type,
+                secondary: ''
+            }));
+            typeComboBox.setItems(typesWithCounts);
+        }
+    } catch (error) {
+        console.error('Failed to load filter options:', error);
+    }
 }
 
 // ============================================================================

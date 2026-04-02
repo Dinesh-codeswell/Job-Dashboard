@@ -103,20 +103,21 @@ class GoogleSheetsIntegration:
     def _setup_headers(self):
         """Setup column headers in the worksheet."""
         headers = [
-            "Company",  # NEW: Company column first
-            "Job Title",
-            "Employment Type",
-            "Posted",
-            "Location",
-            "Job Description",
-            "Job URL",
-            "Search City",
-            "Date Added"
+            "Company",         # Column A
+            "Company Logo",    # Column B - NEW: Company Logo URL
+            "Job Title",       # Column C
+            "Employment Type", # Column D
+            "Posted",          # Column E
+            "Location",        # Column F
+            "Job Description", # Column G
+            "Job URL",         # Column H
+            "Search City",     # Column I
+            "Date Added"       # Column J
         ]
         self.worksheet.append_row(headers, value_input_option="USER_ENTERED")
 
         # Format header row (bold)
-        self.worksheet.format('A1:I1', {'textFormat': {'bold': True}})
+        self.worksheet.format('A1:J1', {'textFormat': {'bold': True}})
     
     def upload_job(self, job_data: Dict[str, Any]) -> bool:
         """
@@ -132,15 +133,16 @@ class GoogleSheetsIntegration:
             from datetime import datetime
 
             row_data = [
-                job_data.get("company", ""),  # NEW: Company column
-                job_data.get("job_title", ""),
-                job_data.get("employment_type", ""),
-                job_data.get("posted_date", ""),
-                job_data.get("location", ""),
-                self._clean_description(job_data.get("job_description", "")),
-                job_data.get("linkedin_url", ""),
-                job_data.get("search_city", ""),
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                job_data.get("company", ""),           # Column A: Company
+                job_data.get("company_logo", ""),      # Column B: Company Logo URL - NEW
+                job_data.get("job_title", ""),         # Column C: Job Title
+                job_data.get("employment_type", ""),   # Column D: Employment Type
+                job_data.get("posted_date", ""),       # Column E: Posted
+                job_data.get("location", ""),          # Column F: Location
+                self._clean_description(job_data.get("job_description", "")),  # Column G: Description
+                job_data.get("linkedin_url", ""),      # Column H: Job URL
+                job_data.get("search_city", ""),       # Column I: Search City
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Column J: Date Added
             ]
 
             self.worksheet.append_row(row_data, value_input_option="USER_ENTERED")
@@ -231,7 +233,7 @@ class GoogleSheetsIntegration:
             return False
 
         try:
-            all_values = self.worksheet.col_values(7)  # Job URL column (column G = 7, after Company)
+            all_values = self.worksheet.col_values(8)  # Job URL column (column H = 8, after Company Logo)
             return job_url in all_values
         except Exception:
             return False

@@ -55,27 +55,51 @@ CONSULTING_KEYWORDS = [
     "Strategy Consultant",
     "IT Consultant",
     "Technology Consultant",
-    
+
     # Second tier - good yield
     "Digital Consultant",
     "Financial Consultant",
     "SAP Consultant",
     "Oracle Consultant",
     "Cloud Consultant",
-    
+
     # Third tier - specialized
     "Cybersecurity Consultant",
     "Data Consultant",
     "ERP Consultant",
     "CRM Consultant",
     "Risk Consultant",
-    
+
     # Fourth tier - senior roles
     "Senior Consultant",
     "Principal Consultant",
     "Lead Consultant",
     "Consulting Analyst",
     "Business Analyst",
+]
+
+# INTERNSHIP keywords - for scraping internship opportunities
+INTERNSHIP_KEYWORDS = [
+    "Consulting Intern",
+    "Business Analyst Intern",
+    "Management Consulting Intern",
+    "Strategy Intern",
+    "IT Consultant Intern",
+    "Technology Intern",
+    "Digital Consulting Intern",
+    "Financial Analyst Intern",
+    "SAP Intern",
+    "Oracle Intern",
+    "Cloud Consultant Intern",
+    "Cybersecurity Intern",
+    "Data Analyst Intern",
+    "ERP Intern",
+    "CRM Intern",
+    "Risk Analyst Intern",
+    "Business Intern",
+    "Consulting Summer Intern",
+    "Winter Intern Consulting",
+    "Intern Consultant",
 ]
 
 # Tier 1 cities first (more jobs, better quality)
@@ -359,6 +383,7 @@ class OptimizedConsultingJobsScraper:
         return {
             "job_title": (job.job_title or "").strip(),
             "company": job.company or "",
+            "company_logo": job.company_logo or "",  # NEW: Company logo URL
             "employment_type": (job.employment_type or "").strip(),
             "location": (job.location or city).strip(),
             "posted_date": job.posted_date or "",
@@ -373,10 +398,11 @@ class OptimizedConsultingJobsScraper:
         limit_per_city: int = 10,
         skip_duplicates: bool = True,
         tier_1_only: bool = False,
-        cities: Optional[List[str]] = None
+        cities: Optional[List[str]] = None,
+        include_internships: bool = True  # NEW: Option to include internships
     ) -> Dict[str, Any]:
         """Run the optimized scraping workflow."""
-        
+
         results = {
             "success": False,
             "cities_searched": 0,
@@ -387,15 +413,23 @@ class OptimizedConsultingJobsScraper:
             "errors": [],
             "timestamp": datetime.now().isoformat()
         }
-        
+
         cities = cities or (INDIAN_CITIES_TIER_1 if tier_1_only else INDIAN_CITIES_TIER_1 + INDIAN_CITIES_TIER_2)
-        keywords = CONSULTING_KEYWORDS
         
+        # Combine consulting keywords with internship keywords if enabled
+        keywords = CONSULTING_KEYWORDS.copy()
+        if include_internships:
+            keywords.extend(INTERNSHIP_KEYWORDS)
+            print(f"\n🎓 INTERNSHIPS: ENABLED ({len(INTERNSHIP_KEYWORDS)} internship keywords)")
+
         print("\n" + "="*70)
         print("⚡ OPTIMIZED CONSULTING JOBS SCRAPER (48 HOURS)")
         print("="*70)
         print(f"📍 Cities: {len(cities)} (Tier 1: {len(INDIAN_CITIES_TIER_1)})")
         print(f"📍 Keywords: {len(keywords)} (high-yield only)")
+        if include_internships:
+            print(f"   - Consulting: {len(CONSULTING_KEYWORDS)} keywords")
+            print(f"   - Internships: {len(INTERNSHIP_KEYWORDS)} keywords")
         print(f"📍 Limit per city: {limit_per_city} jobs")
         print(f"📍 Time Filter: PAST {self.max_days} DAYS (LinkedIn native filter)")
         print(f"📍 Expected Success Rate: 80-95% (was 20%)")

@@ -13,6 +13,7 @@ class Job(BaseModel):
     linkedin_url: str
     job_title: Optional[str] = None
     company: Optional[str] = None
+    company_logo: Optional[str] = None  # NEW: Company logo URL
     employment_type: Optional[str] = None
     location: Optional[str] = None
     posted_date: Optional[str] = None

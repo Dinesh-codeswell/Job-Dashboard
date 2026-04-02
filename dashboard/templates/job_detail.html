@@ -35,7 +35,7 @@
         }
     </script>
     <style>
-        body { background-color: #000000; color: #e2e2e2; }
+        body { background-color: #0a0a0a; color: #e2e2e2; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .inner-glow { border-top: 1px solid rgba(62, 73, 66, 0.2); }
         .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; }
@@ -43,13 +43,12 @@
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="font-body selection:bg-primary selection:text-on-primary">
+<body class="font-body selection:bg-primary selection:text-on-primary bg-black">
     <!-- Navigation -->
     <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 font-manrope tracking-tight">
         <div class="text-2xl font-bold tracking-tighter text-emerald-500">Beyond Career</div>
         <div class="hidden md:flex items-center gap-8">
             <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1" href="/">Jobs</a>
-            <a class="text-neutral-400 hover:text-emerald-300" href="/about">About</a>
         </div>
         <div class="flex items-center gap-6">
             <a id="navApplyBtn" href="#" target="_blank" class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-semibold hover:bg-primary-fixed transition-all">Apply Now</a>
@@ -84,18 +83,20 @@
                 <div class="lg:col-span-8">
                     <header class="mb-12">
                         <div id="badges" class="flex flex-wrap gap-3 mb-6"></div>
-                        <h1 id="title" class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4"></h1>
-                        <div class="flex items-center gap-4 text-xl text-on-surface-variant">
-                            <span id="company"></span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
-                            <span id="location"></span>
+                        <div class="flex items-start gap-6 mb-4">
+                            <div id="companyLogo" class="w-20 h-20 rounded-xl bg-surface-container-low flex items-center justify-center flex-shrink-0 border-2 border-outline-variant/30" style="display: none;">
+                                <img id="logoImg" src="" alt="Company Logo" class="w-16 h-16 object-contain">
+                            </div>
+                            <div class="flex-1">
+                                <h1 id="title" class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter mb-4"></h1>
+                                <div class="flex items-center gap-4 text-xl text-on-surface-variant">
+                                    <span id="company"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                                    <span id="location"></span>
+                                </div>
+                            </div>
                         </div>
                     </header>
-
-                    <div class="mb-12 relative h-80 rounded-2xl overflow-hidden">
-                        <img class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all" src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200" alt="Office"/>
-                        <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
-                    </div>
 
                     <div class="space-y-12">
                         <section>
@@ -103,19 +104,7 @@
                                 <span class="w-8 h-1 bg-primary"></span>
                                 About the Role
                             </h2>
-                            <div id="description" class="space-y-4 text-lg text-on-surface-variant leading-relaxed"></div>
-                        </section>
-
-                        <section>
-                            <h2 class="text-2xl font-headline font-bold mb-6 flex items-center gap-3">
-                                <span class="w-8 h-1 bg-primary"></span>
-                                Requirements
-                            </h2>
-                            <ul class="space-y-4">
-                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>3+ years experience in consulting</span></li>
-                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>Degree from top-tier institution</span></li>
-                                <li class="flex gap-3"><span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span><span>Strong analytical skills</span></li>
-                            </ul>
+                            <div id="description" class="prose prose-invert max-w-none"></div>
                         </section>
                     </div>
                 </div>
@@ -127,19 +116,36 @@
                         <div class="space-y-3 text-sm">
                             <div class="flex justify-between"><span class="text-on-surface-variant">Posted</span><span id="posted" class="font-medium"></span></div>
                             <div class="flex justify-between"><span class="text-on-surface-variant">Type</span><span id="type" class="font-medium"></span></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-surface-container-low p-8 rounded-2xl">
-                        <h3 id="sidebarCompany" class="text-xl font-headline font-bold mb-4"></h3>
-                        <div class="space-y-3 text-sm">
-                            <div class="flex gap-3"><span class="material-symbols-outlined text-primary/60">location_on</span><span id="sidebarLocation"></span></div>
-                        </div>
-                        <div class="mt-6 pt-6 border-t border-outline-variant/10">
-                            <a id="linkedinBtn" href="#" target="_blank" class="text-primary font-bold flex items-center gap-2">View on LinkedIn <span class="material-symbols-outlined">arrow_forward</span></a>
+                            <div class="flex justify-between"><span class="text-on-surface-variant">Location</span><span id="sidebarLocation" class="font-medium"></span></div>
                         </div>
                     </div>
                 </aside>
+
+                <!-- Similar Jobs Section (Full Width Below) -->
+                <div class="lg:col-span-12 mt-16">
+                    <h2 class="text-3xl font-headline font-bold mb-8 flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary">work_outline</span>
+                        Similar Jobs You May Like
+                    </h2>
+                    <div id="similarJobsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Loading skeleton -->
+                        <div class="rounded-2xl bg-surface-container p-6 animate-pulse">
+                            <div class="h-6 bg-surface-container-highest rounded mb-4"></div>
+                            <div class="h-4 bg-surface-container-highest rounded mb-2"></div>
+                            <div class="h-4 bg-surface-container-highest rounded w-2/3"></div>
+                        </div>
+                        <div class="rounded-2xl bg-surface-container p-6 animate-pulse">
+                            <div class="h-6 bg-surface-container-highest rounded mb-4"></div>
+                            <div class="h-4 bg-surface-container-highest rounded mb-2"></div>
+                            <div class="h-4 bg-surface-container-highest rounded w-2/3"></div>
+                        </div>
+                        <div class="rounded-2xl bg-surface-container p-6 animate-pulse">
+                            <div class="h-6 bg-surface-container-highest rounded mb-4"></div>
+                            <div class="h-4 bg-surface-container-highest rounded mb-2"></div>
+                            <div class="h-4 bg-surface-container-highest rounded w-2/3"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -160,21 +166,38 @@
                 }
 
                 const job = data.job;
-                
+
                 // Populate data
                 document.getElementById('title').textContent = job['Job Title'] || 'Position';
                 document.getElementById('company').textContent = job['Company'] || 'Company';
                 document.getElementById('location').textContent = job['Location'] || 'Location';
-                document.getElementById('description').textContent = job['Job Description'] || 'No description available.';
+                
+                // Render formatted description (HTML)
+                const descriptionDiv = document.getElementById('description');
+                const description = job['Job Description'] || 'No description available.';
+                if (description.includes('<p>') || description.includes('<ul>') || description.includes('<h3>')) {
+                    // HTML formatted description
+                    descriptionDiv.innerHTML = description;
+                } else {
+                    // Plain text - convert newlines to paragraphs
+                    const paragraphs = description.split('\n\n').filter(p => p.trim());
+                    descriptionDiv.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+                }
+                
                 document.getElementById('posted').textContent = job['Posted'] || 'Recently';
                 document.getElementById('type').textContent = job['Employment Type'] || 'Full-time';
-                document.getElementById('sidebarCompany').textContent = job['Company'] || 'Company';
                 document.getElementById('sidebarLocation').textContent = job['Location'] || 'Location';
+
+                // Set company logo if available
+                const logoUrl = job['Company Logo'] || job['company_logo'] || '';
+                if (logoUrl) {
+                    document.getElementById('logoImg').src = logoUrl;
+                    document.getElementById('companyLogo').style.display = 'flex';
+                }
 
                 // Set links
                 const jobUrl = job['Job URL'] || '#';
                 document.getElementById('applyBtn').href = jobUrl;
-                document.getElementById('linkedinBtn').href = jobUrl;
                 document.getElementById('navApplyBtn').href = jobUrl;
 
                 // Badges
@@ -189,6 +212,9 @@
                 // Show content
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('jobContent').style.display = 'block';
+                
+                // Load similar jobs
+                loadSimilarJobs();
             } catch (error) {
                 console.error('Error loading job:', error);
                 showError();
@@ -198,6 +224,112 @@
         function showError() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'flex';
+        }
+
+        async function loadSimilarJobs() {
+            try {
+                const response = await fetch(`/api/jobs/${jobId}/similar`);
+                const data = await response.json();
+
+                const container = document.getElementById('similarJobsContainer');
+                
+                if (!data.success || !data.similar_jobs || data.similar_jobs.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12">
+                            <div class="text-6xl mb-4">🔍</div>
+                            <h3 class="text-xl font-bold mb-2">No Similar Jobs Found</h3>
+                            <p class="text-on-surface-variant">Check back later for more opportunities!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render similar jobs
+                container.innerHTML = data.similar_jobs.map(job => `
+                    <div class="group p-6 rounded-2xl bg-surface-container inner-glow transition-all hover:translate-y-[-4px] hover:bg-surface-container-high duration-300 cursor-pointer" onclick="window.location.href='/job/${encodeURIComponent(job.id)}'">
+                        <div class="flex items-start gap-4 mb-4">
+                            ${job.company_logo ? `
+                            <div class="flex-shrink-0 w-14 h-14 rounded-lg bg-surface-container-low flex items-center justify-center border-2 border-outline-variant/30">
+                                <img src="${escapeHtml(job.company_logo)}" alt="${escapeHtml(job.company)}" class="w-12 h-12 object-contain">
+                            </div>
+                            ` : `
+                            <div class="flex-shrink-0 w-14 h-14 rounded-lg bg-surface-container-high flex items-center justify-center text-primary/20 text-lg font-bold border-2 border-outline-variant/30">
+                                ${job.company.charAt(0).toUpperCase()}
+                            </div>
+                            `}
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold font-headline mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(job.job_title)}</h3>
+                                <p class="text-sm text-on-surface-variant">${escapeHtml(job.company)}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm text-on-surface/60">
+                                <span class="material-symbols-outlined text-xs">location_on</span>
+                                ${escapeHtml(job.location)}
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-on-surface/60">
+                                <span class="material-symbols-outlined text-xs">schedule</span>
+                                ${escapeHtml(job.employment_type)}
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-on-surface/60">
+                                <span class="material-symbols-outlined text-xs">update</span>
+                                ${formatRelativeTime(job.posted_date)}
+                            </div>
+                        </div>
+                        
+                        ${job.match_reasons && job.match_reasons.length > 0 ? `
+                        <div class="pt-4 border-t border-surface-container-highest">
+                            <div class="flex flex-wrap gap-2">
+                                ${job.match_reasons.map(reason => `
+                                    <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">${escapeHtml(reason)}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="mt-4">
+                            <button class="w-full py-2.5 rounded-xl border border-primary/20 text-primary font-semibold text-sm group-hover:bg-primary-container group-hover:text-on-primary-container transition-all" onclick="event.stopPropagation(); window.location.href='/job/${encodeURIComponent(job.id)}'">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading similar jobs:', error);
+                document.getElementById('similarJobsContainer').innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="text-6xl mb-4">⚠️</div>
+                        <h3 class="text-xl font-bold mb-2">Unable to Load Similar Jobs</h3>
+                        <p class="text-on-surface-variant">Please try again later</p>
+                    </div>
+                `;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatRelativeTime(dateString) {
+            if (!dateString) return 'Recently';
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+            
+            if (diffInHours < 1) return 'Just now';
+            if (diffInHours < 24) return `${diffInHours}h ago`;
+            
+            const diffInDays = Math.floor(diffInHours / 24);
+            if (diffInDays === 1) return 'Yesterday';
+            if (diffInDays < 7) return `${diffInDays}d ago`;
+            
+            return date.toLocaleDateString();
         }
 
         // Load on page load

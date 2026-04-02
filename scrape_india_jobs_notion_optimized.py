@@ -20,6 +20,13 @@ DESIGNED FOR: Maximum efficiency in catching jobs posted in past 24 hours
 - Only fetch jobs from past 24 hours (LinkedIn native filter)
 - Store in Notion database instantly
 """
+import sys
+import os
+from pathlib import Path
+
+# Add current directory to Python path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 import asyncio
 import argparse
 import logging

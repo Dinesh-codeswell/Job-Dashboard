@@ -7,7 +7,7 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,15 +82,15 @@
     </script>
     
     <style>
-        body { 
-            background-color: #000000; 
-            color: #e2e2e2; 
+        body {
+            background-color: #0a0a0a;
+            color: #e2e2e2;
         }
-        .material-symbols-outlined { 
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; 
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .inner-glow { 
-            border-top: 1px solid rgba(62, 73, 66, 0.2); 
+        .inner-glow {
+            border-top: 1px solid rgba(62, 73, 66, 0.2);
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -109,14 +109,13 @@
         }
     </style>
 </head>
-<body class="font-body selection:bg-primary/30">
+<body class="font-body selection:bg-primary/30 bg-black">
     <!-- Top Navigation Bar -->
     <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4">
         <div class="text-2xl font-bold tracking-tighter text-emerald-500 font-headline">Beyond Career</div>
         
         <div class="hidden md:flex items-center space-x-8 font-manrope tracking-tight">
             <a class="text-emerald-400 font-bold border-b-2 border-emerald-500 pb-1" href="#">Jobs</a>
-            <a class="text-neutral-400 hover:text-emerald-300 transition-colors duration-300" href="/about">About</a>
         </div>
         
         <div class="flex items-center gap-6">
@@ -172,14 +171,8 @@
         <!-- Filters Row -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
             <div class="flex items-center gap-3">
-                <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors" id="cityFilterBtn">
-                    <span class="material-symbols-outlined text-sm">location_on</span>
-                    City
-                </button>
-                <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-sm font-medium hover:bg-surface-bright transition-colors" id="typeFilterBtn">
-                    <span class="material-symbols-outlined text-sm">work</span>
-                    Job Type
-                </button>
+                <div class="w-48" id="cityComboBox"></div>
+                <div class="w-48" id="typeComboBox"></div>
             </div>
             <div class="text-sm text-outline" id="resultsCount">Loading...</div>
         </div>
@@ -210,10 +203,6 @@
             <span class="material-symbols-outlined">assignment_turned_in</span>
             <span class="font-inter text-[10px] uppercase tracking-widest mt-1">Applied</span>
         </a>
-        <a class="flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-800 p-2 active:scale-90 transition-transform" href="/about">
-            <span class="material-symbols-outlined">person</span>
-            <span class="font-inter text-[10px] uppercase tracking-widest mt-1">About</span>
-        </a>
     </nav>
 
     <!-- Footer -->
@@ -226,7 +215,6 @@
                 </p>
             </div>
             <div class="flex gap-8">
-                <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="/about">About</a>
                 <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Privacy</a>
                 <a class="font-inter text-sm text-neutral-500 hover:text-emerald-400 underline underline-offset-4 transition-all duration-300" href="#">Terms</a>
             </div>
@@ -234,6 +222,7 @@
     </footer>
 
     <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/combo-box.js') }}"></script>
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

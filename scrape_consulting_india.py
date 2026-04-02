@@ -329,6 +329,7 @@ class ConsultingJobsScraper:
         return {
             "job_title": job_title,
             "company": job.company or "",
+            "company_logo": job.company_logo or "",  # NEW: Company logo URL
             "employment_type": employment_type,
             "location": location,
             "posted_date": job.posted_date or "",

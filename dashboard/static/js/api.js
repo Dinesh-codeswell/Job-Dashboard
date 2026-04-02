@@ -73,7 +73,7 @@ const API = {
     /**
      * Get paginated jobs list
      */
-    async getJobs(page = 1, limit = 30, filters = {}) {
+    async getJobs(page = 1, limit = 11, filters = {}) {
         const params = { page, limit, ...filters };
         return this.get('/api/jobs', params);
     },
