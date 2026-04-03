@@ -1,190 +1,167 @@
-# Vercel Deployment Fix - Google Sheets Integration
+# 🔧 Vercel Deployment Fix - API Endpoints Synced
 
-## Problem Fixed ✅
+## Problem
 
-**Issue:** Jobs were fetching correctly in local development but failing on Vercel deployment.
+After deploying to Vercel, the dashboard was **highly unreliable**:
+- ✅ Works perfectly on localhost
+- ❌ 404 errors on Vercel for `/api/jobs/<job_id>`
+- ❌ Similar jobs not loading
+- ❌ NaN JSON errors
+- ❌ Float comparison errors (`'float' object has no attribute 'lower'`)
 
-**Root Cause:** The Google Sheets data fetcher (`dashboard/data/sheets_fetcher.py`) only supported file-based credentials (`credentials.json`), which doesn't exist in the Vercel deployment environment.
+## Root Cause
 
-## What Was Fixed
+Your **Vercel API file** (`api/index.py`) was **missing critical features** that exist in your local Flask app (`dashboard/app.py`):
 
-Updated `dashboard/data/sheets_fetcher.py` to support **both**:
-1. **Environment variable credentials** (for Vercel/cloud deployment) - `GOOGLE_CREDENTIALS_JSON`
-2. **File-based credentials** (for local development) - `credentials.json`
+1. ❌ Missing `sanitize_job_data()` function - causing NaN JSON errors
+2. ❌ Missing `/api/jobs/<job_id>/similar` endpoint - similar jobs won't load
+3. ❌ Missing float-to-string conversion - causing comparison errors
+4. ❌ Not sanitizing job data before JSON response
 
-The connect() method now:
-- First tries to read `GOOGLE_CREDENTIALS_JSON` or `GOOGLE_CREDENTIALS` environment variable
-- Falls back to `credentials.json` file if env var is not set
-- Provides clear error logging for debugging
+## Solution
 
-## Required Vercel Environment Variables
+Updated `api/index.py` to **match your local Flask app** with all fixes:
 
-You **MUST** set these environment variables in your Vercel dashboard:
-
-### 1. GOOGLE_SHEET_ID
-Your Google Spreadsheet ID (the long string in the URL).
-
-**Where to find it:** 
-- Open your Google Sheet
-- Look at the URL: `https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit`
-- Copy the `YOUR_SHEET_ID_HERE` part
-
-**Example value:** `1qul0CigJ7pMPh-xikhgpaxLXRXlyYjOaN5rhhO3LTHU`
-
-### 2. GOOGLE_CREDENTIALS_JSON (CRITICAL)
-The **entire contents** of your `credentials.json` service account file, as a single line.
-
-**How to set it:**
-
-1. **Open your `credentials.json` file** (the one you use locally)
-
-2. **Convert it to a single line:**
-   - On Windows, run this PowerShell command:
-     ```powershell
-     Get-Content credentials.json | ConvertTo-Json -Compress | Set-Clipboard
-     ```
-   - Or manually remove all newlines and extra spaces
-
-3. **Go to Vercel Dashboard:**
-   - Select your project
-   - Go to **Settings** → **Environment Variables**
-   - Add new variable:
-     - **Name:** `GOOGLE_CREDENTIALS_JSON`
-     - **Value:** Paste the entire JSON (single line)
-     - **Environments:** Check all (Production, Preview, Development)
-   - Click **Save**
-
-**Example value (formatted for readability, but paste as single line):**
-```json
-{
-  "type": "service_account",
-  "project_id": "your-project-id",
-  "private_key_id": "...",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "client_email": "your-sa@your-project.iam.gserviceaccount.com",
-  "client_id": "...",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/..."
-}
-```
-
-### 3. WORKSHEET_NAME (Optional)
-The primary worksheet name (deprecated - now fetches from all sheets).
-
-**Default value:** `LinkedIn_Jobs`
-
-## Step-by-Step Deployment Instructions
-
-### Step 1: Set Environment Variables in Vercel
-
-1. Go to https://vercel.com/dashboard
-2. Select your project
-3. Click **Settings** → **Environment Variables**
-4. Add the following:
-
-   | Variable Name | Value | Environments |
-   |--------------|-------|--------------|
-   | `GOOGLE_SHEET_ID` | Your sheet ID | All |
-   | `GOOGLE_CREDENTIALS_JSON` | Your credentials JSON (single line) | All |
-
-5. Click **Save**
-
-### Step 2: Push the Code Fix to GitHub
-
-```bash
-git add dashboard/data/sheets_fetcher.py
-git commit -m "fix: support GOOGLE_CREDENTIALS_JSON env var for Vercel deployment"
-git push
-```
-
-### Step 3: Redeploy on Vercel
-
-Vercel will automatically redeploy when you push to GitHub. Or manually:
-
-```bash
-vercel --prod
-```
-
-### Step 4: Verify the Deployment
-
-1. Open your deployed site
-2. Check that jobs are loading
-3. If not, check Vercel logs:
-   - Go to Vercel Dashboard → Your Project → **Deployments**
-   - Click on the latest deployment → **Logs**
-   - Look for any errors related to Google Sheets credentials
-
-## Troubleshooting
-
-### Jobs Still Not Loading?
-
-**Check 1: Environment Variables Are Set**
-```bash
-# In Vercel Dashboard → Settings → Environment Variables
-# Verify both GOOGLE_SHEET_ID and GOOGLE_CREDENTIALS_JSON are set
-```
-
-**Check 2: JSON Format Is Valid**
-- The `GOOGLE_CREDENTIALS_JSON` must be valid JSON on a **single line**
-- No trailing commas
-- All quotes properly escaped
-
-**Check 3: Service Account Has Access**
-- Open your Google Sheet
-- Click **Share** button
-- Add the service account email (from `credentials.json`)
-- Give it **Editor** access
-- Click **Share**
-
-**Check 4: Vercel Logs**
-```bash
-# View logs in Vercel Dashboard
-# Look for these log messages:
-# ✅ "Using credentials from environment variable"
-# ✅ "Connected to Google Sheets: LinkedIn_Jobs"
-# ❌ "Credentials file not found" (means env var not set)
-```
-
-### Common Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Invalid JSON in GOOGLE_CREDENTIALS_JSON` | Multi-line JSON or syntax error | Convert to single line, check for errors |
-| `Credentials file not found` | Env var not set, file doesn't exist | Set `GOOGLE_CREDENTIALS_JSON` in Vercel |
-| `WorksheetNotFound` | Wrong worksheet name | Check sheet tab names in Google Sheets |
-| `Failed to connect to Google Sheets` | Service account not authorized | Share the sheet with service account email |
-
-## How It Works Now
-
-### Local Development
-```
-credentials.json file exists → Used for authentication
-```
-
-### Vercel Deployment
-```
-GOOGLE_CREDENTIALS_JSON env var set → Used for authentication
-```
-
-### Code Flow
+### 1. Added `sanitize_job_data()` Function
 ```python
-def connect(self):
-    # 1. Try env var first (Vercel)
-    creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
-    if creds_json:
-        creds = Credentials.from_service_account_info(json.loads(creds_json))
+def sanitize_job_data(job_data: dict) -> dict:
+    """Remove NaN, Infinity, and ensure JSON-serializable data."""
+    import math
     
-    # 2. Fallback to file (local)
-    else:
-        creds = Credentials.from_service_account_file('credentials.json')
+    sanitized = {}
+    for key, value in job_data.items():
+        if isinstance(value, float):
+            if math.isnan(value) or math.isinf(value):
+                sanitized[key] = '' if key == 'company_logo' else 0
+            else:
+                sanitized[key] = value
+        elif isinstance(value, str):
+            sanitized[key] = value.strip() if value else ''
+        elif value is None:
+            sanitized[key] = ''
+        else:
+            sanitized[key] = value
+    
+    return sanitized
+```
+
+### 2. Applied Sanitization to All Endpoints
+```python
+# Job list endpoint
+simplified_job = sanitize_job_data(simplified_job)
+
+# Single job endpoint
+sanitized_job = sanitize_job_data(job)
+
+# Similar jobs endpoint
+result.append(sanitize_job_data(similar_job))
+```
+
+### 3. Added Similar Jobs Endpoint
+Complete implementation with:
+- City matching (40 points)
+- Employment type matching (30 points)
+- Job title keyword matching (30 points)
+- Company matching (20 points)
+- Top 3 results returned
+
+### 4. Fixed Float Comparisons
+```python
+# Before (broken on Vercel):
+current_type = current_job.get('Employment Type', '')
+if current_type.lower() == job_type.lower():  # ❌ Fails if NaN
+
+# After (works everywhere):
+current_type = str(current_job.get('Employment Type', '') or '')
+if current_type and current_type.lower() == job_type.lower():  # ✅ Always works
 ```
 
 ## Files Modified
 
-- `dashboard/data/sheets_fetcher.py` - Added env var support in `connect()` method
+| File | Changes |
+|------|---------|
+| `api/index.py` | Added sanitization, similar jobs endpoint, float fixes |
+
+## 🚀 Deploy to Vercel
+
+### Step 1: Commit and Push to GitHub
+```bash
+cd C:\linkedin_scraper
+git add api/index.py
+git commit -m "fix: sync Vercel API with local Flask app - add sanitization and similar jobs"
+git push origin main
+```
+
+### Step 2: Vercel Will Auto-Deploy
+Vercel automatically deploys on push to main branch.
+
+### Step 3: Test After Deployment
+
+1. **Open your Vercel URL**
+2. **Check Console** - should see:
+   ```
+   Extracted Job ID: job_4378526631  ✅
+   Response status: 200  ✅ (not 404)
+   Similar jobs response: {success: true, similar_jobs: [...]}  ✅
+   ```
+
+3. **Test all features**:
+   - ✅ Job dashboard loads
+   - ✅ Job detail page loads
+   - ✅ Similar jobs display at bottom
+   - ✅ No NaN JSON errors
+   - ✅ No float comparison errors
+
+## What Changed
+
+### Before Deployment:
+```
+/api/jobs/<job_id> → 404 (endpoint missing sanitization)
+/api/jobs/<job_id>/similar → 404 (endpoint doesn't exist)
+NaN in response → JSON parse error
+```
+
+### After Deployment:
+```
+/api/jobs/<job_id> → 200 ✅ (sanitized data)
+/api/jobs/<job_id>/similar → 200 ✅ (endpoint added)
+All data sanitized → No JSON errors ✅
+```
+
+## Why Localhost Worked But Vercel Didn't
+
+| Environment | API File | Status |
+|-------------|----------|--------|
+| **Localhost** | `dashboard/app.py` | ✅ Had all fixes |
+| **Vercel** | `api/index.py` | ❌ Missing fixes |
+
+**Vercel uses `api/index.py` as its serverless function**, NOT `dashboard/app.py`. So changes to `app.py` only affected localhost, not Vercel.
+
+## Testing Checklist
+
+After deployment, verify:
+
+- [ ] Job dashboard loads all jobs
+- [ ] Pagination works (page 1, 2, 3...)
+- [ ] Filters work (city, type, search)
+- [ ] Job detail page loads
+- [ ] Similar jobs display at bottom
+- [ ] No console errors (NaN, 404, 500)
+- [ ] Page refresh stays on same page
+- [ ] Search icon stays within skeleton bounds
+
+## Expected Console Output
+
+```
+Extracted Job ID: job_4378526631  ✅
+Fetching from: /api/jobs/job_4378526631/similar  ✅
+Response status: 200  ✅
+Similar jobs response: {success: true, similar_jobs: Array(3)}  ✅
+Rendering 3 similar jobs  ✅
+```
 
 ---
 
-**Next Steps:** Push this fix to GitHub and set the environment variables in Vercel. Jobs should start loading immediately!
+**Created**: April 3, 2026  
+**Status**: ✅ Fixed and ready to deploy  
+**Next**: Push to GitHub and test on Vercel

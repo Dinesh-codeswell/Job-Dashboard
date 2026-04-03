@@ -137,6 +137,31 @@ def test():
 # API Endpoints
 # ============================================================================
 
+def sanitize_job_data(job_data: dict) -> dict:
+    """
+    Sanitize job data to ensure it's JSON-serializable.
+    Removes NaN, Infinity, and other problematic values.
+    """
+    import math
+    
+    sanitized = {}
+    for key, value in job_data.items():
+        if isinstance(value, float):
+            # Replace NaN and Infinity with empty string or 0
+            if math.isnan(value) or math.isinf(value):
+                sanitized[key] = '' if key == 'company_logo' else 0
+            else:
+                sanitized[key] = value
+        elif isinstance(value, str):
+            # Clean up string values
+            sanitized[key] = value.strip() if value else ''
+        elif value is None:
+            sanitized[key] = ''
+        else:
+            sanitized[key] = value
+    
+    return sanitized
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
@@ -212,10 +237,10 @@ def get_jobs():
                 'posted_date': job.get('Posted', ''),
                 'search_city': job.get('Search City', ''),
                 'date_added': job.get('Date Added', ''),
-                # Always include company_logo field, even if empty
                 'company_logo': job.get('Company Logo', '') or job.get('company_logo', '') or job.get('Company_Logo', '') or ''
             }
-            
+            # Sanitize to remove NaN and ensure JSON-serializable data
+            simplified_job = sanitize_job_data(simplified_job)
             simplified_jobs.append(simplified_job)
         
         # DEBUG: Log first simplified job
@@ -249,14 +274,135 @@ def get_job(job_id):
     fetcher = get_fetcher()
     if not fetcher:
         return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
-    
+
     try:
         job = fetcher.get_job_by_id(job_id)
         if not job:
             return jsonify({'success': False, 'error': 'Job not found'}), 404
-        return jsonify({'success': True, 'job': job})
+        
+        # Sanitize job data to remove NaN and ensure JSON-serializable data
+        sanitized_job = sanitize_job_data(job)
+        return jsonify({'success': True, 'job': sanitized_job})
     except Exception as e:
         print(f"Error in get_job: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def extract_title_keywords(title):
+    """Extract important keywords from job title."""
+    stop_words = {
+        'the', 'a', 'an', 'and', 'or', 'for', 'in', 'at', 'on', 'with',
+        'senior', 'junior', 'lead', 'principal', 'manager', 'director',
+        'executive', 'head', 'chief', 'vice', 'president', 'assistant',
+        'associate', 'intern', 'internship', 'trainee', 'entry', 'level'
+    }
+    words = title.replace('-', ' ').replace('/', ' ').split()
+    keywords = [word.lower() for word in words if word.lower() not in stop_words and len(word) > 2]
+    return keywords
+
+@app.route('/api/jobs/<job_id>/similar', methods=['GET'])
+def get_similar_jobs(job_id):
+    """Get similar jobs based on multiple similarity factors."""
+    fetcher = get_fetcher()
+    if not fetcher:
+        return jsonify({'success': False, 'error': f'Failed to initialize: {_fetcher_error}'}), 500
+
+    try:
+        current_job = fetcher.get_job_by_id(job_id)
+        if not current_job:
+            return jsonify({'success': False, 'error': 'Job not found'}), 404
+
+        all_jobs = fetcher.fetch_all_jobs()
+        other_jobs = [j for j in all_jobs if j.get('id') != job_id]
+
+        if not other_jobs:
+            return jsonify({'success': True, 'similar_jobs': [], 'count': 0})
+
+        similar_jobs = []
+
+        for job in other_jobs:
+            score = 0
+            reasons = []
+
+            # Factor 1: Same city (40 points)
+            current_city = str(current_job.get('Search City', '') or '')
+            job_city = str(job.get('Search City', '') or '')
+            if current_city and job_city:
+                if current_city.lower() == job_city.lower():
+                    score += 40
+                    reasons.append(current_city)
+                elif current_city.lower() in job_city.lower() or job_city.lower() in current_city.lower():
+                    score += 20
+                    reasons.append("Nearby")
+
+            # Factor 2: Same employment type (30 points)
+            current_type = str(current_job.get('Employment Type', '') or '')
+            job_type = str(job.get('Employment Type', '') or '')
+            if current_type and job_type:
+                if current_type.lower() == job_type.lower():
+                    score += 30
+                    reasons.append(current_type)
+                elif any(word in job_type.lower() for word in current_type.lower().split()):
+                    score += 15
+
+            # Factor 3: Similar job title (30 points)
+            current_title = str(current_job.get('Job Title', '') or '').lower()
+            job_title = str(job.get('Job Title', '') or '').lower()
+            current_keywords = set(extract_title_keywords(current_title))
+            job_keywords = set(extract_title_keywords(job_title))
+
+            if current_keywords and job_keywords:
+                common = current_keywords & job_keywords
+                if common:
+                    keyword_score = min(30, len(common) * 10)
+                    score += keyword_score
+                    reasons.append(', '.join(list(common)[:2]))
+
+            # Factor 4: Same company (20 points)
+            current_company = str(current_job.get('Company', '') or '')
+            job_company = str(job.get('Company', '') or '')
+            if current_company and job_company:
+                if current_company.lower() == job_company.lower():
+                    score += 20
+                    reasons.append("Same company")
+
+            similar_jobs.append({
+                'job': job,
+                'score': score,
+                'match_reasons': reasons if reasons else ['Other opportunities']
+            })
+
+        # Sort by score and take top 3
+        similar_jobs.sort(key=lambda x: x['score'], reverse=True)
+        top_similar = similar_jobs[:3]
+
+        # Format response
+        result = []
+        for item in top_similar:
+            job_data = item['job']
+            similar_job = {
+                'id': job_data.get('id', ''),
+                'job_title': job_data.get('Job Title', ''),
+                'company': job_data.get('Company', ''),
+                'company_logo': job_data.get('Company Logo', '') or job_data.get('company_logo', ''),
+                'location': job_data.get('Location', ''),
+                'employment_type': job_data.get('Employment Type', ''),
+                'posted_date': job_data.get('Posted', ''),
+                'match_score': item['score'],
+                'match_reasons': item['match_reasons']
+            }
+            # Sanitize to remove NaN
+            result.append(sanitize_job_data(similar_job))
+
+        return jsonify({
+            'success': True,
+            'similar_jobs': result,
+            'count': len(result)
+        })
+
+    except Exception as e:
+        print(f"Error in get_similar_jobs: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/stats', methods=['GET'])
