@@ -410,23 +410,43 @@ function isNewJob(postedDate) {
 }
 
 function renderPagination() {
-    const container = document.getElementById('pagination');
+    const container = document.getElementById('footerPagination');
+
+    if (!container) return;
 
     if (Dashboard.totalPages <= 1) {
         container.innerHTML = '';
         return;
     }
 
+    // Build pagination HTML with shadcn/ui design
     let html = `
-        <button onclick="goToPage(${Dashboard.currentPage - 1})"
-                ${Dashboard.currentPage === 1 ? 'disabled' : ''}
-                aria-label="Go to previous page">
-            ← Previous
-        </button>
+        <div class="pagination-header">
+            <h2>Explore Opportunities</h2>
+            <p>Browse through ${Dashboard.stats?.total_jobs || 0} curated positions</p>
+        </div>
+
+        <nav class="pagination-nav" aria-label="Pagination navigation">
+            <ul class="pagination-content">
+    `;
+
+    // Previous button
+    html += `
+        <li class="pagination-item">
+            <button class="pagination-nav-btn prev" 
+                    onclick="goToPage(${Dashboard.currentPage - 1})"
+                    ${Dashboard.currentPage === 1 ? 'disabled' : ''}
+                    aria-label="Go to previous page">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+                Previous
+            </button>
+        </li>
     `;
 
     // Page numbers
-    const maxVisible = 5;
+    const maxVisible = 7;
     let startPage = Math.max(1, Dashboard.currentPage - Math.floor(maxVisible / 2));
     let endPage = Math.min(Dashboard.totalPages, startPage + maxVisible - 1);
 
@@ -434,40 +454,88 @@ function renderPagination() {
         startPage = Math.max(1, endPage - maxVisible + 1);
     }
 
+    // First page + ellipsis
     if (startPage > 1) {
-        html += `<button onclick="goToPage(1)" aria-label="Go to page 1">1</button>`;
+        html += `
+            <li class="pagination-item">
+                <button class="pagination-btn" onclick="goToPage(1)" aria-label="Go to page 1">1</button>
+            </li>
+        `;
         if (startPage > 2) {
-            html += `<span class="pagination-info">...</span>`;
+            html += `
+                <li class="pagination-item">
+                    <span class="pagination-ellipsis" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="19" cy="12" r="1"/>
+                            <circle cx="5" cy="12" r="1"/>
+                        </svg>
+                    </span>
+                </li>
+            `;
         }
     }
 
+    // Page buttons
     for (let i = startPage; i <= endPage; i++) {
         html += `
-            <button onclick="goToPage(${i})"
-                    class="${i === Dashboard.currentPage ? 'active' : ''}"
-                    aria-label="Go to page ${i}"
-                    ${i === Dashboard.currentPage ? 'aria-current="page"' : ''}>
-                ${i}
-            </button>
+            <li class="pagination-item">
+                <button class="pagination-btn ${i === Dashboard.currentPage ? 'active' : ''}"
+                        onclick="goToPage(${i})"
+                        aria-label="Go to page ${i}"
+                        ${i === Dashboard.currentPage ? 'aria-current="page"' : ''}>
+                    ${i}
+                </button>
+            </li>
         `;
     }
 
+    // Last page + ellipsis
     if (endPage < Dashboard.totalPages) {
         if (endPage < Dashboard.totalPages - 1) {
-            html += `<span class="pagination-info">...</span>`;
+            html += `
+                <li class="pagination-item">
+                    <span class="pagination-ellipsis" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="19" cy="12" r="1"/>
+                            <circle cx="5" cy="12" r="1"/>
+                        </svg>
+                    </span>
+                </li>
+            `;
         }
-        html += `<button onclick="goToPage(${Dashboard.totalPages})" aria-label="Go to page ${Dashboard.totalPages}">${Dashboard.totalPages}</button>`;
+        html += `
+            <li class="pagination-item">
+                <button class="pagination-btn" onclick="goToPage(${Dashboard.totalPages})" aria-label="Go to page ${Dashboard.totalPages}">${Dashboard.totalPages}</button>
+            </li>
+        `;
     }
 
+    // Next button
     html += `
-        <button onclick="goToPage(${Dashboard.currentPage + 1})"
-                ${Dashboard.currentPage === Dashboard.totalPages ? 'disabled' : ''}
-                aria-label="Go to next page">
-            Next →
-        </button>
-        <span class="pagination-info" style="margin-left: 1rem;">
-            Page ${Dashboard.currentPage} of ${Dashboard.totalPages}
-        </span>
+        <li class="pagination-item">
+            <button class="pagination-nav-btn next" 
+                    onclick="goToPage(${Dashboard.currentPage + 1})"
+                    ${Dashboard.currentPage === Dashboard.totalPages ? 'disabled' : ''}
+                    aria-label="Go to next page">
+                Next
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 18 6-6-6-6"/>
+                </svg>
+            </button>
+        </li>
+    `;
+
+    html += `
+            </ul>
+        </nav>
+
+        <div class="pagination-info">
+            <span class="pagination-info-text">
+                Page <span>${Dashboard.currentPage}</span> of <span>${Dashboard.totalPages}</span>
+            </span>
+        </div>
     `;
 
     container.innerHTML = html;
@@ -643,7 +711,12 @@ function goToPage(page) {
     if (page < 1 || page > Dashboard.totalPages) return;
     Dashboard.currentPage = page;
     loadJobs(page);
-    Utils.scrollToElement(document.querySelector('.filters-section'), 100);
+    
+    // Smooth scroll to top of job grid or footer pagination
+    const jobGrid = document.getElementById('jobsGrid');
+    if (jobGrid) {
+        jobGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function applyFilters() {
