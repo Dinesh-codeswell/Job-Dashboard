@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-black">
-    <!-- Dot Pattern Background -->
-    <div id="dot-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
-    
+    <!-- Sparkles Particle Background -->
+    <div id="sparkles-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
+
     <div class="error-page">
         <div class="error-content">
             <h1 class="error-code">500</h1>
@@ -21,23 +21,22 @@
             </a>
         </div>
     </div>
-    
-    <!-- Dot Pattern Background Script -->
-    <script src="{{ url_for('static', filename='js/dot-pattern.js') }}"></script>
+
+    <!-- Sparkles Particle Background Script -->
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                new DotPattern('dot-background', {
-                    dotSize: 2,
-                    gap: 24,
-                    baseColor: '#404040',
-                    glowColor: '#73daa9',
-                    proximity: 120,
-                    glowIntensity: 0.8,
-                    waveSpeed: 0.5
+                new Sparkles('sparkles-background', {
+                    minSize: 0.6,
+                    maxSize: 1.4,
+                    speed: 1,
+                    particleColor: '#FFFFFF',
+                    particleDensity: 100,
+                    background: 'transparent'
                 });
             } catch (error) {
-                console.error('Dot pattern initialization failed:', error);
+                console.error('Sparkles initialization failed:', error);
             }
         });
     </script>

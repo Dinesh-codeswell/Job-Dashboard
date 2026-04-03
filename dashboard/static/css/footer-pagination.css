@@ -1,25 +1,16 @@
 /* ============================================================================
    DOT BACKGROUND FOOTER NAVIGATION - Beyond Career
-   Modern pagination footer with dot pattern background
+   Modern pagination footer with sparkles particle background
    ============================================================================ */
 
-/* Footer Dot Background Container */
+/* Footer Background Container - sparkles canvas will be inserted here */
 .footer-dot-background {
     position: relative;
     overflow: hidden;
 }
 
-.footer-dot-background::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-size: 20px 20px;
-    background-image: radial-gradient(circle, #3e4942 1px, transparent 1px);
-    opacity: 0.4;
-    mask-image: radial-gradient(ellipse at center, transparent 10%, black 70%);
-    -webkit-mask-image: radial-gradient(ellipse at center, transparent 10%, black 70%);
-    pointer-events: none;
-}
+/* Note: The ::before pseudo-element dot pattern is now replaced with
+   interactive sparkles particle animation for better visual appeal */
 
 /* Pagination Container - shadcn Design System */
 .pagination-container {

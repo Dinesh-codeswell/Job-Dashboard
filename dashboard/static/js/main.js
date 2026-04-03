@@ -43,16 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeDashboard();
     setupScrollObserver();
     setupKeyboardShortcuts();
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (event) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromURL = parseInt(urlParams.get('page'));
+        if (!isNaN(pageFromURL) && pageFromURL > 0) {
+            Dashboard.currentPage = pageFromURL;
+            loadJobs(pageFromURL);
+        }
+    });
 });
 
 async function initializeDashboard() {
     try {
+        // Read page number from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromURL = parseInt(urlParams.get('page'));
+        const startPage = (!isNaN(pageFromURL) && pageFromURL > 0) ? pageFromURL : 1;
+        
         // Load initial data - handle errors individually to prevent complete failure
         const loadPromises = [
             loadStats().catch(err => console.warn('Stats load failed:', err)),
             loadCities().catch(err => console.warn('Cities load failed:', err)),
             loadEmploymentTypes().catch(err => console.warn('Employment types load failed:', err)),
-            loadJobs().catch(err => {
+            loadJobs(startPage).catch(err => {
                 console.error('Jobs load failed:', err);
                 throw err; // Jobs are critical, so re-throw
             })
@@ -175,11 +190,22 @@ async function loadJobs(page = 1) {
             Dashboard.jobs = response.jobs || [];
             Dashboard.currentPage = response.pagination?.page || page;
             Dashboard.totalPages = response.pagination?.total_pages || 1;
+            
+            // Update the total jobs count to match the API response
+            const totalFromAPI = response.pagination?.total || 0;
+            if (Dashboard.stats) {
+                Dashboard.stats.total_jobs = totalFromAPI;
+            }
 
+            // Hide skeleton and show actual jobs
+            hideSkeletonLoading();
             renderJobs();
             renderPagination();
-            updateResultsCount(response.pagination?.total || 0);
+            updateResultsCount(totalFromAPI);
             
+            // Also update the header stat to match
+            animateValue('totalJobs', 0, totalFromAPI, 500);
+
             // Hide error if previously shown
             const errorEl = document.querySelector('.error-state');
             if (errorEl && Dashboard.jobs.length > 0) {
@@ -189,13 +215,14 @@ async function loadJobs(page = 1) {
             console.error('API returned unsuccessful response:', response);
             // Don't show error immediately, might be temporary
             if (Dashboard.jobs.length === 0) {
-                showSkeletonLoading(); // Keep showing skeletons
+                // Keep showing skeletons
             }
         }
     } catch (error) {
         console.error('Error loading jobs:', error);
         // Only show error if we have no jobs at all
         if (Dashboard.jobs.length === 0) {
+            hideSkeletonLoading();
             showError('Failed to load jobs. Please try again.');
         }
     } finally {
@@ -248,18 +275,41 @@ async function loadEmploymentTypes() {
 // Rendering
 // ============================================================================
 
-function showSkeletonLoading() {
+let currentSkeleton = null;
+
+async function showSkeletonLoading() {
     const grid = document.getElementById('jobsGrid');
     if (!grid) return;
 
-    // Show skeletons instead of spinner
-    grid.innerHTML = `
-        <div class="skeleton-grid">
-            ${Array(6).fill(`
-                <div class="skeleton-card"></div>
-            `).join('')}
-        </div>
-    `;
+    // Destroy any existing skeleton
+    if (currentSkeleton) {
+        currentSkeleton.destroy();
+        currentSkeleton = null;
+    }
+
+    // Use the grid itself as the container (no wrapper div)
+    // This ensures skeleton cards are direct children of the grid
+    currentSkeleton = await AnimatedLoadingSkeleton.showWithMinimumTime(
+        'jobsGrid',  // Use jobsGrid directly, not a wrapper
+        {
+            numCards: 6,
+            shimmerSpeed: 1.5,
+            searchIconColor: '#73daa9'
+        },
+        1000 // Minimum 1 second display time
+    );
+}
+
+function hideSkeletonLoading() {
+    if (currentSkeleton) {
+        currentSkeleton.destroy();
+        currentSkeleton = null;
+    }
+    
+    const grid = document.getElementById('jobsGrid');
+    if (grid) {
+        grid.innerHTML = '';
+    }
 }
 
 function renderJobs() {
@@ -419,11 +469,15 @@ function renderPagination() {
         return;
     }
 
+    // Use the actual jobs array length, not stats
+    const actualJobCount = Dashboard.jobs.length > 0 ? 
+        (Dashboard.stats?.total_jobs || Dashboard.jobs.length) : 0;
+
     // Build pagination HTML with shadcn/ui design
     let html = `
         <div class="pagination-header">
             <h2>Explore Opportunities</h2>
-            <p>Browse through ${Dashboard.stats?.total_jobs || 0} curated positions</p>
+            <p>Browse through ${actualJobCount.toLocaleString()} curated positions</p>
         </div>
 
         <nav class="pagination-nav" aria-label="Pagination navigation">
@@ -556,6 +610,16 @@ function renderStats() {
     if (last_updated) {
         const lastUpdatedEl = document.getElementById('lastUpdated');
         if (lastUpdatedEl) lastUpdatedEl.textContent = Utils.formatDate(last_updated);
+    }
+    
+    // Update footer pagination count to match stats
+    updateFooterJobCount(total_jobs || 0);
+}
+
+function updateFooterJobCount(count) {
+    const headerEl = document.querySelector('#footerPagination .pagination-header p');
+    if (headerEl) {
+        headerEl.textContent = `Browse through ${count.toLocaleString()} curated positions`;
     }
 }
 
@@ -710,13 +774,16 @@ function navigateToJob(jobId) {
 function goToPage(page) {
     if (page < 1 || page > Dashboard.totalPages) return;
     Dashboard.currentPage = page;
-    loadJobs(page);
     
-    // Smooth scroll to top of job grid or footer pagination
-    const jobGrid = document.getElementById('jobsGrid');
-    if (jobGrid) {
-        jobGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // Update URL with page number for persistence on refresh
+    const url = new URL(window.location);
+    url.searchParams.set('page', page);
+    window.history.pushState({ page: page }, '', url);
+    
+    loadJobs(page);
+
+    // Smooth scroll to the TOP of the page (not the job grid)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function applyFilters() {

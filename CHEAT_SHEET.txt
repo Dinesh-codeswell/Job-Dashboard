@@ -1,0 +1,40 @@
+========================================================================
+  JOB SCRAPER AUTOMATION - CHEAT SHEET
+========================================================================
+
+POWER SHELL COMMANDS (Add .\ prefix):
+
+  .\automation_manager.bat          → Interactive menu
+  .\automation_manager.bat status   → Check status
+  .\automation_manager.bat start    → Start automation
+  .\automation_manager.bat stop     → Stop automation
+  .\automation_manager.bat logs     → View logs
+
+SETUP (Run ONCE as Administrator):
+
+  Right-click: setup_automation.bat → Run as administrator
+
+VERIFY SETUP:
+
+  .\verify_automation.bat
+
+INSTALL BETTER COMMANDS (Recommended):
+
+  .\install_ps_commands.ps1
+
+  Then restart PowerShell and use:
+  scraper-status
+  scraper-start
+  scraper-stop
+  scraper-logs
+
+========================================================================
+
+TROUBLESHOOTING:
+
+  Error "not recognized"? → Add .\ before filename
+  Error "execution policy"? → Run: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+  Task not running? → Run setup_automation.bat as Administrator
+  LinkedIn failing? → Run: python samples\create_session.py
+
+========================================================================

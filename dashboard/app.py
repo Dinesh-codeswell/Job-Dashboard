@@ -308,50 +308,50 @@ def get_similar_jobs(job_id):
         for job in other_jobs:
             score = 0
             reasons = []
-            
+
             # Factor 1: Same city (40 points)
             current_city = current_job.get('Search City', '')
             job_city = job.get('Search City', '')
             if current_city and job_city:
                 if current_city.lower() == job_city.lower():
                     score += 40
-                    reasons.append(f"Same location: {current_city}")
+                    reasons.append(current_city)  # Just the value, no label
                 elif current_city.lower() in job_city.lower() or job_city.lower() in current_city.lower():
                     score += 20
-                    reasons.append(f"Nearby location")
-            
+                    reasons.append("Nearby")
+
             # Factor 2: Same employment type (30 points)
             current_type = current_job.get('Employment Type', '')
             job_type = job.get('Employment Type', '')
             if current_type and job_type:
                 if current_type.lower() == job_type.lower():
                     score += 30
-                    reasons.append(f"Same type: {current_type}")
+                    reasons.append(current_type)  # Just the value, no label
                 elif any(word in job_type.lower() for word in current_type.lower().split()):
                     score += 15
-            
+
             # Factor 3: Similar job title (30 points)
             current_title = current_job.get('Job Title', '').lower()
             job_title = job.get('Job Title', '').lower()
-            
+
             # Extract keywords from titles
             current_keywords = set(extract_title_keywords(current_title))
             job_keywords = set(extract_title_keywords(job_title))
-            
+
             if current_keywords and job_keywords:
                 common = current_keywords & job_keywords
                 if common:
                     keyword_score = min(30, len(common) * 10)
                     score += keyword_score
-                    reasons.append(f"Similar role: {', '.join(list(common)[:2])}")
-            
+                    reasons.append(', '.join(list(common)[:2]))  # Just the keywords, no label
+
             # Factor 4: Same company (20 points)
             current_company = current_job.get('Company', '')
             job_company = job.get('Company', '')
             if current_company and job_company:
                 if current_company.lower() == job_company.lower():
                     score += 20
-                    reasons.append(f"Same company")
+                    reasons.append("Same company")
             
             # Add job with score (even if score is 0)
             similar_jobs.append({
@@ -414,23 +414,23 @@ def extract_title_keywords(title):
 
 
 def get_match_reasons(score, current_city, job_city, current_type, job_type, current_keywords, job_keywords, current_company, job_company):
-    """Generate human-readable match reasons."""
+    """Generate human-readable match reasons (values only, no labels)."""
     reasons = []
-    
+
     if current_city and job_city and current_city == job_city:
-        reasons.append(f"Same location: {current_city}")
-    
+        reasons.append(current_city)  # Just the value
+
     if current_type and job_type and current_type.lower() == job_type.lower():
-        reasons.append(f"Same type: {current_type}")
-    
+        reasons.append(current_type)  # Just the value
+
     if current_keywords and job_keywords:
         common = current_keywords & job_keywords
         if common:
-            reasons.append(f"Similar role: {', '.join(list(common)[:2])}")
-    
+            reasons.append(', '.join(list(common)[:2]))  # Just the keywords
+
     if current_company and job_company and current_company.lower() == job_company.lower():
-        reasons.append(f"Same company: {current_company}")
-    
+        reasons.append("Same company")
+
     return reasons
 
 

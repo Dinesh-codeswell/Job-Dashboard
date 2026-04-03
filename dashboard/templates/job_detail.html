@@ -44,8 +44,8 @@
     </style>
 </head>
 <body class="font-body selection:bg-primary selection:text-on-primary bg-black">
-    <!-- Dot Pattern Background -->
-    <div id="dot-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
+    <!-- Sparkles Particle Background -->
+    <div id="sparkles-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
     
     <!-- Navigation -->
     <nav class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-xl shadow-[0_24px_48px_rgba(0,0,0,0.4)] flex justify-between items-center px-8 py-4 font-manrope tracking-tight">
@@ -277,7 +277,7 @@
                             </div>
                             <div class="flex items-center gap-2 text-sm text-on-surface/60">
                                 <span class="material-symbols-outlined text-xs">update</span>
-                                ${formatRelativeTime(job.posted_date)}
+                                ${escapeHtml(job.posted_date) || 'Recently'}
                             </div>
                         </div>
                         
@@ -339,22 +339,21 @@
         loadJob();
     </script>
     
-    <!-- Dot Pattern Background Script -->
-    <script src="{{ url_for('static', filename='js/dot-pattern.js') }}"></script>
+    <!-- Sparkles Particle Background Script -->
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                new DotPattern('dot-background', {
-                    dotSize: 2,
-                    gap: 24,
-                    baseColor: '#404040',
-                    glowColor: '#73daa9',
-                    proximity: 120,
-                    glowIntensity: 0.8,
-                    waveSpeed: 0.5
+                new Sparkles('sparkles-background', {
+                    minSize: 0.6,
+                    maxSize: 1.4,
+                    speed: 1,
+                    particleColor: '#FFFFFF',
+                    particleDensity: 100,
+                    background: 'transparent'
                 });
             } catch (error) {
-                console.error('Dot pattern initialization failed:', error);
+                console.error('Sparkles initialization failed:', error);
             }
         });
     </script>

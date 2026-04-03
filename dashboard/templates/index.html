@@ -117,8 +117,8 @@
     </style>
 </head>
 <body class="font-body selection:bg-primary/30 bg-black">
-    <!-- Dot Pattern Background -->
-    <div id="dot-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
+    <!-- Sparkles Particle Background -->
+    <div id="sparkles-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
 
     <!-- CSS for Footer Pagination -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer-pagination.css') }}">
@@ -215,9 +215,12 @@
         </a>
     </nav>
 
-    <!-- Footer with Dot Background & Pagination -->
-    <footer class="footer-dot-background w-full bg-neutral-950 border-t border-emerald-900/20">
-        <div class="max-w-7xl mx-auto">
+    <!-- Footer with Sparkles Background & Pagination -->
+    <footer class="w-full bg-neutral-950 border-t border-emerald-900/20 relative overflow-hidden">
+        <!-- Sparkles Background for Footer -->
+        <div id="footer-sparkles" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></div>
+        
+        <div class="max-w-7xl mx-auto relative z-10">
             <!-- Pagination Section -->
             <div id="footerPagination" class="pagination-container">
                 <!-- Pagination will be rendered here by JavaScript -->
@@ -243,28 +246,41 @@
     </footer>
 
     <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/dot-pattern.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/animated-loading-skeleton.js') }}"></script>
     <script src="{{ url_for('static', filename='js/combo-box.js') }}"></script>
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/footer-dot-pattern.js') }}"></script>
-    
-    <!-- Initialize Dot Pattern Background -->
+
+    <!-- Initialize Sparkles Background -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                new DotPattern('dot-background', {
-                    dotSize: 2,
-                    gap: 24,
-                    baseColor: '#404040',
-                    glowColor: '#73daa9',
-                    proximity: 120,
-                    glowIntensity: 0.8,
-                    waveSpeed: 0.5
+                // Main background sparkles
+                new Sparkles('sparkles-background', {
+                    minSize: 0.6,
+                    maxSize: 1.4,
+                    speed: 1,
+                    particleColor: '#FFFFFF',
+                    particleDensity: 100,
+                    background: 'transparent'
                 });
+                
+                // Footer sparkles (emerald green brand color with glow effect)
+                setTimeout(() => {
+                    new Sparkles('footer-sparkles', {
+                        minSize: 0.8,
+                        maxSize: 1.6,
+                        speed: 0.8,
+                        particleColor: '#73daa9',
+                        particleDensity: 80,
+                        background: 'transparent'
+                    });
+                }, 200);
             } catch (error) {
-                console.error('Dot pattern initialization failed:', error);
+                console.error('Sparkles initialization failed:', error);
             }
         });
     </script>

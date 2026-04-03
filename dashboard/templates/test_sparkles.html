@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparkles Debug Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+        }
+        #sparkles-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .debug-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 500px;
+        }
+        .debug-info h2 {
+            margin: 0 0 10px 0;
+            color: #73daa9;
+        }
+        .debug-info pre {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .status-ok { color: #4ade80; }
+        .status-error { color: #f87171; }
+    </style>
+</head>
+<body>
+    <div id="sparkles-background"></div>
+    
+    <div class="debug-info" id="debugPanel">
+        <h2>🔍 SPARKLES DEBUG PANEL</h2>
+        <pre id="debugOutput">Loading...</pre>
+    </div>
+
+    <script src="static/js/sparkles.js"></script>
+    <script>
+        const debug = [];
+        
+        function log(msg, type = 'info') {
+            debug.push({msg, type, time: new Date().toLocaleTimeString()});
+            updateDebug();
+            console.log('[SPARKLES TEST]', msg);
+        }
+        
+        function updateDebug() {
+            const output = document.getElementById('debugOutput');
+            output.innerHTML = debug.map(d => 
+                `<span class="status-${d.type === 'error' ? 'error' : 'ok'}">[${d.time}]</span> ${d.msg}`
+            ).join('\n');
+        }
+        
+        // Test 1: Check if container exists
+        const container = document.getElementById('sparkles-background');
+        if (container) {
+            log('✅ Container element found', 'ok');
+        } else {
+            log('❌ Container element NOT found', 'error');
+        }
+        
+        // Test 2: Check if Sparkles class is available
+        if (typeof Sparkles !== 'undefined') {
+            log('✅ Sparkles class is available', 'ok');
+        } else {
+            log('❌ Sparkles class NOT loaded', 'error');
+        }
+        
+        // Test 3: Initialize sparkles
+        try {
+            log('Initializing Sparkles...', 'info');
+            
+            const sparkles = new Sparkles('sparkles-background', {
+                minSize: 0.6,
+                maxSize: 1.4,
+                speed: 1,
+                particleColor: '#FFFFFF',
+                particleDensity: 100,
+                background: 'transparent'
+            });
+            
+            log('✅ Sparkles instance created', 'ok');
+            
+            // Test 4: Check if canvas was created
+            setTimeout(() => {
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    log(`✅ Canvas created (${canvas.width}x${canvas.height})`, 'ok');
+                    
+                    // Test 5: Check particles
+                    if (sparkles.particles && sparkles.particles.length > 0) {
+                        log(`✅ ${sparkles.particles.length} particles created`, 'ok');
+                    } else {
+                        log('❌ No particles found', 'error');
+                    }
+                    
+                    // Test 6: Check if animation is running
+                    if (sparkles.animationId) {
+                        log('✅ Animation loop is running', 'ok');
+                    } else {
+                        log('❌ Animation loop NOT running', 'error');
+                    }
+                } else {
+                    log('❌ Canvas element NOT created', 'error');
+                }
+            }, 500);
+            
+        } catch (error) {
+            log(`❌ Error: ${error.message}`, 'error');
+            console.error(error);
+        }
+    </script>
+</body>
+</html>

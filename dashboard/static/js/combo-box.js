@@ -81,6 +81,12 @@ class ComboBox {
         `;
 
         this.updateDropdownItems(themeClasses);
+        
+        // Ensure input shows selected value after render
+        const input = this.container.querySelector('input');
+        if (input && this.inputValue) {
+            input.value = this.inputValue;
+        }
     }
 
     updateDropdownItems(themeClasses) {
@@ -124,7 +130,7 @@ class ComboBox {
             this.toggle();
         });
 
-        // Input changes
+        // Input changes (for search/filtering)
         input.addEventListener('input', (e) => {
             this.inputValue = e.target.value;
             this.filterItems();
@@ -134,6 +140,16 @@ class ComboBox {
         // Focus
         input.addEventListener('focus', () => {
             this.open();
+        });
+
+        // Blur - restore selected value if user typed something invalid
+        input.addEventListener('blur', () => {
+            // If user typed something that doesn't match a selection, restore the selected value
+            if (this.selectedValue && this.inputValue) {
+                setTimeout(() => {
+                    input.value = this.inputValue;
+                }, 100);
+            }
         });
 
         // Item selection
@@ -213,51 +229,20 @@ class ComboBox {
 
     selectItem(item) {
         if (!item) return;
+        
+        console.log('ComboBox: Selecting item', item.label, item.value);
+        
         this.selectedValue = item.value;
         this.inputValue = item.label;
 
-        // Update the input field value in the DOM
+        // IMMEDIATELY update the input field value in the DOM
         const input = this.container.querySelector('input');
         if (input) {
             input.value = item.label;
+            console.log('ComboBox: Input value set to', input.value);
         }
 
-        // Close dropdown immediately
-        this.close();
-
-        // Trigger callback
-        this.options.onChange(item);
-
-        // Update checkmark
-        const itemsContainer = this.container.querySelector('.items-container');
-        if (itemsContainer) {
-            const allItems = itemsContainer.querySelectorAll('[data-index]');
-            allItems.forEach((el, index) => {
-                const checkmark = el.querySelector('svg');
-                if (index === this.filteredItems.findIndex(i => i.value === item.value)) {
-                    if (!checkmark) {
-                        el.querySelector('div:last-child').innerHTML = `
-                            <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        `;
-                    }
-                } else if (checkmark) {
-                    checkmark.remove();
-                }
-            });
-        }
-    }
-
-    focusFirstItem() {
-        const firstItem = this.container.querySelector('[data-index="0"]');
-        if (firstItem) firstItem.focus();
-    }
-
-    // Public methods
-    setItems(items) {
-        this.options.items = items;
-        this.filteredItems = [...items];
+        // Update checkmark in dropdown
         this.updateDropdownItems(this.options.darkTheme ? {
             item: 'text-on-surface hover:bg-surface-container-highest',
             itemSecondary: 'text-outline',
@@ -267,6 +252,50 @@ class ComboBox {
             itemSecondary: 'text-gray-500',
             checkIcon: 'text-gray-600'
         });
+
+        // Close dropdown
+        this.close();
+
+        // Trigger callback AFTER updating UI
+        this.options.onChange(item);
+    }
+
+    focusFirstItem() {
+        const firstItem = this.container.querySelector('[data-index="0"]');
+        if (firstItem) firstItem.focus();
+    }
+
+    // Public methods
+    setItems(items) {
+        console.log('ComboBox: setItems called with', items.length, 'items');
+        console.log('ComboBox: Current selectedValue is', this.selectedValue);
+        
+        // Save current selection
+        const savedSelectedValue = this.selectedValue;
+        const savedInputValue = this.inputValue;
+        
+        this.options.items = items;
+        this.filteredItems = [...items];
+        
+        // Update dropdown items with checkmarks
+        const themeClasses = this.options.darkTheme ? {
+            item: 'text-on-surface hover:bg-surface-container-highest',
+            itemSecondary: 'text-outline',
+            checkIcon: 'text-primary'
+        } : {
+            item: 'text-gray-900 hover:bg-gray-100',
+            itemSecondary: 'text-gray-500',
+            checkIcon: 'text-gray-600'
+        };
+        
+        this.updateDropdownItems(themeClasses);
+
+        // ALWAYS update input field to show selected value
+        const input = this.container.querySelector('input');
+        if (input && this.inputValue) {
+            input.value = this.inputValue;
+            console.log('ComboBox: Input restored to', this.inputValue);
+        }
     }
 
     setValue(value) {
