@@ -5,10 +5,11 @@ Fetches job data from Google Sheets and provides caching for performance.
 Supports multiple worksheets (LinkedIn, Indeed, Naukri) for unified dashboard.
 """
 import logging
+import os
+import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,14 @@ class SheetsDataFetcher:
         self._cache_time = None
         self._stats_cache = None
         self._stats_cache_time = None
-        
+
         # All worksheets to fetch from (unified dashboard)
         self.all_worksheets = [
             'LinkedIn_Jobs',
             'Indeed_Jobs',
             'Naukri_Jobs'
         ]
-        
+
         # Fallback: if specific worksheets don't exist, try these common names
         self.fallback_worksheets = [
             'Consulting_Jobs_India',
@@ -55,6 +56,7 @@ class SheetsDataFetcher:
     def connect(self) -> bool:
         """
         Connect to Google Sheets.
+        Supports both file-based credentials (local) and JSON env var (Vercel).
 
         Returns:
             True if connection successful
@@ -68,15 +70,36 @@ class SheetsDataFetcher:
                 "https://www.googleapis.com/auth/drive"
             ]
 
-            creds_path = Path(self.credentials_file)
-            if not creds_path.exists():
-                logger.error(f"Credentials file not found: {self.credentials_file}")
-                return False
+            # Try environment variable first (for Vercel/cloud deployment)
+            creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON') or os.getenv('GOOGLE_CREDENTIALS')
+            
+            if creds_json:
+                logger.info("Using credentials from environment variable")
+                try:
+                    creds_info = json.loads(creds_json)
+                    creds = Credentials.from_service_account_info(
+                        creds_info,
+                        scopes=scopes
+                    )
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in GOOGLE_CREDENTIALS_JSON: {e}")
+                    return False
+                except Exception as e:
+                    logger.error(f"Failed to load credentials from env var: {e}")
+                    return False
+            else:
+                # Fallback to file-based credentials (for local development)
+                creds_path = Path(self.credentials_file)
+                if not creds_path.exists():
+                    logger.error(f"Credentials file not found: {self.credentials_file}")
+                    logger.error("Set GOOGLE_CREDENTIALS_JSON env var with your service account JSON for cloud deployment")
+                    return False
 
-            creds = Credentials.from_service_account_file(
-                str(creds_path),
-                scopes=scopes
-            )
+                logger.info(f"Using credentials from file: {creds_path}")
+                creds = Credentials.from_service_account_file(
+                    str(creds_path),
+                    scopes=scopes
+                )
 
             self.gc = gspread.authorize(creds)
             self.spreadsheet = self.gc.open_by_key(self.sheet_id)
