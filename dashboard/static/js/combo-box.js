@@ -50,6 +50,9 @@ class ComboBox {
             checkIcon: 'text-gray-600'
         };
 
+        // Use inputValue if set, otherwise show placeholder
+        const displayValue = this.inputValue || '';
+
         this.container.innerHTML = `
             ${this.options.label ? `<label class="block text-sm font-medium mb-1 ${this.options.darkTheme ? 'text-on-surface-variant' : 'text-gray-700'}">${this.options.label}</label>` : ''}
             <div class="relative w-full">
@@ -58,7 +61,7 @@ class ComboBox {
                         type="text"
                         class="w-full px-4 py-2.5 pr-10 border rounded-lg bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors ${themeClasses.input}"
                         placeholder="${this.options.placeholder}"
-                        value="${this.inputValue}"
+                        value="${displayValue}"
                         readonly
                     />
                     <button
@@ -212,10 +215,16 @@ class ComboBox {
         if (!item) return;
         this.selectedValue = item.value;
         this.inputValue = item.label;
-        
+
+        // Update the input field value in the DOM
+        const input = this.container.querySelector('input');
+        if (input) {
+            input.value = item.label;
+        }
+
         // Close dropdown immediately
         this.close();
-        
+
         // Trigger callback
         this.options.onChange(item);
 

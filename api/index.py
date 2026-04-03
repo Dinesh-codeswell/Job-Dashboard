@@ -22,68 +22,88 @@ CORS(app)
 # Load environment variables
 os.environ.setdefault('GOOGLE_SHEET_ID', '')
 os.environ.setdefault('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
-os.environ.setdefault('WORKSHEET_NAME', 'Consulting_Jobs_India')
+os.environ.setdefault('WORKSHEET_NAME', 'LinkedIn_Jobs')  # Deprecated - now fetches from all sheets
 
 # Lazy load data fetcher
 _fetcher = None
 _fetcher_error = None
 
 def get_fetcher():
-    """Get or create data fetcher instance."""
+    """Get or create data fetcher instance (unified - fetches from all 3 sheets)."""
     global _fetcher, _fetcher_error
-    
+
     if _fetcher is not None:
         return _fetcher
-    
+
     if _fetcher_error is not None:
         return None
-    
+
     try:
         from dotenv import load_dotenv
         load_dotenv()
-        
-        # Import data_fetcher - try multiple methods for Vercel compatibility
+
+        # Import the UNIFIED data fetcher that fetches from all 3 sheets (LinkedIn, Indeed, Naukri)
         import importlib.util
         import os
         from pathlib import Path
-        
-        # Try direct import first
+
+        # Try to import from dashboard/data/sheets_fetcher.py (unified version)
         try:
-            from data_fetcher import get_data_fetcher
-        except ImportError:
-            # Fallback: load from file path (for Vercel)
-            spec = importlib.util.spec_from_file_location("data_fetcher", Path(__file__).parent / "data_fetcher.py")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            get_data_fetcher = module.get_data_fetcher
-        
+            # Add dashboard directory to path
+            dashboard_data_path = Path(__file__).parent.parent / 'dashboard' / 'data'
+            if dashboard_data_path.exists():
+                sys.path.insert(0, str(dashboard_data_path))
+            
+            from sheets_fetcher import get_data_fetcher
+            print("✅ Using unified data fetcher (fetches from LinkedIn_Jobs, Indeed_Jobs, Naukri_Jobs)")
+        except ImportError as e:
+            print(f"⚠️ Could not import unified fetcher: {e}")
+            # Fallback: try direct import from current directory
+            try:
+                from sheets_fetcher import get_data_fetcher
+                print("✅ Using unified data fetcher from current directory")
+            except ImportError:
+                # Last resort: load from file path
+                print("⚠️ Trying to load sheets_fetcher.py from dashboard/data/")
+                sheets_fetcher_path = Path(__file__).parent.parent / 'dashboard' / 'data' / 'sheets_fetcher.py'
+                if sheets_fetcher_path.exists():
+                    spec = importlib.util.spec_from_file_location("sheets_fetcher", sheets_fetcher_path)
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    get_data_fetcher = module.get_data_fetcher
+                    print("✅ Loaded unified data fetcher from file path")
+                else:
+                    raise ImportError(f"sheets_fetcher.py not found at {sheets_fetcher_path}")
+
         sheet_id = os.getenv('GOOGLE_SHEET_ID')
-        
+
         # Try multiple env var names for credentials
         creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON') or os.getenv('GOOGLE_CREDENTIALS')
         creds_file = os.getenv('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
-        worksheet = os.getenv('WORKSHEET_NAME', 'Consulting_Jobs_India')
-        
+        worksheet = os.getenv('WORKSHEET_NAME', 'LinkedIn_Jobs')  # Deprecated parameter
+
         if not sheet_id:
             _fetcher_error = "GOOGLE_SHEET_ID not set"
-            print("Error: GOOGLE_SHEET_ID not set")
+            print("❌ Error: GOOGLE_SHEET_ID not set")
             return None
-        
+
         # Pass creds_json to data_fetcher via environment
         if creds_json:
             os.environ['GOOGLE_CREDENTIALS_JSON'] = creds_json
-            print("Using credentials from env var")
+            print("✅ Using credentials from env var")
         elif os.path.exists(creds_file):
-            print(f"Using credentials from file: {creds_file}")
+            print(f"✅ Using credentials from file: {creds_file}")
         else:
-            print(f"Warning: No credentials found (tried {creds_file})")
-        
+            print(f"⚠️ Warning: No credentials found (tried {creds_file})")
+
+        # Initialize the unified fetcher (worksheet_name parameter is deprecated - it fetches from all sheets)
         _fetcher = get_data_fetcher(sheet_id, creds_file, worksheet)
+        print("✅ Unified fetcher initialized - will fetch from LinkedIn_Jobs, Indeed_Jobs, Naukri_Jobs")
         return _fetcher
-        
+
     except Exception as e:
         _fetcher_error = str(e)
-        print(f"Fetcher error: {e}")
+        print(f"❌ Fetcher error: {e}")
         import traceback
         traceback.print_exc()
         return None

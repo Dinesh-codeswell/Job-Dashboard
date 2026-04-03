@@ -8,12 +8,13 @@ __pycache__
 chromedriver
 .DS_Store
 .vscode/
-.env/
-scrape.py
-creds.json
-venv
-*.zip
+# Environment variables (SENSITIVE - contains credentials)
 .env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+!.env.example.*
 
 # Test outputs
 *.log
@@ -44,3 +45,29 @@ MANIFEST.ini
 # Basic package build artifacts
 build-basic/
 dist-basic/
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE files (if any)
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+~$*.doc*
+~$*.xls*
+~$*.ppt*
+
+# Database files (may contain sensitive data)
+*.sqlite
+*.sqlite3
+
+# Cache files that may contain API responses
+*_cache.json
+cache/

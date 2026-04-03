@@ -18,3 +18,10 @@ py2neo>=2021.2.3
 # CLI
 click>=8.0.0
 pyyaml>=6.0
+
+# JobSpy - Indeed & Naukri Scrapers
+tls_client>=0.0.5
+numpy>=1.24.0
+markdownify>=0.11.0
+regex>=2023.0.0
+pandas>=2.0.0

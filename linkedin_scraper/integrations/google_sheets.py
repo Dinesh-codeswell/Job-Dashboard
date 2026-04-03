@@ -132,6 +132,10 @@ class GoogleSheetsIntegration:
         try:
             from datetime import datetime
 
+            # Fix: Use 'job_url' field (works for LinkedIn, Indeed, and Naukri)
+            # Fallback to 'linkedin_url' for backward compatibility
+            job_url = job_data.get("job_url") or job_data.get("linkedin_url", "")
+
             row_data = [
                 job_data.get("company", ""),           # Column A: Company
                 job_data.get("company_logo", ""),      # Column B: Company Logo URL - NEW
@@ -140,7 +144,7 @@ class GoogleSheetsIntegration:
                 job_data.get("posted_date", ""),       # Column E: Posted
                 job_data.get("location", ""),          # Column F: Location
                 self._clean_description(job_data.get("job_description", "")),  # Column G: Description
-                job_data.get("linkedin_url", ""),      # Column H: Job URL
+                job_url,                               # Column H: Job URL (FIXED)
                 job_data.get("search_city", ""),       # Column I: Search City
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Column J: Date Added
             ]

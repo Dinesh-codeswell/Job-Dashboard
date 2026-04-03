@@ -1,0 +1,419 @@
+# Job Extraction Integration Guide: Indeed & Naukri Scrapers
+
+## Objective
+Integrate Indeed and Naukri job scraping capabilities into the existing LinkedIn-only job scraping system. This document provides complete understanding of the extraction logic, algorithms, and architecture.
+
+---
+
+## 📁 Files Provided (Attached Separately)
+
+### Indeed Scraper Module
+- `indeed/__init__.py` - Main scraper class
+- `indeed/constant.py` - API headers & GraphQL query
+- `indeed/util.py` - Helper utilities
+
+### Naukri Scraper Module
+- `naukri/__init__.py` - Main scraper class
+- `naukri/constant.py` - API headers
+- `naukri/util.py` - Helper utilities
+
+### Core Dependencies
+- `model.py` - Data models (JobPost, ScraperInput, Site, JobType, Country, Location, Compensation, etc.)
+- `util.py` - Shared utilities
+- `__init__.py` - Main scrape_jobs() orchestrator
+
+---
+
+## 🏗️ Architecture Overview
+
+### High-Level Flow
+```
+User Request → scrape_jobs() → ScraperInput → [Indeed, Naukri] → JobPost[] → DataFrame → Output
+```
+
+### Key Components
+
+1. **ScraperInput** - Unified input model for all scrapers:
+   - search_term: Job keyword
+   - location: Geographic location
+   - results_wanted: Number of jobs
+   - hours_old: Freshness filter
+   - job_type: Full-time/Part-time/etc
+   - is_remote: Remote filter
+   - description_format: HTML/Markdown/Plain
+
+2. **JobPost** - Unified output model with fields:
+   - Basic: id, title, company_name, job_url, location
+   - Details: description, job_type, date_posted, compensation
+   - Indeed-specific: company_addresses, company_num_employees, company_revenue, company_description, company_logo
+   - Naukri-specific: skills, experience_range, company_rating, company_reviews_count, vacancy_count, work_from_home_type
+
+3. **Scraper Classes** - Each platform has:
+   - `__init__()` - Initialize session, headers, proxies
+   - `scrape()` - Main entry point, loops through pages
+   - `_scrape_page()` / API call - Fetch job listings
+   - `_process_job()` - Parse job data into JobPost
+
+---
+
+## 🔍 Indeed Extraction Logic
+
+### API Details
+- **Endpoint**: `https://apis.indeed.com/graphql`
+- **Method**: POST
+- **Auth**: API key in headers (`indeed-api-key`)
+- **Format**: GraphQL
+
+### Algorithm Steps
+
+1. **Initialization** (`__init__`):
+   - Create session with proxies
+   - Set API URL and headers
+   - Initialize `seen_urls` set to avoid duplicates
+
+2. **Scrape Loop** (`scrape`):
+   ```
+   page = 1
+   cursor = None
+   while seen_urls < results_wanted:
+       jobs, cursor = _scrape_page(cursor)
+       job_list += jobs
+       page += 1
+   ```
+
+3. **Page Scraping** (`_scrape_page`):
+   - Build GraphQL query with:
+     - search_term (what)
+     - location (where + radius)
+     - hours_old (dateOnIndeed)
+     - filters (job_type, is_remote, easy_apply)
+   - POST to API with query
+   - Parse JSON response
+   - Extract jobs and next cursor
+
+4. **Filters Building** (`_build_filters`):
+   - **Hours old**: `filters.date.field = "dateOnIndeed"`
+   - **Easy Apply**: `filters.keyword.field = "indeedApplyScope"`
+   - **Job Type/Remote**: Composite filter with attribute keys:
+     - FULL_TIME: "CF3CP"
+     - PART_TIME: "75GKK"
+     - CONTRACT: "NJXCK"
+     - INTERNSHIP: "VDTG7"
+     - REMOTE: "DSQF7"
+
+5. **Job Processing** (`_process_job`):
+   - Extract from JSON:
+     - title, description (HTML)
+     - company (employer.name, dossier)
+     - location (city, state, country)
+     - compensation (baseSalary, estimated)
+     - attributes (job types)
+     - datePublished (timestamp)
+   - Convert description to Markdown if requested
+   - Detect remote from attributes/description/location
+   - Extract emails from description
+   - Build company URLs
+   - Return JobPost object
+
+### Key Features
+- ✅ GraphQL API (structured data)
+- ✅ 100 jobs per page
+- ✅ Cursor-based pagination
+- ✅ Rich company data (industry, employees, revenue, description)
+- ✅ Salary estimation support
+- ✅ Remote detection (multiple signals)
+
+---
+
+## 🔍 Naukri Extraction Logic
+
+### API Details
+- **Endpoint**: `https://www.naukri.com/jobapi/v3/search`
+- **Method**: GET
+- **Auth**: Headers + dynamic request IDs
+- **Format**: REST JSON
+
+### Algorithm Steps
+
+1. **Initialization** (`__init__`):
+   - Create session with retries
+   - Set headers (including dynamic x-request-id, x-correlation-id)
+   - India-focused by default
+
+2. **Scrape Loop** (`scrape`):
+   ```
+   page = 1
+   job_list = []
+   seen_ids = set()
+   while len(job_list) < results_wanted:
+       params = build_params(page)
+       response = GET(base_url, params)
+       for job in response.jobDetails:
+           if job.jobId not in seen_ids:
+               job_post = _process_job(job)
+               job_list.append(job_post)
+       page += 1
+   ```
+
+3. **Request Parameters**:
+   - `keyword`: search_term
+   - `location`: location
+   - `pageNo`: page number
+   - `noOfResults`: 20 (jobs per page)
+   - `remote`: "true" if is_remote
+   - `days`: hours_old / 24
+
+4. **Anti-Detection Measures**:
+   - Dynamic request IDs (UUID) per request
+   - Random delay (2-5 seconds) between requests
+   - User-agent rotation
+   - 406 error handling (Recaptcha)
+
+5. **Job Processing** (`_process_job`):
+   - Extract from JSON:
+     - title (job.title)
+     - company (job.companyName)
+     - location (from placeholders array)
+     - compensation (from placeholders, Indian format)
+     - date (footerPlaceholderLabel or createdDate)
+     - description (jobDescription)
+     - skills (tagsAndSkills)
+     - experience (experienceText)
+     - company rating (ambitionBoxData)
+   - Parse salary (Lakhs/Crores conversion)
+   - Infer work-from-home type
+   - Return JobPost
+
+6. **Salary Parsing** (`_get_compensation`):
+   - Format: "12-16 Lacs P.A." or "1-5 Cr"
+   - Convert to INR:
+     - 1 Lakh = 100,000 INR
+     - 1 Crore = 10,000,000 INR
+   - Return Compensation object
+
+7. **Date Parsing** (`_parse_date`):
+   - Formats: "today", "X days ago", timestamp
+   - Return date object
+
+8. **Remote Detection** (`is_job_remote`):
+   - Search title, description, location for: "remote", "work from home", "wfh"
+
+### Key Features
+- ✅ REST API (simple GET requests)
+- ✅ 20 jobs per page
+- ✅ Page-based pagination
+- ✅ Indian salary format support (Lakhs/Crores)
+- ✅ AmbitionBox integration (ratings, reviews)
+- ✅ Skills extraction
+- ✅ Experience range
+- ✅ Work-from-home type inference
+
+---
+
+## 🔄 Integration Points
+
+### 1. Add to Site Enum
+```python
+class Site(Enum):
+    LINKEDIN = "linkedin"
+    INDEED = "indeed"
+    NAUKRI = "naukri"
+```
+
+### 2. Add to Scraper Mapping
+```python
+SCRAPER_MAPPING = {
+    Site.LINKEDIN: LinkedIn,
+    Site.INDEED: Indeed,
+    Site.NAUKRI: Naukri,
+}
+```
+
+### 3. Import Scrapers
+```python
+from jobspy.indeed import Indeed
+from jobspy.naukri import Naukri
+```
+
+### 4. Extend JobPost Model (if needed)
+Add platform-specific fields:
+```python
+class JobPost(BaseModel):
+    # Existing fields...
+    
+    # Indeed specific
+    company_addresses: str | None
+    company_num_employees: str | None
+    company_revenue: str | None
+    company_description: str | None
+    
+    # Naukri specific
+    skills: list[str] | None
+    experience_range: str | None
+    company_rating: float | None
+    company_reviews_count: int | None
+    work_from_home_type: str | None
+```
+
+### 5. Update DataFrame Conversion
+In `scrape_jobs()`, after collecting all jobs:
+```python
+# Convert Naukri lists to strings
+job_data["skills"] = ", ".join(job_data["skills"]) if job_data["skills"] else None
+```
+
+---
+
+## 🛡️ Error Handling
+
+### Indeed
+- Check response.ok before parsing
+- Log status codes
+- Continue on empty pages
+
+### Naukri
+- Handle 406 (Recaptcha) gracefully
+- Timeout after 15 seconds
+- Stop after 3 consecutive failures
+- Return partial results on error
+
+---
+
+## 📊 Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      User Request                           │
+│  (search_term, location, results_wanted, filters...)        │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    ScraperInput                             │
+│  - site_type: [Site.INDEED, Site.NAUKRI]                    │
+│  - search_term: "software engineer"                         │
+│  - location: "Bangalore"                                    │
+│  - results_wanted: 50                                       │
+│  - hours_old: 48                                            │
+│  - is_remote: True                                          │
+│  - job_type: JobType.FULL_TIME                              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+            ┌───────────────┴───────────────┐
+            │                               │
+            ▼                               ▼
+┌────────────────────────┐      ┌────────────────────────┐
+│   Indeed Scraper       │      │   Naukri Scraper       │
+│                        │      │                        │
+│  1. Build GraphQL      │      │  1. Build URL params   │
+│  2. POST to API        │      │  2. GET to API         │
+│  3. Parse JSON         │      │  3. Parse JSON         │
+│  4. Process jobs       │      │  4. Process jobs       │
+│  5. Return JobPost[]   │      │  5. Return JobPost[]   │
+└────────────────────────┘      └────────────────────────┘
+            │                               │
+            └───────────────┬───────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    JobPost Objects                          │
+│  - id, title, company_name, job_url                         │
+│  - location, description, job_type                          │
+│  - date_posted, compensation, is_remote                     │
+│  - Platform-specific fields...                              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  pandas DataFrame                           │
+│  - Convert JobPost to dict                                  │
+│  - Flatten nested objects                                   │
+│  - Sort by site, date_posted                                │
+│  - Return to user                                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Key Differences: LinkedIn vs Indeed vs Naukri
+
+| Aspect | LinkedIn | Indeed | Naukri |
+|--------|----------|--------|--------|
+| API Type | GraphQL | GraphQL | REST |
+| Jobs/Page | ~25 | 100 | 20 |
+| Pagination | Offset | Cursor | Page number |
+| Auth | Cookies | API Key | Headers |
+| Rate Limit | Strict | Moderate | Moderate |
+| Region | Global | Global | India-focused |
+| Salary | Rare | Estimated | Indian format |
+| Company Data | Rich | Rich | AmbitionBox |
+| Skills | No | No | Yes |
+| Remote Detection | Description | Multi-signal | Multi-signal |
+
+---
+
+## 🚀 Implementation Checklist
+
+- [ ] Copy Indeed scraper files (3 files)
+- [ ] Copy Naukri scraper files (3 files)
+- [ ] Copy core model.py
+- [ ] Copy core util.py
+- [ ] Copy main __init__.py (scrape_jobs)
+- [ ] Add Site.INDEED and Site.NAUKRI to enum
+- [ ] Add scrapers to SCRAPER_MAPPING
+- [ ] Extend JobPost with platform-specific fields
+- [ ] Update DataFrame conversion logic
+- [ ] Test Indeed scraping
+- [ ] Test Naukri scraping
+- [ ] Test concurrent scraping (multiple sites)
+- [ ] Add error handling/logging
+- [ ] Update documentation
+
+---
+
+## 📌 Notes
+
+1. **Indeed API Key**: The API key in `constant.py` may need rotation if rate-limited
+2. **Naukri Detection**: Naukri has anti-bot measures; use proxies and delays
+3. **Currency**: Naukri uses INR (Lakhs/Crores), Indeed uses local currency
+4. **Date Formats**: Each platform uses different date formats; parsing is platform-specific
+5. **Remote Detection**: All platforms use keyword matching; accuracy varies
+
+---
+
+## 🔧 Troubleshooting
+
+### Indeed Returns Empty
+- Check API key validity
+- Verify country code in headers
+- Increase timeout
+
+### Naukri Returns 406
+- Add more delay between requests
+- Rotate user-agent
+- Use proxies
+
+### Salary Not Parsing
+- Indeed: Check compensation object structure
+- Naukri: Verify Indian format regex
+
+---
+
+## 📋 Scripts to Copy (Quick Reference)
+
+| # | File Path | Purpose |
+|---|-----------|---------|
+| 1 | `jobspy/indeed/__init__.py` | Indeed scraper main logic |
+| 2 | `jobspy/indeed/constant.py` | Indeed API headers & GraphQL |
+| 3 | `jobspy/indeed/util.py` | Indeed helpers |
+| 4 | `jobspy/naukri/__init__.py` | Naukri scraper main logic |
+| 5 | `jobspy/naukri/constant.py` | Naukri API headers |
+| 6 | `jobspy/naukri/util.py` | Naukri helpers |
+| 7 | `jobspy/model.py` | Data models |
+| 8 | `jobspy/util.py` | Shared utilities |
+| 9 | `jobspy/__init__.py` | Main scrape_jobs() |
+| 10 | `jobspy/config.py` | Config (optional) |
+| 11 | `jobspy/exception.py` | Exceptions |
+
+---
+
+This guide provides complete understanding of the Indeed and Naukri extraction logic. Use the attached scripts as reference implementation.
