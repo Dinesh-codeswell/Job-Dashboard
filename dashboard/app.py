@@ -76,6 +76,31 @@ def test():
 # API ENDPOINTS
 # ============================================================================
 
+def sanitize_job_data(job_data: dict) -> dict:
+    """
+    Sanitize job data to ensure it's JSON-serializable.
+    Removes NaN, Infinity, and other problematic values.
+    """
+    import math
+    
+    sanitized = {}
+    for key, value in job_data.items():
+        if isinstance(value, float):
+            # Replace NaN and Infinity with empty string or 0
+            if math.isnan(value) or math.isinf(value):
+                sanitized[key] = '' if key == 'company_logo' else 0
+            else:
+                sanitized[key] = value
+        elif isinstance(value, str):
+            # Clean up string values
+            sanitized[key] = value.strip() if value else ''
+        elif value is None:
+            sanitized[key] = ''
+        else:
+            sanitized[key] = value
+    
+    return sanitized
+
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
     """
@@ -130,6 +155,8 @@ def get_jobs():
                 # Include company logo
                 'company_logo': job.get('Company Logo', '') or job.get('company_logo', '') or ''
             }
+            # Sanitize to remove NaN and ensure JSON-serializable data
+            simplified_job = sanitize_job_data(simplified_job)
             simplified_jobs.append(simplified_job)
 
         return jsonify({
@@ -161,24 +188,27 @@ def get_jobs():
 def get_job(job_id):
     """
     Get single job details.
-    
+
     Args:
         job_id: Job ID
     """
     try:
         job = fetcher.get_job_by_id(job_id)
-        
+
         if not job:
             return jsonify({
                 'success': False,
                 'error': 'Job not found'
             }), 404
-        
+
+        # Sanitize job data to remove NaN and ensure JSON-serializable data
+        sanitized_job = sanitize_job_data(job)
+
         return jsonify({
             'success': True,
-            'job': job
+            'job': sanitized_job
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -310,8 +340,8 @@ def get_similar_jobs(job_id):
             reasons = []
 
             # Factor 1: Same city (40 points)
-            current_city = current_job.get('Search City', '')
-            job_city = job.get('Search City', '')
+            current_city = str(current_job.get('Search City', '') or '')
+            job_city = str(job.get('Search City', '') or '')
             if current_city and job_city:
                 if current_city.lower() == job_city.lower():
                     score += 40
@@ -321,8 +351,8 @@ def get_similar_jobs(job_id):
                     reasons.append("Nearby")
 
             # Factor 2: Same employment type (30 points)
-            current_type = current_job.get('Employment Type', '')
-            job_type = job.get('Employment Type', '')
+            current_type = str(current_job.get('Employment Type', '') or '')
+            job_type = str(job.get('Employment Type', '') or '')
             if current_type and job_type:
                 if current_type.lower() == job_type.lower():
                     score += 30
@@ -331,8 +361,8 @@ def get_similar_jobs(job_id):
                     score += 15
 
             # Factor 3: Similar job title (30 points)
-            current_title = current_job.get('Job Title', '').lower()
-            job_title = job.get('Job Title', '').lower()
+            current_title = str(current_job.get('Job Title', '') or '').lower()
+            job_title = str(job.get('Job Title', '') or '').lower()
 
             # Extract keywords from titles
             current_keywords = set(extract_title_keywords(current_title))
@@ -346,8 +376,8 @@ def get_similar_jobs(job_id):
                     reasons.append(', '.join(list(common)[:2]))  # Just the keywords, no label
 
             # Factor 4: Same company (20 points)
-            current_company = current_job.get('Company', '')
-            job_company = job.get('Company', '')
+            current_company = str(current_job.get('Company', '') or '')
+            job_company = str(job.get('Company', '') or '')
             if current_company and job_company:
                 if current_company.lower() == job_company.lower():
                     score += 20
@@ -368,7 +398,7 @@ def get_similar_jobs(job_id):
         result = []
         for item in top_similar:
             job_data = item['job']
-            result.append({
+            similar_job = {
                 'id': job_data.get('id', ''),
                 'job_title': job_data.get('Job Title', ''),
                 'company': job_data.get('Company', ''),
@@ -378,7 +408,9 @@ def get_similar_jobs(job_id):
                 'posted_date': job_data.get('Posted', ''),
                 'match_score': item['score'],
                 'match_reasons': item['match_reasons']
-            })
+            }
+            # Sanitize to remove NaN
+            result.append(sanitize_job_data(similar_job))
         
         return jsonify({
             'success': True,

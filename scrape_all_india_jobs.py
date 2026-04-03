@@ -36,6 +36,7 @@ import argparse
 import logging
 import sys
 import os
+import random
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from urllib.parse import urlencode
@@ -530,35 +531,178 @@ class UnifiedIndiaJobsScraper:
 
         return uploaded
     
-    async def run(
+    def _generate_task_pool(
+        self,
+        platforms: List[str],
+        cities: List[str],
+        keywords: List[str],
+        limit_per_keyword: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate a randomized task pool with all combinations of platform, city, and keyword.
+        
+        This eliminates bias by shuffling all possible combinations and executing them
+        in randomized order instead of sequential platform → city → keyword order.
+        """
+        tasks = []
+        
+        for platform in platforms:
+            for city in cities:
+                for keyword in keywords:
+                    tasks.append({
+                        'platform': platform,
+                        'city': city,
+                        'keyword': keyword,
+                        'limit': limit_per_keyword,
+                        'attempt': 0
+                    })
+        
+        # Shuffle to remove all bias
+        random.shuffle(tasks)
+        
+        logger.info(f"📋 Generated {len(tasks)} tasks with randomized order")
+        logger.info(f"🎯 Platforms: {len(platforms)} | Cities: {len(cities)} | Keywords: {len(keywords)}")
+        
+        return tasks
+
+    async def _execute_linkedin_task(
+        self,
+        browser,
+        task: Dict[str, Any]
+    ) -> int:
+        """Execute a single LinkedIn scraping task."""
+        uploaded = 0
+        
+        try:
+            search_scraper = OptimizedJobSearchScraper(browser.page, callback=ConsoleCallback())
+            job_scraper = JobScraper(browser.page, callback=ConsoleCallback())
+            
+            logger.info(f"🔍 LinkedIn: '{task['keyword']}' in {task['city']}")
+            
+            job_urls = await search_scraper.search(
+                keywords=task['keyword'],
+                location=task['city'],
+                limit=task['limit'],
+                days_ago=self.max_days
+            )
+            
+            for job_url in job_urls:
+                if self.sheets_manager.is_duplicate(job_url):
+                    self.stats["duplicates_skipped"] += 1
+                    continue
+                
+                try:
+                    job = await job_scraper.scrape(job_url)
+                    job_data = self._normalize_linkedin_job(job, task['city'])
+                    
+                    if self.sheets_manager.upload_job("linkedin", job_data):
+                        uploaded += 1
+                        self.stats["linkedin_jobs"] += 1
+                        logger.info(f"  ✓ LinkedIn: {job.job_title} at {job.company}")
+                except Exception as e:
+                    self.stats["errors"] += 1
+                    logger.debug(f"LinkedIn job scrape error: {e}")
+            
+            logger.info(f"  ✅ LinkedIn: {uploaded} jobs from '{task['keyword']}' in {task['city']}")
+            
+        except Exception as e:
+            self.stats["errors"] += 1
+            logger.debug(f"LinkedIn task error: {e}")
+        
+        return uploaded
+
+    def _execute_api_task(
+        self,
+        task: Dict[str, Any]
+    ) -> int:
+        """Execute a single Indeed/Naukri scraping task."""
+        import time
+        
+        uploaded = 0
+        
+        try:
+            logger.info(f"🔍 API: '{task['keyword']}' in {task['city']}")
+            
+            # Scrape both Indeed and Naukri together
+            df = scrape_multi_platform(
+                sites=["indeed", "naukri"],
+                search_term=task['keyword'],
+                location=task['city'],
+                results_wanted=task['limit'],
+                hours_old=self.max_days * 24,
+                verbose=0
+            )
+            
+            if len(df) == 0:
+                logger.info(f"  ⚠️  API: No jobs found for '{task['keyword']}' in {task['city']}")
+                return 0
+            
+            for _, row in df.iterrows():
+                job_url = row.get('job_url', '')
+                if not job_url or self.sheets_manager.is_duplicate(job_url):
+                    self.stats["duplicates_skipped"] += 1
+                    continue
+                
+                platform = row.get('site', 'indeed')
+                job_data = self._normalize_indeed_naukri_job(row, platform)
+                
+                if self.sheets_manager.upload_job(platform, job_data):
+                    uploaded += 1
+                    if platform == 'indeed':
+                        self.stats["indeed_jobs"] += 1
+                    else:
+                        self.stats["naukri_jobs"] += 1
+                    
+                    logger.info(f"  ✓ {platform.capitalize()}: {row.get('title')} at {row.get('company')}")
+            
+            logger.info(f"  ✅ API: {uploaded} jobs from '{task['keyword']}' in {task['city']}")
+            
+        except Exception as e:
+            self.stats["errors"] += 1
+            logger.debug(f"API task error: {e}")
+        
+        time.sleep(1)  # Rate limiting
+        return uploaded
+
+    async def run_round_robin(
         self,
         cities: List[str] = None,
         include_internships: bool = True,
         limit_per_city: int = 10,
-        tier_1_only: bool = False
+        tier_1_only: bool = False,
+        batch_size: int = 10
     ) -> Dict[str, Any]:
-        """Run unified scraping workflow."""
-
+        """
+        Run scraping with round-robin strategy for maximum diversity.
+        
+        This method:
+        1. Generates all possible platform × city × keyword combinations
+        2. Shuffles them to eliminate bias
+        3. Executes in small batches to prevent rate limiting
+        4. Uploads jobs immediately for real-time mixing
+        """
         cities = cities or DEFAULT_CITIES
         if tier_1_only:
-            cities = cities[:6]  # Top 6 Tier 1 cities
-
+            cities = cities[:6]
+        
         # Combine keywords
         keywords = CONSULTING_KEYWORDS.copy()
         if include_internships:
             keywords.extend(INTERNSHIP_KEYWORDS)
-
+        
         print("\n" + "="*70)
-        print("🚀 UNIFIED INDIA JOBS SCRAPER")
+        print("🚀 UNIFIED INDIA JOBS SCRAPER (ROUND-ROBIN MODE)")
         print("="*70)
         print(f"📍 Platforms: {', '.join(self.platforms)}")
         print(f"📍 Cities: {len(cities)}")
         print(f"📍 Keywords: {len(keywords)}")
-        print(f"📍 Limit per city: {limit_per_city}")
+        print(f"📍 Limit per search: {limit_per_city}")
+        print(f"📍 Batch size: {batch_size} tasks")
         print(f"📍 Time Filter: PAST {self.max_days} DAYS")
+        print(f"🎯 Strategy: Round-Robin (Maximum Diversity)")
         print("="*70 + "\n")
-
-        # Initialize and connect to Google Sheets
+        
+        # Initialize Google Sheets
         self.sheets_manager = UnifiedSheetsManager(
             sheet_id=self.sheet_id,
             credentials_file=self.credentials_file
@@ -566,46 +710,71 @@ class UnifiedIndiaJobsScraper:
         
         if not self.sheets_manager.connect(self.platforms):
             return {"success": False, "error": "Google Sheets connection failed"}
-
+        
+        # Generate randomized task pool
+        task_pool = self._generate_task_pool(
+            platforms=self.platforms,
+            cities=cities,
+            keywords=keywords,
+            limit_per_keyword=limit_per_city
+        )
+        
         total_uploaded = 0
+        tasks_completed = 0
         
-        # Scrape LinkedIn if requested
-        if "linkedin" in self.platforms:
-            print("\n" + "="*70)
-            print("🔗 LINKEDIN SCRAPING")
-            print("="*70)
+        # Execute tasks in batches
+        for i in range(0, len(task_pool), batch_size):
+            batch = task_pool[i:i+batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (len(task_pool) + batch_size - 1) // batch_size
             
-            async with BrowserManager(headless=self.headless) as browser:
-                # Load session
-                try:
-                    await browser.load_session("linkedin_session.json")
-                    print("✓ LinkedIn session loaded\n")
-                except Exception as e:
-                    logger.error(f"Failed to load LinkedIn session: {e}")
-                    return {"success": False, "error": str(e)}
-                
-                linkedin_uploaded = await self.scrape_linkedin(
-                    browser,
-                    cities,
-                    keywords,
-                    limit_per_keyword=limit_per_city
-                )
-                total_uploaded += linkedin_uploaded
-                print(f"\n✅ LinkedIn: {linkedin_uploaded} jobs uploaded\n")
-        
-        # Scrape Indeed and Naukri if requested
-        api_platforms = [p for p in self.platforms if p in ["indeed", "naukri"]]
-        if api_platforms:
-            print("\n" + "="*70)
-            print(f"📡 API SCRAPING ({', '.join(api_platforms).upper()})")
-            print("="*70)
+            print(f"\n{'='*70}")
+            print(f"📦 BATCH {batch_num}/{total_batches} ({len(batch)} tasks)")
+            print(f"{'='*70}")
             
-            api_uploaded = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: self.scrape_indeed_naukri(cities, keywords, limit_per_city)
-            )
-            total_uploaded += api_uploaded
-            print(f"\n✅ API Platforms: {api_uploaded} jobs uploaded\n")
+            # Separate LinkedIn and API tasks
+            linkedin_tasks = [t for t in batch if t['platform'] == 'linkedin']
+            api_tasks = [t for t in batch if t['platform'] in ['indeed', 'naukri']]
+            
+            # Execute LinkedIn tasks (requires browser)
+            if linkedin_tasks and "linkedin" in self.platforms:
+                async with BrowserManager(headless=self.headless) as browser:
+                    try:
+                        await browser.load_session("linkedin_session.json")
+                        print("✓ LinkedIn session loaded\n")
+                        
+                        for task in linkedin_tasks:
+                            uploaded = await self._execute_linkedin_task(browser, task)
+                            total_uploaded += uploaded
+                            tasks_completed += 1
+                            await asyncio.sleep(1)  # Brief pause between tasks
+                            
+                    except Exception as e:
+                        logger.error(f"LinkedIn batch error: {e}")
+                        tasks_completed += len(linkedin_tasks)
+            
+            # Execute API tasks (Indeed/Naukri)
+            if api_tasks:
+                api_platforms = [p for p in self.platforms if p in ["indeed", "naukri"]]
+                if api_platforms:
+                    for task in api_tasks:
+                        uploaded = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda t=task: self._execute_api_task(t)
+                        )
+                        total_uploaded += uploaded
+                        tasks_completed += 1
+            
+            # Progress update
+            progress = (tasks_completed / len(task_pool)) * 100
+            print(f"\n✅ Progress: {tasks_completed}/{len(task_pool)} tasks ({progress:.1f}%)")
+            print(f"📊 Total jobs uploaded: {total_uploaded}")
+            
+            # Pause between batches to prevent rate limiting
+            if i + batch_size < len(task_pool):
+                pause_time = 5
+                print(f"⏸️  Pausing {pause_time}s before next batch...")
+                await asyncio.sleep(pause_time)
         
         # Update statistics
         self.stats["total_jobs"] = total_uploaded
@@ -619,7 +788,8 @@ class UnifiedIndiaJobsScraper:
         return {
             "success": total_uploaded > 0,
             "total_jobs": total_uploaded,
-            "stats": self.stats
+            "stats": self.stats,
+            "strategy": "round_robin"
         }
     
     def _print_summary(self):
@@ -700,18 +870,20 @@ Examples:
 
     args = parser.parse_args()
 
-    # Create and run unified scraper
+    # Create and run unified scraper with round-robin strategy
     scraper = UnifiedIndiaJobsScraper(
         platforms=args.platforms,
         max_days=args.max_days,
         headless=args.headless
     )
 
-    results = await scraper.run(
+    # Use round-robin strategy for maximum diversity
+    results = await scraper.run_round_robin(
         cities=args.cities,
         include_internships=not args.no_internships,
         limit_per_city=args.limit_per_city,
-        tier_1_only=args.tier_1_only
+        tier_1_only=args.tier_1_only,
+        batch_size=10  # Process 10 tasks at a time
     )
 
     sys.exit(0 if results["success"] else 1)

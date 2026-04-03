@@ -67,13 +67,8 @@ REM Create the scheduled task
 echo [INFO] Creating scheduled task...
 echo.
 
-schtasks /create ^
-    /tn "%TASK_NAME%" ^
-    /tr "cmd.exe /c \"cd /d \"%SCRIPT_DIR%\" && %PYTHON_PATH% \"%PYTHON_SCRIPT%\"\"" ^
-    /sc minute ^
-    /mo 15 ^
-    /ru SYSTEM ^
-    /f
+REM Use single-line command to avoid line continuation issues
+schtasks /create /tn "%TASK_NAME%" /tr "cmd.exe /c cd /d %SCRIPT_DIR% && %PYTHON_PATH% %PYTHON_SCRIPT%" /sc minute /mo 15 /ru SYSTEM /f
 
 if %errorLevel% equ 0 (
     echo.

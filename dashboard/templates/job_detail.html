@@ -154,8 +154,22 @@
     </main>
 
     <script>
-        // Get job ID from URL
-        const jobId = window.location.pathname.split('/').pop();
+        // Get job ID from URL - handle both /job/<id> and /job_viewjob?jk=<id> formats
+        function extractJobId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jkParam = urlParams.get('jk');
+            
+            if (jkParam) {
+                // Format: /job_viewjob?jk=e335555e944e9235
+                return jkParam;
+            }
+            
+            // Format: /job/<id>
+            return window.location.pathname.split('/').pop();
+        }
+        
+        const jobId = extractJobId();
+        console.log('Extracted Job ID:', jobId);
 
         // Fetch job data
         async function loadJob() {
@@ -230,13 +244,23 @@
         }
 
         async function loadSimilarJobs() {
+            console.log('=== LOADING SIMILAR JOBS ===');
+            console.log('Job ID:', jobId);
+            
             try {
-                const response = await fetch(`/api/jobs/${jobId}/similar`);
+                const url = `/api/jobs/${jobId}/similar`;
+                console.log('Fetching from:', url);
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                
                 const data = await response.json();
+                console.log('Similar jobs response:', data);
 
                 const container = document.getElementById('similarJobsContainer');
-                
+
                 if (!data.success || !data.similar_jobs || data.similar_jobs.length === 0) {
+                    console.log('No similar jobs found');
                     container.innerHTML = `
                         <div class="col-span-full text-center py-12">
                             <div class="text-6xl mb-4">🔍</div>
@@ -246,6 +270,8 @@
                     `;
                     return;
                 }
+
+                console.log(`Rendering ${data.similar_jobs.length} similar jobs`);
 
                 // Render similar jobs
                 container.innerHTML = data.similar_jobs.map(job => `

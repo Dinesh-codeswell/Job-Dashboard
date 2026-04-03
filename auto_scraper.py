@@ -93,12 +93,13 @@ async def run_scraper():
             headless=True  # Run in headless mode for automation
         )
         
-        # Run with optimized settings for automation
-        results = await scraper.run(
+        # Run with round-robin strategy for maximum diversity
+        results = await scraper.run_round_robin(
             cities=None,  # Use default cities from .env
             include_internships=True,
             limit_per_city=30,  # Moderate limit to avoid rate limiting
-            tier_1_only=False
+            tier_1_only=False,
+            batch_size=10  # Process 10 tasks at a time
         )
         
         if results.get('success'):

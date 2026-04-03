@@ -272,10 +272,10 @@ class SheetsDataFetcher:
 
         stats = {
             'total_jobs': len(jobs),
-            'cities': dict(sorted(cities.items(), key=lambda x: x[1], reverse=True)),
-            'employment_types': dict(sorted(types.items(), key=lambda x: x[1], reverse=True)),
-            'companies': dict(sorted(companies.items(), key=lambda x: x[1], reverse=True)[:20]),
-            'sources': dict(sorted(sources.items(), key=lambda x: x[1], reverse=True)),
+            'cities': dict(sorted(cities.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True)),
+            'employment_types': dict(sorted(types.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True)),
+            'companies': dict(sorted(companies.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True)[:20]),
+            'sources': dict(sorted(sources.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True)),
             'last_updated': self._cache_time.isoformat() if self._cache_time else None,
             'worksheet': self.worksheet_name
         }
