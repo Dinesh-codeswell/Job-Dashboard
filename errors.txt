@@ -1,0 +1,31 @@
+PS C:\Linkedin_scraper> py sync_engine.py
+INFO: ✅ Supabase library imported successfully
+INFO: ✅ Sheets fetcher imported successfully
+INFO: --- Starting Deep Diagnostic Sync ---
+INFO: Connecting to Supabase at https://ouyfcnosxwezwsqxunlj.supabase.co...
+INFO: ✅ Supabase client initialized
+INFO: Fetching data from Google Sheets (this may take 10-20 seconds)...
+INFO: Using credentials from file: credentials.json
+WARNING: Primary worksheet 'LinkedIn_Jobs' not found, will fetch from all available worksheets
+INFO: 📊 Available worksheets: ['Jobs_v2', 'Consulting_Jobs_India', 'Linkedin_Jobs', 'Indeed_Jobs', 'Naukri_Jobs']
+INFO: 📊 Trying to fetch from worksheet: LinkedIn_Jobs
+INFO: 📊 Trying to fetch from worksheet: Indeed_Jobs
+INFO: ✅ Found 86 jobs in Indeed_Jobs
+INFO: ✅ Successfully fetched 86 jobs from Indeed_Jobs
+INFO: 📊 Trying to fetch from worksheet: Naukri_Jobs
+INFO: ⚠️ No jobs found in Naukri_Jobs
+INFO: 📊 Trying to fetch from worksheet: Consulting_Jobs_India
+INFO: ⚠️ No jobs found in Consulting_Jobs_India
+INFO: 📊 Trying to fetch from worksheet: Jobs
+INFO: 📊 Trying to fetch from worksheet: Consulting Jobs India
+INFO: 📊 Trying to fetch from worksheet: Jobs_v2
+INFO: ⚠️ No jobs found in Jobs_v2
+INFO: 📊 Trying to fetch from worksheet: Linkedin_Jobs
+INFO: ✅ Found 48 jobs in Linkedin_Jobs
+INFO: ✅ Successfully fetched 48 jobs from Linkedin_Jobs
+INFO: ✅ Total fetched 134 jobs from all sources
+INFO: ✅ Found 134 jobs in Sheets
+INFO: First job columns found: ['Company', 'Company Logo', 'Job Title', 'Employment Type', 'Posted', 'Location', 'Job Description', 'Job URL', 'Search City', 'Date Added', 'id', 'source']
+INFO: Attempting to upsert 134 jobs to 'jobs' table...
+ERROR: ❌ DATABASE ERROR: Out of range float values are not JSON compliant
+INFO: Tip: Ensure you ran the SQL schema in Supabase to create the 'jobs' table.

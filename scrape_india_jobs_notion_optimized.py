@@ -60,6 +60,12 @@ logger = logging.getLogger(__name__)
 # HIGH-YIELD keywords for 24-hour jobs (reduced from 50+ to 30)
 # These return the most recent, relevant jobs in tech/business
 TARGET_KEYWORDS = [
+    # TIER 0: Always begin with these (highest priority)
+    "Founder's Office",
+    "Chief of Staff",
+    "Entrepreneur in Residence",
+    "EIR",
+
     # TIER 1: Highest yield (most 24h jobs)
     "Software Development Engineer",
     "Software Engineer",
@@ -67,7 +73,7 @@ TARGET_KEYWORDS = [
     "Backend Engineer",
     "Frontend Engineer",
     "Full Stack Engineer",
-    
+
     # TIER 2: High yield
     "Product Manager",
     "APM",
@@ -75,7 +81,7 @@ TARGET_KEYWORDS = [
     "Data Scientist",
     "Machine Learning Engineer",
     "DevOps Engineer",
-    
+
     # TIER 3: Good yield
     "Data Analyst",
     "Business Analyst",
@@ -83,23 +89,26 @@ TARGET_KEYWORDS = [
     "SRE",
     "Site Reliability Engineer",
     "Cloud Engineer",
-    
+
     # TIER 4: Specialized
     "Product Designer",
     "UX Designer",
     "Technical Program Manager",
     "TPM",
     "Solutions Architect",
-    
-    # TIER 5: Growth & Strategy
-    "Growth Manager",
-    "Strategy Manager",
-    "Operations Manager",
-    "Business Development Manager",
 ]
 
-# EXCLUDE these roles (basic/non-core)
+# EXCLUDE these roles (basic/non-core/repetitive)
 EXCLUDE_KEYWORDS = [
+    # Sales & Business Development
+    "Sales", "BDE", "Business Development", "Business Development Executive",
+    "Account Executive", "Account Manager", "SDR", "Sales Development",
+    
+    # Operations & Strategy
+    "Operations", "Operations Manager", "Strategy", "Strategy Manager",
+    "Chief Operating Officer", "COO",
+    
+    # Basic/Non-core roles
     "Accountant", "Accounting",
     "Copywriter", "Copy Writer",
     "Video Editor", "Video Editing",
@@ -107,12 +116,177 @@ EXCLUDE_KEYWORDS = [
     "Content Writer",
     "Customer Support", "Customer Service",
     "Telecaller",
-    "Sales Executive",
-    "HR Executive",
-    "Recruiter",
+    "HR Executive", "Human Resources",
+    "Recruiter", "Recruitment",
     "Social Media",
     "SEO Executive",
+    "Marketing Intern", "Marketing Coordinator",
+    "Admin", "Administrative",
+    "Assistant", "Intern",  # Reduce repetitive entry-level
 ]
+
+
+# ============================================================================
+# ROLE NORMALIZER AND FILTER
+# ============================================================================
+
+class RoleFilter:
+    """
+    Normalizes, deduplicates, and filters job roles.
+    Ensures only core roles are kept, limited to 15 max, with priority roles first.
+    """
+
+    # Priority roles that should always appear first
+    PRIORITY_ROLES = [
+        "founder's office",
+        "chief of staff",
+        "entrepreneur in residence",
+        "eir",
+    ]
+
+    # Map variations to canonical names
+    ROLE_MAPPING = {
+        # Founder's Office variations
+        "head of founder's office": "Founder's Office",
+        "founder's office intern": "Founder's Office",
+        "founder office": "Founder's Office",
+        "founders office": "Founder's Office",
+        
+        # Chief of Staff variations
+        "chief of staff to ceo": "Chief of Staff",
+        "chief of staff to founder": "Chief of Staff",
+        "deputy chief of staff": "Chief of Staff",
+        "chief of staff intern": "Chief of Staff",
+        
+        # EIR variations
+        "entrepreneur-in-residence": "Entrepreneur in Residence",
+        "eir intern": "Entrepreneur in Residence",
+        
+        # Engineering variations
+        "sde": "Software Development Engineer",
+        "sde i": "Software Development Engineer",
+        "sde ii": "Software Development Engineer",
+        "sde-1": "Software Development Engineer",
+        "sde-2": "Software Development Engineer",
+        "software engineer i": "Software Engineer",
+        "software engineer ii": "Software Engineer",
+        "software engineer - backend": "Backend Engineer",
+        "software engineer - frontend": "Frontend Engineer",
+        "senior software engineer": "Software Engineer",
+        "staff software engineer": "Software Engineer",
+        "principal software engineer": "Software Engineer",
+        
+        # Product Manager variations
+        "product manager i": "Product Manager",
+        "product manager ii": "Product Manager",
+        "senior product manager": "Product Manager",
+        "associate product manager": "Associate Product Manager",
+        "apm": "Associate Product Manager",
+        "apm intern": "Associate Product Manager",
+        
+        # Data Scientist variations
+        "data scientist i": "Data Scientist",
+        "data scientist ii": "Data Scientist",
+        "senior data scientist": "Data Scientist",
+        "applied scientist": "Data Scientist",
+        
+        # ML Engineer variations
+        "ml engineer": "Machine Learning Engineer",
+        "machine learning engineer i": "Machine Learning Engineer",
+        "ml engineer intern": "Machine Learning Engineer",
+        
+        # DevOps variations
+        "devops": "DevOps Engineer",
+        "devops engineer i": "DevOps Engineer",
+        "site reliability engineer": "SRE",
+        "sre engineer": "SRE",
+        
+        # Designer variations
+        "ux/ui designer": "UX Designer",
+        "product design": "Product Designer",
+        "ui designer": "Product Designer",
+        "ux researcher": "Product Designer",
+    }
+
+    def __init__(self, max_roles: int = 15):
+        self.max_roles = max_roles
+        self.seen_roles: Set[str] = set()
+        self.accepted_roles: List[Dict[str, Any]] = []
+        self.priority_roles: List[Dict[str, Any]] = []
+        self.regular_roles: List[Dict[str, Any]] = []
+
+    def normalize_role(self, role_title: str) -> str:
+        """Normalize a role title to its canonical form."""
+        role_lower = role_title.lower().strip()
+        
+        # Check exact mapping first
+        for variant, canonical in self.ROLE_MAPPING.items():
+            if variant in role_lower or role_lower in variant:
+                return canonical
+        
+        # Return original if no mapping found
+        return role_title
+
+    def is_priority_role(self, role_title: str) -> bool:
+        """Check if a role is a priority role."""
+        role_lower = role_title.lower()
+        return any(priority in role_lower for priority in self.PRIORITY_ROLES)
+
+    def should_include_role(self, role_title: str) -> bool:
+        """Check if a role should be included based on current state."""
+        normalized = self.normalize_role(role_title)
+        normalized_lower = normalized.lower()
+        
+        # Check if we've already seen this role (deduplication)
+        if normalized_lower in self.seen_roles:
+            return False
+        
+        # Check if we've hit the max limit
+        if len(self.seen_roles) >= self.max_roles:
+            # Allow priority roles even if limit is reached
+            return self.is_priority_role(role_title)
+        
+        return True
+
+    def add_role(self, job_data: Dict[str, Any]) -> bool:
+        """
+        Add a role if it passes filtering.
+        Returns True if role was added, False if filtered out.
+        """
+        original_role = job_data.get("role", "")
+        normalized = self.normalize_role(original_role)
+        
+        # Skip if duplicate or limit reached (unless priority)
+        if not self.should_include_role(original_role):
+            return False
+        
+        # Update the job data with normalized role
+        job_data["role"] = normalized
+        
+        # Track this role
+        self.seen_roles.add(normalized.lower())
+        
+        # Categorize as priority or regular
+        if self.is_priority_role(original_role):
+            self.priority_roles.append(job_data)
+        else:
+            self.regular_roles.append(job_data)
+        
+        return True
+
+    def get_filtered_roles(self) -> List[Dict[str, Any]]:
+        """
+        Get the final filtered list: priority roles first, then regular roles.
+        Limited to max_roles total.
+        """
+        # Priority roles always come first
+        result = self.priority_roles.copy()
+        
+        # Add regular roles up to the limit
+        remaining_slots = self.max_roles - len(result)
+        result.extend(self.regular_roles[:remaining_slots])
+        
+        return result
 
 
 # ============================================================================
@@ -278,10 +452,11 @@ class OptimizedIndiaJobsScraper:
         keyword: str,
         location: str = "India",
         limit: int = 25,
-        skip_duplicates: bool = True
+        skip_duplicates: bool = True,
+        role_filter: Optional[RoleFilter] = None
     ) -> Dict[str, Any]:
         """Scrape jobs for a keyword with 24-hour filter."""
-        
+
         results = {
             "keyword": keyword,
             "location": location,
@@ -289,32 +464,33 @@ class OptimizedIndiaJobsScraper:
             "jobs_scraped": 0,
             "jobs_24h": 0,
             "jobs_added": 0,
+            "jobs_filtered_out": 0,
             "duplicates_skipped": 0,
             "excluded": 0,
             "errors": []
         }
-        
+
         # Use optimized scraper with 24-hour filter
         search_scraper = OptimizedJobSearchScraper(browser.page, callback=self.callback)
         job_scraper = JobScraper(browser.page, callback=self.callback)
-        
+
         try:
             # Search with LinkedIn's 24-hour filter
             logger.info(f"🔍 {keyword} in {location}")
-            
+
             job_urls = await search_scraper.search(
                 keywords=keyword,
                 location=location,
                 limit=limit,
                 hours_ago=self.hours_ago  # CRITICAL: 24 hours
             )
-            
+
             results["jobs_found"] = len(job_urls)
-            
+
             if not job_urls:
                 logger.debug(f"  ⚠️  No 24h jobs for {keyword}")
                 return results
-            
+
             # Scrape each job (ALL should be <24h due to URL filter)
             for job_url in job_urls:
                 # Check duplicates BEFORE scraping (saves time)
@@ -322,20 +498,19 @@ class OptimizedIndiaJobsScraper:
                     results["duplicates_skipped"] += 1
                     logger.debug(f"  ⏭️  Duplicate: {job_url}")
                     continue
-                
+
                 try:
                     job = await job_scraper.scrape(job_url)
                     results["jobs_scraped"] += 1
-                    
+
                     # Check if core role (not excluded)
                     if self._should_exclude_job(job.job_title, job.job_description):
                         results["excluded"] += 1
                         logger.debug(f"  ❌ Excluded (non-core): {job.job_title}")
                         continue
-                    
+
                     results["jobs_24h"] += 1
-                    results["jobs_core_role"] = results.get("jobs_core_role", 0) + 1
-                    
+
                     # Prepare data for Notion
                     job_data = {
                         "company": job.company or "Unknown",
@@ -344,30 +519,37 @@ class OptimizedIndiaJobsScraper:
                         "location": job.location or location,
                         "url": job_url
                     }
-                    
+
+                    # Apply role filtering if role_filter is provided
+                    if role_filter:
+                        if not role_filter.add_role(job_data):
+                            results["jobs_filtered_out"] += 1
+                            logger.debug(f"  ⏭️  Filtered (role limit/duplicate): {job.job_title}")
+                            continue
+
                     # Add to Notion
                     if self.notion:
                         if self.notion.add_job(job_data):
                             results["jobs_added"] += 1
-                            print(f"  ✓ {job.job_title} at {job.company}")
+                            print(f"  ✓ {job_data['role']} at {job.company}")
                         else:
                             results["errors"].append(f"Failed to add {job_url}")
                     else:
-                        print(f"  ✓ {job.job_title} at {job.company} [Notion not configured]")
-                
+                        print(f"  ✓ {job_data['role']} at {job.company} [Notion not configured]")
+
                 except ScrapingError as e:
                     results["errors"].append(f"Scraping error: {e}")
                     continue
                 except AuthenticationError as e:
                     results["errors"].append(f"Auth error: {e}")
                     break
-                
+
                 await asyncio.sleep(0.5)  # Small delay
-        
+
         except Exception as e:
             results["errors"].append(f"Search error: {e}")
             logger.error(f"Error scraping {keyword}: {e}")
-        
+
         return results
     
     def _should_exclude_job(self, job_title: str, job_description: str = "") -> bool:
@@ -386,26 +568,27 @@ class OptimizedIndiaJobsScraper:
         keywords: Optional[List[str]] = None,
         location: str = "India",
         limit_per_keyword: int = 25,
-        skip_duplicates: bool = True
+        skip_duplicates: bool = True,
+        max_roles: int = 15
     ) -> Dict[str, Any]:
         """Run the optimized scraping workflow."""
-        
+
         results = {
             "success": False,
             "keywords_searched": 0,
             "total_jobs_found": 0,
             "total_jobs_scraped": 0,
             "total_jobs_24h": 0,
-            "total_jobs_core": 0,
             "total_jobs_added": 0,
             "total_duplicates_skipped": 0,
             "total_excluded": 0,
+            "total_filtered_out": 0,
             "errors": [],
             "timestamp": datetime.now().isoformat()
         }
-        
+
         keywords = keywords or TARGET_KEYWORDS
-        
+
         print("\n" + "="*70)
         print("⚡ OPTIMIZED FRESH JOBS SCRAPER - INDIA (24 HOURS)")
         print("="*70)
@@ -413,9 +596,10 @@ class OptimizedIndiaJobsScraper:
         print(f"📍 Keywords: {len(keywords)} (high-yield only)")
         print(f"📍 Limit per keyword: {limit_per_keyword} jobs")
         print(f"📍 Time Filter: PAST {self.hours_ago} HOURS (LinkedIn native filter)")
+        print(f"📍 Max Roles: {max_roles} (deduplicated, priority first)")
         print(f"📍 Expected Success Rate: 85-95% (was 30%)")
         print("="*70 + "\n")
-        
+
         # Connect to Notion
         if self.notion:
             print("📊 Connecting to Notion...")
@@ -428,7 +612,10 @@ class OptimizedIndiaJobsScraper:
             print("✓ Connected to Notion\n")
         else:
             print("⚠️  Notion not configured - will scrape but not store\n")
-        
+
+        # Initialize role filter for deduplication and prioritization
+        role_filter = RoleFilter(max_roles=max_roles)
+
         async with BrowserManager(headless=self.headless) as browser:
             # Load LinkedIn session
             print("🔑 Loading LinkedIn session...")
@@ -441,50 +628,52 @@ class OptimizedIndiaJobsScraper:
                 print(f"❌ {error_msg}")
                 print("\n💡 Run 'python samples/create_session.py' to create session")
                 return results
-            
+
             # Scrape each keyword
             for i, keyword in enumerate(keywords, 1):
                 print(f"\n{'='*70}")
                 print(f"📝 Keyword {i}/{len(keywords)}: {keyword}")
                 print(f"{'='*70}")
-                
+
                 keyword_results = await self.scrape_keyword(
                     browser=browser,
                     keyword=keyword,
                     location=location,
                     limit=limit_per_keyword,
-                    skip_duplicates=skip_duplicates
+                    skip_duplicates=skip_duplicates,
+                    role_filter=role_filter
                 )
-                
+
                 results["keywords_searched"] += 1
                 results["total_jobs_found"] += keyword_results["jobs_found"]
                 results["total_jobs_scraped"] += keyword_results["jobs_scraped"]
                 results["total_jobs_24h"] += keyword_results["jobs_24h"]
-                results["total_jobs_core"] += keyword_results.get("jobs_core_role", 0)
                 results["total_jobs_added"] += keyword_results["jobs_added"]
                 results["total_duplicates_skipped"] += keyword_results["duplicates_skipped"]
                 results["total_excluded"] += keyword_results["excluded"]
+                results["total_filtered_out"] += keyword_results.get("jobs_filtered_out", 0)
                 results["errors"].extend(keyword_results["errors"])
-                
+
                 print(f"\n📊 Keyword Summary: {keyword}")
                 print(f"   Found: {keyword_results['jobs_found']}")
                 print(f"   Scraped: {keyword_results['jobs_scraped']}")
                 print(f"   24h Jobs: {keyword_results['jobs_24h']}")
                 print(f"   Added: {keyword_results['jobs_added']}")
+                print(f"   Filtered: {keyword_results.get('jobs_filtered_out', 0)}")
                 print(f"   Skipped: {keyword_results['duplicates_skipped']}")
-                
+
                 # Early exit if no jobs in first 10 keywords
                 if i <= 10 and keyword_results['jobs_found'] == 0:
                     logger.warning(f"⚠️  No 24h jobs for {keyword}, continuing...")
-                
+
                 # Delay between keywords
                 if i < len(keywords):
                     await asyncio.sleep(1)
-        
+
         # Print summary
         results["success"] = results["total_jobs_added"] > 0 or (not self.notion and results["total_jobs_24h"] > 0)
         self._print_summary(results)
-        
+
         return results
     
     def _print_summary(self, results: Dict[str, Any]):
@@ -497,26 +686,27 @@ class OptimizedIndiaJobsScraper:
         print(f"🔍 Total Jobs Found: {results['total_jobs_found']}")
         print(f"📄 Total Jobs Scraped: {results['total_jobs_scraped']}")
         print(f"⚡ FRESH JOBS (24h): {results['total_jobs_24h']}")
-        print(f"🎯 Core Technical/Business Roles: {results['total_jobs_core']}")
         print(f"➕ Jobs Added to Notion: {results['total_jobs_added']}")
         print(f"⚠️  Duplicates Skipped: {results['total_duplicates_skipped']}")
         print(f"❌ Excluded (non-core): {results['total_excluded']}")
-        
+        print(f"🔻 Filtered Out (role limit): {results['total_filtered_out']}")
+
         # Calculate success rate
         if results['total_jobs_found'] > 0:
             success_rate = (results['total_jobs_added'] / results['total_jobs_found']) * 100
             print(f"🎯 Success Rate: {success_rate:.1f}% (target: 85%+)")
-        
+
         if results["errors"]:
             print(f"\n❌ Errors ({len(results['errors'])}):")
             for error in results["errors"][:5]:
                 print(f"   - {error}")
             if len(results["errors"]) > 5:
                 print(f"   ... and {len(results['errors']) - 5} more")
-        
+
         print("="*70)
         print(f"⏰ Completed at: {results['timestamp']}")
         print(f"💡 Tip: Run every 3-4 hours for freshest jobs")
+        print(f"💡 Roles are deduplicated and limited to 15 max (priority first)")
         print("="*70 + "\n")
 
 
@@ -536,6 +726,13 @@ Examples:
   python scrape_india_jobs_notion_optimized.py --headless False
   python scrape_india_jobs_notion_optimized.py --keywords "SDE" "Product Manager"
   python scrape_india_jobs_notion_optimized.py --location Bangalore
+  python scrape_india_jobs_notion_optimized.py --max-roles 20
+
+ROLE FILTERING:
+  - Sales, BDE, Business Development roles are excluded
+  - Founder's Office, Chief of Staff, EIR roles always appear first
+  - Roles are deduplicated and limited to max 15 (configurable)
+  - Only core tech and non-tech roles are kept
 
 OPTIMIZATIONS:
   - LinkedIn's 24-hour native filter (f_TPR=r86400)
@@ -544,7 +741,7 @@ OPTIMIZATIONS:
   - 70-80% faster scraping
         """
     )
-    
+
     parser.add_argument(
         "--limit",
         type=int,
@@ -583,18 +780,24 @@ OPTIMIZATIONS:
         default=24,
         help="Hours back to filter (default: 24)"
     )
-    
+    parser.add_argument(
+        "--max-roles",
+        type=int,
+        default=15,
+        help="Maximum unique roles to extract (default: 15)"
+    )
+
     args = parser.parse_args()
-    
+
     # Load environment
     from dotenv import load_dotenv
     import os
-    
+
     load_dotenv()
-    
+
     notion_api_key = os.getenv("NOTION_API_KEY")
     notion_database_id = os.getenv("NOTION_DATABASE_ID")
-    
+
     # Create optimized scraper
     workflow = OptimizedIndiaJobsScraper(
         session_file=args.session_file,
@@ -603,14 +806,15 @@ OPTIMIZATIONS:
         headless=args.headless,
         hours_ago=args.hours_ago
     )
-    
+
     results = await workflow.run(
         keywords=args.keywords,
         location=args.location,
         limit_per_keyword=args.limit,
-        skip_duplicates=not args.no_dedup
+        skip_duplicates=not args.no_dedup,
+        max_roles=args.max_roles
     )
-    
+
     sys.exit(0 if results["success"] else 1)
 
 

@@ -1,0 +1,17 @@
+?plugins=forms,container-queries:64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ ?plugins=forms,container-queries:64
+00d22bad-f9d5-43a6-8fea-81acb314910c:172 Extracted Job ID: 00d22bad-f9d5-43a6-8fea-81acb314910c
+sparkles.js:16 Sparkles: Initializing...
+sparkles.js:42 Sparkles: init() called
+sparkles.js:57 Sparkles: Setting up canvas
+sparkles.js:90 Sparkles: Canvas resized to 1528 x 779.2000122070312 DPR: 1.25
+sparkles.js:74 Sparkles: Canvas setup complete
+sparkles.js:125 Sparkles: Setting up event listeners
+sparkles.js:142 Sparkles: Event listeners attached
+sparkles.js:50 Sparkles: Particles loaded and ready
+sparkles.js:217 Sparkles: First render - particles: 500 opacity: 0.02
+sparkles.js:53 Sparkles: Initialization complete. Particles created: 500
+:5000/api/jobs/00d22bad-f9d5-43a6-8fea-81acb314910c:1  Failed to load resource: the server responded with a status of 404 (NOT FOUND)
+00d22bad-f9d5-43a6-8fea-81acb314910c:236 Error loading job: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+loadJob @ 00d22bad-f9d5-43a6-8fea-81acb314910c:236
+

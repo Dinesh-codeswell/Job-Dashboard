@@ -1,0 +1,347 @@
+?plugins=forms,container-queries:64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ ?plugins=forms,container-queries:64
+(anonymous) @ ?plugins=forms,container-queries:64
+
+animated-loading-skeleton.js:395 AnimatedLoadingSkeleton: Styles injected
+animated-loading-skeleton.js:19 AnimatedLoadingSkeleton: Initializing...
+animated-loading-skeleton.js:42 AnimatedLoadingSkeleton: init() called
+animated-loading-skeleton.js:56 AnimatedLoadingSkeleton: Building skeleton
+animated-loading-skeleton.js:76 AnimatedLoadingSkeleton: Skeleton built
+animated-loading-skeleton.js:200 AnimatedLoadingSkeleton: Shimmer animation started
+animated-loading-skeleton.js:52 AnimatedLoadingSkeleton: Initialization complete
+main.js:183 Loading jobs: {page: 1, limit: 11, filters: {…}}filters: city: ""search: ""type: ""[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()limit: 11page: 1[[Prototype]]: Object
+sparkles.js:16 Sparkles: Initializing...
+sparkles.js:42 Sparkles: init() called
+sparkles.js:57 Sparkles: Setting up canvas
+sparkles.js:90 Sparkles: Canvas resized to 965.6000366210938 x 779.2000122070312 DPR: 1.25
+sparkles.js:74 Sparkles: Canvas setup complete
+sparkles.js:125 Sparkles: Setting up event listeners
+sparkles.js:142 Sparkles: Event listeners attached
+sparkles.js:50 Sparkles: Particles loaded and ready
+sparkles.js:217 Sparkles: First render - particles: 500 opacity: 0.02
+sparkles.js:53 Sparkles: Initialization complete. Particles created: 500
+animated-loading-skeleton.js:147 AnimatedLoadingSkeleton: Card positions calculated 5
+animated-loading-skeleton.js:189 AnimatedLoadingSkeleton: Search icon animation started
+sparkles.js:16 Sparkles: Initializing...
+sparkles.js:42 Sparkles: init() called
+sparkles.js:57 Sparkles: Setting up canvas
+sparkles.js:90 Sparkles: Canvas resized to 965.6000366210938 x 184 DPR: 1.25
+sparkles.js:74 Sparkles: Canvas setup complete
+sparkles.js:125 Sparkles: Setting up event listeners
+sparkles.js:142 Sparkles: Event listeners attached
+sparkles.js:50 Sparkles: Particles loaded and ready
+sparkles.js:217 Sparkles: First render - particles: 355 opacity: 0.02
+sparkles.js:53 Sparkles: Initialization complete. Particles created: 355
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:40 API request failed, retrying in 500ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadStats (main.js:236:26)
+    at async Promise.all (:5000/index 0)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:40 API request failed, retrying in 1000ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadStats (main.js:236:26)
+    at async Promise.all (:5000/index 0)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:46 API Error after retries: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadStats (main.js:236:26)
+    at async Promise.all (:5000/index 0)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:46
+await in request
+get @ api.js:56
+getStats @ api.js:92
+loadStats @ main.js:236
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+main.js:244 Error loading stats: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadStats (main.js:236:26)
+    at async Promise.all (:5000/index 0)
+    at async initializeDashboard (main.js:76:9)
+loadStats @ main.js:244
+await in loadStats
+initializeDashboard @ main.js:67
+(anonymous) @ main.js:43
+api.js:26  GET http://10.166.215.137:5000/api/employment-types 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+api.js:40 API request failed, retrying in 500ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadEmploymentTypes (main.js:263:26)
+    at async Promise.all (:5000/index 2)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:40
+await in request
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+api.js:26  GET http://10.166.215.137:5000/api/employment-types 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+api.js:40 API request failed, retrying in 1000ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadEmploymentTypes (main.js:263:26)
+    at async Promise.all (:5000/index 2)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:40
+await in request
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+main.js:187 Jobs response: {filters: {…}, jobs: Array(11), pagination: {…}, success: true}
+animated-loading-skeleton.js:204 AnimatedLoadingSkeleton: Destroying
+main.js:319 === RENDER JOBS CALLED ===
+main.js:320 Total jobs: 11
+main.js:322 First job: {company: 'Support Studio Technologies', company_logo: 'https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq…eta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ', date_added: '2026-04-03 6:05:33', employment_type: 'Contract', id: 'job_4393447911', …}
+main.js:323 First job keys: (9) ['company', 'company_logo', 'date_added', 'employment_type', 'id', 'job_title', 'location', 'posted_date', 'search_city']
+main.js:324 First job company_logo value: https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq3Zn4RQ/company-logo_100_100/B56ZucQZj6G0AQ-/0/1767853103838/supportstudiotechnologies_logo?e=1776902400&v=beta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ
+main.js:357 === FIRST JOB OBJECT === {company: 'Support Studio Technologies', company_logo: 'https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq…eta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ', date_added: '2026-04-03 6:05:33', employment_type: 'Contract', id: 'job_4393447911', …}company: "Support Studio Technologies"company_logo: "https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq3Zn4RQ/company-logo_100_100/B56ZucQZj6G0AQ-/0/1767853103838/supportstudiotechnologies_logo?e=1776902400&v=beta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ"date_added: "2026-04-03 6:05:33"employment_type: "Contract"id: "job_4393447911"job_title: "SAP Joule Consultant"location: "Remote\nContract"posted_date: "12 hours ago"search_city: "Bangalore"[[Prototype]]: Object
+main.js:358 company_logo field: https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq3Zn4RQ/company-logo_100_100/B56ZucQZj6G0AQ-/0/1767853103838/supportstudiotechnologies_logo?e=1776902400&v=beta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ
+main.js:359 Type: string
+main.js:367 Job 0: SAP Joule Consultant | Company: Support Studio Technologies | Logo URL: https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq3Zn4RQ/company-logo_100_100/B56ZucQZj6G0AQ-/0/1767853103838/supportstudiotechnologies_logo?e=1776902400&v=beta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ | Length: 206
+main.js:367 Job 1: Business Transformation Consultant-Digital Change | Company: IBM | Logo URL: https://media.licdn.com/dms/image/v2/D560BAQGiz5ecgpCtkA/company-logo_100_100/company-logo_100_100/0/1688684715866/ibm_logo?e=1776902400&v=beta&t=nw_NDHrg6jEPysPyTTyDRMaPjW2xaXuMTVb6V65M_3E | Length: 189
+main.js:367 Job 2: GN – Industry Strategy – CGRT – Consultant | Company: Accenture in India | Logo URL: https://media.licdn.com/dms/image/v2/D560BAQFz1apPGEyk7g/company-logo_100_100/B56ZfOL01vHUAQ-/0/1751510896876/accentureindia_logo?e=1776902400&v=beta&t=VgS8Nc0N8TEKiXY_i3gmiX3RRhlXtuUgmfwqh1jtFOQ | Length: 195
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQGMn2Rq3Zn4RQ/company-logo_100_100/B56ZucQZj6G0AQ-/0/1767853103838/supportstudiotechnologies_logo?e=1776902400&v=beta&t=0x5_GX6ZwxlyaRAGobxIbK_pKDJ_G7XmaQigrFCJkSQ
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQGiz5ecgpCtkA/company-logo_100_100/company-logo_100_100/0/1688684715866/ibm_logo?e=1776902400&v=beta&t=nw_NDHrg6jEPysPyTTyDRMaPjW2xaXuMTVb6V65M_3E
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQGiz5ecgpCtkA/company-logo_100_100/company-logo_100_100/0/1688684715866/ibm_logo?e=1776902400&v=beta&t=nw_NDHrg6jEPysPyTTyDRMaPjW2xaXuMTVb6V65M_3E
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQGiz5ecgpCtkA/company-logo_100_100/company-logo_100_100/0/1688684715866/ibm_logo?e=1776902400&v=beta&t=nw_NDHrg6jEPysPyTTyDRMaPjW2xaXuMTVb6V65M_3E
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/C4D0BAQGJir57WdolQQ/company-logo_100_100/company-logo_100_100/0/1663753525742/mashreq_corporate_and_investment_banking_group_logo?e=1776902400&v=beta&t=kUDGLuaHS8iwhHlfM_6fg8JhfwlDkUawmmB2w2nd31w
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQFz1apPGEyk7g/company-logo_100_100/B56ZfOL01vHUAQ-/0/1751510896876/accentureindia_logo?e=1776902400&v=beta&t=VgS8Nc0N8TEKiXY_i3gmiX3RRhlXtuUgmfwqh1jtFOQ
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQFz1apPGEyk7g/company-logo_100_100/B56ZfOL01vHUAQ-/0/1751510896876/accentureindia_logo?e=1776902400&v=beta&t=VgS8Nc0N8TEKiXY_i3gmiX3RRhlXtuUgmfwqh1jtFOQ
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQFz1apPGEyk7g/company-logo_100_100/B56ZfOL01vHUAQ-/0/1751510896876/accentureindia_logo?e=1776902400&v=beta&t=VgS8Nc0N8TEKiXY_i3gmiX3RRhlXtuUgmfwqh1jtFOQ
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D4D0BAQG9ySVGr5NQzQ/company-logo_100_100/company-logo_100_100/0/1725448348201/mindrift_ai_logo?e=1776902400&v=beta&t=DSThBpuuR_Y7NEIYd072x0vwgM-oWokfskZlhbqVHQk
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D4D0BAQG9ySVGr5NQzQ/company-logo_100_100/company-logo_100_100/0/1725448348201/mindrift_ai_logo?e=1776902400&v=beta&t=DSThBpuuR_Y7NEIYd072x0vwgM-oWokfskZlhbqVHQk
+(index):1 Logo loaded: https://media.licdn.com/dms/image/v2/D560BAQGcXYycU1ExMQ/company-logo_100_100/B56Zs5S_mvJoAU-/0/1766192839354/mercor_ai_logo?e=1776902400&v=beta&t=3iJGn7XR8o5382dK5TKOnyHpeXLvBOOvSuetgKQpLmo
+api.js:26  GET http://10.166.215.137:5000/api/employment-types 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+api.js:46 API Error after retries: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadEmploymentTypes (main.js:263:26)
+    at async Promise.all (:5000/index 2)
+    at async initializeDashboard (main.js:76:9)
+request @ api.js:46
+await in request
+get @ api.js:56
+getEmploymentTypes @ api.js:106
+loadEmploymentTypes @ main.js:263
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+main.js:270 Error loading employment types: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async loadEmploymentTypes (main.js:263:26)
+    at async Promise.all (:5000/index 2)
+    at async initializeDashboard (main.js:76:9)
+loadEmploymentTypes @ main.js:270
+await in loadEmploymentTypes
+initializeDashboard @ main.js:69
+(anonymous) @ main.js:43
+main.js:87 ✅ Dashboard initialized
+combo-box.js:270 ComboBox: setItems called with 10 items
+combo-box.js:271 ComboBox: Current selectedValue is 
+main.js:751  GET http://10.166.215.137:5000/api/employment-types 500 (INTERNAL SERVER ERROR)
+loadFilterOptions @ main.js:751
+await in loadFilterOptions
+initFilterComboBoxes @ main.js:732
+setupEventListeners @ main.js:680
+initializeDashboard @ main.js:79
+await in initializeDashboard
+(anonymous) @ main.js:43
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:40 API request failed, retrying in 500ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:40 API request failed, retrying in 1000ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:40 API request failed, retrying in 500ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:40 API request failed, retrying in 1000ms... Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+api.js:46 API Error after retries: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+request @ api.js:46
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+main.js:844 Auto-refresh failed: Error: '<' not supported between instances of 'float' and 'str'
+    at Object.request (api.js:30:27)
+    at async autoRefresh (main.js:830:26)
+autoRefresh @ main.js:844
+await in autoRefresh
+(anonymous) @ main.js:816
+api.js:26  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+ API request failed, retrying in 500ms... 
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+ API request failed, retrying in 1000ms... 
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+ API Error after retries: 
+request @ api.js:46
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+ Auto-refresh failed: 
+autoRefresh @ main.js:844
+await in autoRefresh
+(anonymous) @ main.js:816
+  GET http://10.166.215.137:5000/api/stats 500 (INTERNAL SERVER ERROR)
+request @ api.js:26
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
+ API request failed, retrying in 500ms... 
+request @ api.js:40
+await in request
+get @ api.js:56
+getStats @ api.js:92
+autoRefresh @ main.js:830
+(anonymous) @ main.js:816
