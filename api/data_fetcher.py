@@ -31,53 +31,74 @@ class SheetsDataFetcher:
             import gspread
             from google.oauth2.service_account import Credentials
             import json
-            
+
             scopes = [
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive"
             ]
-            
+
             # Try environment variable first (for Vercel)
             creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
-            
+
             if creds_json:
                 print("Using credentials from environment variable")
                 try:
+                    # Handle escaped newlines in private key
                     creds_info = json.loads(creds_json)
+                    
+                    # Fix common issues with private key formatting
+                    if 'private_key' in creds_info:
+                        key = creds_info['private_key']
+                        # Replace literal \n with actual newlines
+                        if '\\n' in key and not key.startswith('-----BEGIN'):
+                            key = key.replace('\\n', '\n')
+                        creds_info['private_key'] = key
+                    
                     creds = Credentials.from_service_account_info(
                         creds_info,
                         scopes=scopes
                     )
                 except json.JSONDecodeError as e:
                     print(f"JSON decode error: {e}")
+                    print(f"First 100 chars: {creds_json[:100]}...")
+                    return False
+                except Exception as e:
+                    print(f"Credentials error: {e}")
                     return False
             else:
                 # Fallback to file (for local development)
                 creds_path = Path(self.credentials_file)
                 if not creds_path.exists():
                     print(f"Credentials file not found: {self.credentials_file}")
+                    print(f"Looking in: {creds_path.absolute()}")
                     return False
-                
+
                 print(f"Using credentials from file: {self.credentials_file}")
-                creds = Credentials.from_service_account_file(
-                    str(creds_path),
-                    scopes=scopes
-                )
-            
+                try:
+                    creds = Credentials.from_service_account_file(
+                        str(creds_path),
+                        scopes=scopes
+                    )
+                except Exception as file_err:
+                    print(f"Failed to load credentials file: {file_err}")
+                    return False
+
             self.gc = gspread.authorize(creds)
             self.spreadsheet = self.gc.open_by_key(self.sheet_id)
-            
+
             try:
                 self.worksheet = self.spreadsheet.worksheet(self.worksheet_name)
                 print(f"Connected to worksheet: {self.worksheet_name}")
             except Exception as e:
                 print(f"Worksheet not found: {self.worksheet_name} - {e}")
                 return False
-            
+
             return True
-            
+
         except Exception as e:
             print(f"Failed to connect to Google Sheets: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def fetch_all_jobs(self, use_cache: bool = True, cache_timeout: int = 60) -> List[Dict[str, Any]]:

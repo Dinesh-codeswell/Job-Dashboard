@@ -3,9 +3,6 @@ node_modules
 .git
 *.pyc
 __pycache__
-*.md
-.env.local
-.env.*.local
 .venv
 venv
 .pytest_cache
@@ -21,12 +18,8 @@ api/__pycache__
 *.swp
 .DS_Store
 Thumbs.db
-*.log
 scrape_consulting_india.py
 jobs_to_sheets.py
 samples
 debug_*.py
 *.bat
-!api/requirements.txt
-!api/index.py
-!api/data_fetcher.py

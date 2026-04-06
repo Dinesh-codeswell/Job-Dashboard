@@ -1,167 +1,182 @@
-# 🔧 Vercel Deployment Fix - API Endpoints Synced
+# 🚀 Vercel Deployment Fix Guide
 
-## Problem
+## ✅ Issues Fixed
 
-After deploying to Vercel, the dashboard was **highly unreliable**:
-- ✅ Works perfectly on localhost
-- ❌ 404 errors on Vercel for `/api/jobs/<job_id>`
-- ❌ Similar jobs not loading
-- ❌ NaN JSON errors
-- ❌ Float comparison errors (`'float' object has no attribute 'lower'`)
+Your **500: INTERNAL_SERVER_ERROR** was caused by multiple issues:
 
-## Root Cause
+### 1. **Missing `api/requirements.txt`**
+- Vercel Python needs its own requirements file at `api/requirements.txt`
+- ✅ **FIXED**: Created with all necessary dependencies (flask, flask-cors, supabase, gspread, google-auth)
 
-Your **Vercel API file** (`api/index.py`) was **missing critical features** that exist in your local Flask app (`dashboard/app.py`):
+### 2. **`.vercelignore` Was Too Aggressive**
+- It was ignoring critical files like `dashboard/templates/`, `dashboard/data/`, and using invalid negation patterns (`!api/requirements.txt`)
+- ✅ **FIXED**: Removed problematic patterns
 
-1. ❌ Missing `sanitize_job_data()` function - causing NaN JSON errors
-2. ❌ Missing `/api/jobs/<job_id>/similar` endpoint - similar jobs won't load
-3. ❌ Missing float-to-string conversion - causing comparison errors
-4. ❌ Not sanitizing job data before JSON response
+### 3. **Missing `flask` and `flask-cors` Dependencies**
+- The main `requirements.txt` didn't include Flask
+- ✅ **FIXED**: Added to `api/requirements.txt`
 
-## Solution
+### 4. **Supabase FTS Query Crash**
+- `text_search('fts_tokens', search)` would crash if the column doesn't exist in Supabase
+- ✅ **FIXED**: Added try/except fallback to basic `ilike` search
 
-Updated `api/index.py` to **match your local Flask app** with all fixes:
+### 5. **Google Credentials Path Issues**
+- Credentials file path wasn't absolute, causing failures on Vercel
+- ✅ **FIXED**: Auto-converts relative paths to absolute
 
-### 1. Added `sanitize_job_data()` Function
-```python
-def sanitize_job_data(job_data: dict) -> dict:
-    """Remove NaN, Infinity, and ensure JSON-serializable data."""
-    import math
-    
-    sanitized = {}
-    for key, value in job_data.items():
-        if isinstance(value, float):
-            if math.isnan(value) or math.isinf(value):
-                sanitized[key] = '' if key == 'company_logo' else 0
-            else:
-                sanitized[key] = value
-        elif isinstance(value, str):
-            sanitized[key] = value.strip() if value else ''
-        elif value is None:
-            sanitized[key] = ''
-        else:
-            sanitized[key] = value
-    
-    return sanitized
-```
+### 6. **No Error Handling in API Routes**
+- Single failures would crash the entire endpoint
+- ✅ **FIXED**: Added comprehensive try/except blocks with graceful degradation
 
-### 2. Applied Sanitization to All Endpoints
-```python
-# Job list endpoint
-simplified_job = sanitize_job_data(simplified_job)
+### 7. **Missing Health Check Endpoint**
+- No way to diagnose what's working/broken
+- ✅ **FIXED**: Added `/api/health` endpoint
 
-# Single job endpoint
-sanitized_job = sanitize_job_data(job)
+---
 
-# Similar jobs endpoint
-result.append(sanitize_job_data(similar_job))
-```
+## 🔧 What You Need to Do
 
-### 3. Added Similar Jobs Endpoint
-Complete implementation with:
-- City matching (40 points)
-- Employment type matching (30 points)
-- Job title keyword matching (30 points)
-- Company matching (20 points)
-- Top 3 results returned
+### Step 1: Configure Vercel Environment Variables
 
-### 4. Fixed Float Comparisons
-```python
-# Before (broken on Vercel):
-current_type = current_job.get('Employment Type', '')
-if current_type.lower() == job_type.lower():  # ❌ Fails if NaN
+Go to **Vercel Dashboard > Your Project > Settings > Environment Variables** and add:
 
-# After (works everywhere):
-current_type = str(current_job.get('Employment Type', '') or '')
-if current_type and current_type.lower() == job_type.lower():  # ✅ Always works
-```
+#### Required Variables:
 
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `api/index.py` | Added sanitization, similar jobs endpoint, float fixes |
-
-## 🚀 Deploy to Vercel
-
-### Step 1: Commit and Push to GitHub
 ```bash
-cd C:\linkedin_scraper
-git add api/index.py
-git commit -m "fix: sync Vercel API with local Flask app - add sanitization and similar jobs"
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://ouyfcnosxwezwsqxunlj.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your_supabase_anon_key>
+
+# Google Sheets
+GOOGLE_SHEET_ID=<your_google_sheet_id>
+```
+
+#### Google Credentials (CHOOSE ONE OPTION):
+
+**OPTION A: Use JSON Environment Variable (RECOMMENDED)**
+
+1. Open your `credentials.json` file
+2. Copy the ENTIRE JSON content
+3. In Vercel, add variable: `GOOGLE_CREDENTIALS_JSON`
+4. Paste the full JSON content as the value
+5. Set for all environments (Production, Preview, Development)
+
+**OPTION B: Upload as Secret File**
+
+1. In Vercel Dashboard, go to **Storage > Secret Files**
+2. Upload your `credentials.json` file
+3. Add environment variable: `GOOGLE_CREDENTIALS_FILE=credentials.json`
+
+---
+
+### Step 2: Deploy to Vercel
+
+```bash
+# Option 1: Using Vercel CLI (recommended)
+vercel --prod
+
+# Option 2: Git push (if connected to repo)
+git add .
+git commit -m "fix: resolve vercel deployment errors"
 git push origin main
-```
 
-### Step 2: Vercel Will Auto-Deploy
-Vercel automatically deploys on push to main branch.
-
-### Step 3: Test After Deployment
-
-1. **Open your Vercel URL**
-2. **Check Console** - should see:
-   ```
-   Extracted Job ID: job_4378526631  ✅
-   Response status: 200  ✅ (not 404)
-   Similar jobs response: {success: true, similar_jobs: [...]}  ✅
-   ```
-
-3. **Test all features**:
-   - ✅ Job dashboard loads
-   - ✅ Job detail page loads
-   - ✅ Similar jobs display at bottom
-   - ✅ No NaN JSON errors
-   - ✅ No float comparison errors
-
-## What Changed
-
-### Before Deployment:
-```
-/api/jobs/<job_id> → 404 (endpoint missing sanitization)
-/api/jobs/<job_id>/similar → 404 (endpoint doesn't exist)
-NaN in response → JSON parse error
-```
-
-### After Deployment:
-```
-/api/jobs/<job_id> → 200 ✅ (sanitized data)
-/api/jobs/<job_id>/similar → 200 ✅ (endpoint added)
-All data sanitized → No JSON errors ✅
-```
-
-## Why Localhost Worked But Vercel Didn't
-
-| Environment | API File | Status |
-|-------------|----------|--------|
-| **Localhost** | `dashboard/app.py` | ✅ Had all fixes |
-| **Vercel** | `api/index.py` | ❌ Missing fixes |
-
-**Vercel uses `api/index.py` as its serverless function**, NOT `dashboard/app.py`. So changes to `app.py` only affected localhost, not Vercel.
-
-## Testing Checklist
-
-After deployment, verify:
-
-- [ ] Job dashboard loads all jobs
-- [ ] Pagination works (page 1, 2, 3...)
-- [ ] Filters work (city, type, search)
-- [ ] Job detail page loads
-- [ ] Similar jobs display at bottom
-- [ ] No console errors (NaN, 404, 500)
-- [ ] Page refresh stays on same page
-- [ ] Search icon stays within skeleton bounds
-
-## Expected Console Output
-
-```
-Extracted Job ID: job_4378526631  ✅
-Fetching from: /api/jobs/job_4378526631/similar  ✅
-Response status: 200  ✅
-Similar jobs response: {success: true, similar_jobs: Array(3)}  ✅
-Rendering 3 similar jobs  ✅
+# Option 3: Redeploy from Vercel dashboard
+# Go to your project > Deployments > ... > Redeploy
 ```
 
 ---
 
-**Created**: April 3, 2026  
-**Status**: ✅ Fixed and ready to deploy  
-**Next**: Push to GitHub and test on Vercel
+### Step 3: Verify Deployment
+
+After deployment, test these endpoints:
+
+```bash
+# Health check (diagnoses connection issues)
+curl https://your-domain.vercel.app/api/health
+
+# Jobs endpoint
+curl https://your-domain.vercel.app/api/jobs
+
+# Stats endpoint
+curl https://your-domain.vercel.app/api/stats
+
+# Cities endpoint
+curl https://your-domain.vercel.app/api/cities
+```
+
+Expected health check response:
+```json
+{
+  "status": "ok",
+  "supabase_connected": true,
+  "sheets_connected": true
+}
+```
+
+---
+
+## 🔍 Troubleshooting
+
+### Still Getting 500 Error?
+
+1. **Check Vercel Function Logs:**
+   - Go to Vercel Dashboard > Your Project > Functions
+   - Click on the failed invocation
+   - Review the error logs
+
+2. **Common Issues:**
+
+   | Issue | Solution |
+   |-------|----------|
+   | `Supabase query failed` | Check if `jobs` table exists and has `posted_at_timestamp` column |
+   | `Credentials error` | Verify `GOOGLE_CREDENTIALS_JSON` is valid JSON in Vercel env vars |
+   | `Worksheet not found` | Ensure `GOOGLE_SHEET_ID` is correct and service account has access |
+   | `Module not found: flask` | Verify `api/requirements.txt` is deployed |
+
+3. **Test Locally First:**
+   ```bash
+   # Install dependencies
+   pip install -r api/requirements.txt
+   
+   # Run the API locally
+   python api/index.py
+   
+   # Test endpoints
+   curl http://localhost:5000/api/health
+   curl http://localhost:5000/api/jobs
+   ```
+
+---
+
+## 📋 File Changes Made
+
+| File | Change |
+|------|--------|
+| `api/requirements.txt` | **CREATED** - All Vercel Python dependencies |
+| `.vercelignore` | **FIXED** - Removed overly aggressive patterns |
+| `api/index.py` | **ENHANCED** - Added error handling, health check, FTS fallback |
+| `api/data_fetcher.py` | **IMPROVED** - Better credentials handling, detailed error logging |
+| `.env.vercel` | **CREATED** - Template for Vercel environment variables |
+
+---
+
+## 🎯 Next Steps
+
+1. ✅ Add environment variables to Vercel
+2. ✅ Redeploy (`vercel --prod`)
+3. ✅ Test `/api/health` endpoint
+4. ✅ Verify dashboard loads at `/`
+5. ✅ Monitor function logs for any remaining issues
+
+---
+
+## 💡 Pro Tips
+
+- Use `/api/health` as your first diagnostic tool
+- Vercel free tier has **10 second timeout** - if queries are slow, optimize them
+- Google Sheets API is slower than Supabase - consider making Supabase primary
+- Enable Vercel Analytics to monitor function performance
+
+---
+
+**Need more help?** Check the Vercel function logs after deployment and share the error message!

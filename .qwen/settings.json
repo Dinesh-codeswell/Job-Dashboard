@@ -9,7 +9,9 @@
       "Bash(.\\run_notion_optimized.bat *)",
       "Bash(select-object *)",
       "Bash(schtasks *)",
-      "Bash(verify_automation.bat)"
+      "Bash(verify_automation.bat)",
+      "Bash(cmd *)",
+      "Bash(.venv\\scripts\\python *)"
     ]
   },
   "$version": 3

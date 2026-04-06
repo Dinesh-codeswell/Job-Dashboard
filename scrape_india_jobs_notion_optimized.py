@@ -57,45 +57,56 @@ logger = logging.getLogger(__name__)
 # OPTIMIZED CONFIGURATION - HIGH YIELD ONLY
 # ============================================================================
 
-# HIGH-YIELD keywords for 24-hour jobs (reduced from 50+ to 30)
-# These return the most recent, relevant jobs in tech/business
+# HIGH-YIELD keywords for 24-hour jobs (expanded to 40 core tech & non-tech roles)
+# Only high-growth, core roles - no low-growth positions
 TARGET_KEYWORDS = [
-    # TIER 0: Always begin with these (highest priority)
+    # TIER 0: Strategic Leadership (highest priority)
     "Founder's Office",
     "Chief of Staff",
     "Entrepreneur in Residence",
     "EIR",
 
-    # TIER 1: Highest yield (most 24h jobs)
+    # TIER 1: Core Engineering (highest volume)
     "Software Development Engineer",
     "Software Engineer",
     "SDE",
     "Backend Engineer",
     "Frontend Engineer",
     "Full Stack Engineer",
+    "Java Developer",
+    "Python Developer",
 
-    # TIER 2: High yield
+    # TIER 2: Product & Analytics
     "Product Manager",
     "APM",
     "Associate Product Manager",
     "Data Scientist",
     "Machine Learning Engineer",
-    "DevOps Engineer",
-
-    # TIER 3: Good yield
     "Data Analyst",
     "Business Analyst",
     "Product Analyst",
+
+    # TIER 3: Infrastructure & Cloud
+    "DevOps Engineer",
     "SRE",
     "Site Reliability Engineer",
     "Cloud Engineer",
+    "Platform Engineer",
 
-    # TIER 4: Specialized
-    "Product Designer",
-    "UX Designer",
+    # TIER 4: Specialized Engineering
+    "Solutions Architect",
     "Technical Program Manager",
     "TPM",
-    "Solutions Architect",
+    "QA Engineer",
+    "Test Engineer",
+    "Security Engineer",
+
+    # TIER 5: Design & Data
+    "Product Designer",
+    "UX Designer",
+    "Data Engineer",
+    "Analytics Engineer",
+    "AI Engineer",
 ]
 
 # EXCLUDE these roles (basic/non-core/repetitive)
@@ -103,12 +114,12 @@ EXCLUDE_KEYWORDS = [
     # Sales & Business Development
     "Sales", "BDE", "Business Development", "Business Development Executive",
     "Account Executive", "Account Manager", "SDR", "Sales Development",
-    
+
     # Operations & Strategy
     "Operations", "Operations Manager", "Strategy", "Strategy Manager",
     "Chief Operating Officer", "COO",
-    
-    # Basic/Non-core roles
+
+    # Basic/Non-core roles (low-growth positions)
     "Accountant", "Accounting",
     "Copywriter", "Copy Writer",
     "Video Editor", "Video Editing",
@@ -120,9 +131,8 @@ EXCLUDE_KEYWORDS = [
     "Recruiter", "Recruitment",
     "Social Media",
     "SEO Executive",
-    "Marketing Intern", "Marketing Coordinator",
+    "Marketing Coordinator",
     "Admin", "Administrative",
-    "Assistant", "Intern",  # Reduce repetitive entry-level
 ]
 
 
@@ -132,11 +142,13 @@ EXCLUDE_KEYWORDS = [
 
 class RoleFilter:
     """
-    Normalizes, deduplicates, and filters job roles.
-    Ensures only core roles are kept, limited to 15 max, with priority roles first.
+    Normalizes and deduplicates job roles.
+    
+    FIXED: Removed the 15-role cap that was filtering out valid jobs.
+    Now only deduplicates based on role name, no artificial limit.
     """
 
-    # Priority roles that should always appear first
+    # Priority roles tracking (for statistics only, no longer filters)
     PRIORITY_ROLES = [
         "founder's office",
         "chief of staff",
@@ -151,17 +163,17 @@ class RoleFilter:
         "founder's office intern": "Founder's Office",
         "founder office": "Founder's Office",
         "founders office": "Founder's Office",
-        
+
         # Chief of Staff variations
         "chief of staff to ceo": "Chief of Staff",
         "chief of staff to founder": "Chief of Staff",
         "deputy chief of staff": "Chief of Staff",
         "chief of staff intern": "Chief of Staff",
-        
+
         # EIR variations
         "entrepreneur-in-residence": "Entrepreneur in Residence",
         "eir intern": "Entrepreneur in Residence",
-        
+
         # Engineering variations
         "sde": "Software Development Engineer",
         "sde i": "Software Development Engineer",
@@ -175,7 +187,14 @@ class RoleFilter:
         "senior software engineer": "Software Engineer",
         "staff software engineer": "Software Engineer",
         "principal software engineer": "Software Engineer",
-        
+        "lead backend engineer": "Backend Engineer",
+        "backend developer": "Backend Engineer",
+        "java developer": "Java Developer",
+        "python developer": "Python Developer",
+        "associate java programmer": "Java Developer",
+        "full stack developer": "Full Stack Engineer",
+        "full stack engineer": "Full Stack Engineer",
+
         # Product Manager variations
         "product manager i": "Product Manager",
         "product manager ii": "Product Manager",
@@ -183,32 +202,49 @@ class RoleFilter:
         "associate product manager": "Associate Product Manager",
         "apm": "Associate Product Manager",
         "apm intern": "Associate Product Manager",
-        
+
         # Data Scientist variations
         "data scientist i": "Data Scientist",
         "data scientist ii": "Data Scientist",
         "senior data scientist": "Data Scientist",
         "applied scientist": "Data Scientist",
-        
+
         # ML Engineer variations
         "ml engineer": "Machine Learning Engineer",
         "machine learning engineer i": "Machine Learning Engineer",
         "ml engineer intern": "Machine Learning Engineer",
-        
+        "ai engineer": "Machine Learning Engineer",
+
         # DevOps variations
         "devops": "DevOps Engineer",
         "devops engineer i": "DevOps Engineer",
         "site reliability engineer": "SRE",
         "sre engineer": "SRE",
-        
+        "platform engineer": "DevOps Engineer",
+
         # Designer variations
         "ux/ui designer": "UX Designer",
         "product design": "Product Designer",
         "ui designer": "Product Designer",
         "ux researcher": "Product Designer",
+        "front end ui engineer": "Frontend Engineer",
+        "associate - frontend developer": "Frontend Engineer",
+
+        # Data/Analytics variations
+        "data analyst": "Data Analyst",
+        "business analyst": "Business Analyst",
+        "product analyst": "Product Analyst",
+        "analytics engineer": "Data Analyst",
+        "data engineer": "Data Scientist",
     }
 
-    def __init__(self, max_roles: int = 15):
+    def __init__(self, max_roles: int = 9999):
+        """
+        Initialize role filter.
+        
+        FIXED: max_roles default changed from 15 to 9999 (effectively unlimited)
+        Only deduplicates roles, doesn't artificially limit total count.
+        """
         self.max_roles = max_roles
         self.seen_roles: Set[str] = set()
         self.accepted_roles: List[Dict[str, Any]] = []
@@ -218,12 +254,12 @@ class RoleFilter:
     def normalize_role(self, role_title: str) -> str:
         """Normalize a role title to its canonical form."""
         role_lower = role_title.lower().strip()
-        
+
         # Check exact mapping first
         for variant, canonical in self.ROLE_MAPPING.items():
             if variant in role_lower or role_lower in variant:
                 return canonical
-        
+
         # Return original if no mapping found
         return role_title
 
@@ -236,16 +272,16 @@ class RoleFilter:
         """Check if a role should be included based on current state."""
         normalized = self.normalize_role(role_title)
         normalized_lower = normalized.lower()
-        
-        # Check if we've already seen this role (deduplication)
+
+        # Check if we've already seen this role (deduplication ONLY)
         if normalized_lower in self.seen_roles:
             return False
-        
-        # Check if we've hit the max limit
-        if len(self.seen_roles) >= self.max_roles:
-            # Allow priority roles even if limit is reached
-            return self.is_priority_role(role_title)
-        
+
+        # FIXED: Removed the max limit check that was filtering out valid jobs
+        # Now only checks for duplicates, no artificial cap
+        # if len(self.seen_roles) >= self.max_roles:
+        #     return self.is_priority_role(role_title)
+
         return True
 
     def add_role(self, job_data: Dict[str, Any]) -> bool:
@@ -569,7 +605,7 @@ class OptimizedIndiaJobsScraper:
         location: str = "India",
         limit_per_keyword: int = 25,
         skip_duplicates: bool = True,
-        max_roles: int = 15
+        max_roles: int = 9999
     ) -> Dict[str, Any]:
         """Run the optimized scraping workflow."""
 
@@ -596,7 +632,7 @@ class OptimizedIndiaJobsScraper:
         print(f"📍 Keywords: {len(keywords)} (high-yield only)")
         print(f"📍 Limit per keyword: {limit_per_keyword} jobs")
         print(f"📍 Time Filter: PAST {self.hours_ago} HOURS (LinkedIn native filter)")
-        print(f"📍 Max Roles: {max_roles} (deduplicated, priority first)")
+        print(f"📍 Max Roles: UNLIMITED (dedup only, no artificial cap)")
         print(f"📍 Expected Success Rate: 85-95% (was 30%)")
         print("="*70 + "\n")
 
@@ -706,7 +742,7 @@ class OptimizedIndiaJobsScraper:
         print("="*70)
         print(f"⏰ Completed at: {results['timestamp']}")
         print(f"💡 Tip: Run every 3-4 hours for freshest jobs")
-        print(f"💡 Roles are deduplicated and limited to 15 max (priority first)")
+        print(f"💡 Roles are deduplicated (no artificial limit)")
         print("="*70 + "\n")
 
 
@@ -783,8 +819,8 @@ OPTIMIZATIONS:
     parser.add_argument(
         "--max-roles",
         type=int,
-        default=15,
-        help="Maximum unique roles to extract (default: 15)"
+        default=9999,
+        help="Maximum unique roles to extract (default: unlimited, dedup only)"
     )
 
     args = parser.parse_args()
