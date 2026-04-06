@@ -109,6 +109,53 @@ def health_check():
     
     return jsonify(status)
 
+@app.route('/job/<job_id>')
+def job_detail(job_id):
+    """Render job detail page."""
+    return render_template('job_detail.html')
+
+@app.route('/about')
+def about():
+    """Render about page."""
+    return render_template('about.html')
+
+@app.route('/api/jobs/<job_id>', methods=['GET'])
+def get_job(job_id):
+    """Get single job details from Supabase or Sheets."""
+    try:
+        supabase = get_supabase()
+        if supabase:
+            try:
+                # Try finding by UUID or external_id
+                result = supabase.table("jobs").select("*").or_(
+                    f"id.eq.{job_id},external_id.eq.{job_id}"
+                ).execute()
+
+                if result.data:
+                    return jsonify({
+                        'success': True,
+                        'job': sanitize_job(result.data[0], 'supabase')
+                    })
+            except Exception as supabase_err:
+                logger.warning(f"Supabase single job fetch failed: {supabase_err}")
+
+        # Fallback to Google Sheets
+        try:
+            fetcher = get_data_fetcher(GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_FILE)
+            job = fetcher.get_job_by_id(job_id)
+            if job:
+                return jsonify({
+                    'success': True,
+                    'job': sanitize_job(job, 'sheets')
+                })
+        except Exception as sheets_err:
+            logger.warning(f"Sheets single job fetch failed: {sheets_err}")
+
+        return jsonify({'success': False, 'error': 'Job not found'}), 404
+    except Exception as e:
+        logger.error(f"Single Job API Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/')
 def index():
     return render_template('index.html')
