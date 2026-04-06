@@ -53,8 +53,9 @@ def get_supabase():
     return None
 
 def sanitize_job(job, source_type='supabase'):
+    """Sanitize job data with unified keys that work for both sources."""
     if source_type == 'supabase':
-        return {
+        base = {
             'id': job.get('id') or str(job.get('external_id', '')),
             'job_title': job.get('job_title', ''),
             'company': job.get('company', ''),
@@ -69,19 +70,50 @@ def sanitize_job(job, source_type='supabase'):
             'job_description': job.get('job_description', ''),
             'source': job.get('source', 'unknown')
         }
-    return {
+        # Add Sheets-compatible aliases for frontend compatibility
+        return {
+            **base,
+            'Job Title': base['job_title'],
+            'Company': base['company'],
+            'Employment Type': base['employment_type'],
+            'Location': base['location'],
+            'Posted': base['posted_date'],
+            'Job Description': base['job_description'],
+            'Job URL': base['job_url'],
+            'Company Logo': base['company_logo'],
+            'Search City': base['search_city'],
+            'Date Added': base['date_added']
+        }
+    
+    # Sheets format
+    base = {
         'id': str(job.get('id', '')),
-        'job_title': job.get('Job Title', ''),
-        'company': job.get('Company', ''),
-        'employment_type': job.get('Employment Type', ''),
-        'location': job.get('Location', ''),
-        'posted_date': job.get('Posted', ''),
-        'search_city': job.get('Search City', ''),
-        'date_added': job.get('Date Added', ''),
-        'company_logo': job.get('Company Logo') or job.get('company_logo') or '',
-        'job_url': job.get('Job URL', ''),
-        'job_description': job.get('Job Description', ''),
+        'job_title': job.get('Job Title', job.get('job_title', '')),
+        'company': job.get('Company', job.get('company', '')),
+        'employment_type': job.get('Employment Type', job.get('employment_type', '')),
+        'location': job.get('Location', job.get('location', '')),
+        'posted_date': job.get('Posted', job.get('posted_date', '')),
+        'posted_at_timestamp': job.get('posted_at_timestamp'),
+        'search_city': job.get('Search City', job.get('search_city', '')),
+        'date_added': job.get('Date Added', job.get('date_added', '')),
+        'company_logo': job.get('Company Logo') or job.get('company_logo', ''),
+        'job_url': job.get('Job URL', job.get('job_url', '')),
+        'job_description': job.get('Job Description', job.get('job_description', '')),
         'source': job.get('source', 'unknown')
+    }
+    # Add Sheets-style keys
+    return {
+        **base,
+        'Job Title': base['job_title'],
+        'Company': base['company'],
+        'Employment Type': base['employment_type'],
+        'Location': base['location'],
+        'Posted': base['posted_date'],
+        'Job Description': base['job_description'],
+        'Job URL': base['job_url'],
+        'Company Logo': base['company_logo'],
+        'Search City': base['search_city'],
+        'Date Added': base['date_added']
     }
 
 # --- Routes ---
@@ -154,6 +186,85 @@ def get_job(job_id):
         return jsonify({'success': False, 'error': 'Job not found'}), 404
     except Exception as e:
         logger.error(f"Single Job API Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/jobs/<job_id>/similar', methods=['GET'])
+def get_similar_jobs(job_id):
+    """Get similar jobs based on company, location, or title keywords."""
+    try:
+        limit = int(request.args.get('limit', 9))
+        
+        # First, get the current job to find similar ones
+        current_job = None
+        supabase = get_supabase()
+        
+        if supabase:
+            try:
+                # Get current job
+                result = supabase.table("jobs").select("*").or_(
+                    f"id.eq.{job_id},external_id.eq.{job_id}"
+                ).execute()
+                
+                if result.data:
+                    current_job = result.data[0]
+                    
+                    # Find similar jobs by matching title keywords or same company
+                    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+                    title = current_job.get('job_title', '')
+                    company = current_job.get('company', '')
+                    location = current_job.get('location', '')
+                    
+                    # Build query for similar jobs
+                    query = supabase.table("jobs").select("*", count="exact").gte("posted_at_timestamp", cutoff).neq("id", job_id)
+                    
+                    # Try matching by company first
+                    if company:
+                        similar_result = query.ilike("company", f"%{company}%").limit(limit).execute()
+                        if similar_result.data and len(similar_result.data) > 0:
+                            return jsonify({
+                                'success': True,
+                                'similar_jobs': [sanitize_job(j, 'supabase') for j in similar_result.data]
+                            })
+                    
+                    # Fallback: match by location
+                    if location:
+                        location_result = query.ilike("location", f"%{location.split(',')[0]}%").limit(limit).execute()
+                        if location_result.data and len(location_result.data) > 0:
+                            return jsonify({
+                                'success': True,
+                                'similar_jobs': [sanitize_job(j, 'supabase') for j in location_result.data]
+                            })
+                    
+                    # Last resort: just return recent jobs
+                    recent_result = query.order("posted_at_timestamp", desc=True).limit(limit).execute()
+                    if recent_result.data:
+                        return jsonify({
+                            'success': True,
+                            'similar_jobs': [sanitize_job(j, 'supabase') for j in recent_result.data]
+                        })
+            except Exception as supabase_err:
+                logger.warning(f"Supabase similar jobs failed: {supabase_err}")
+        
+        # Fallback to Google Sheets
+        try:
+            fetcher = get_data_fetcher(GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_FILE)
+            all_jobs = fetcher.fetch_all_jobs(use_cache=False)
+            
+            # Filter out current job and get random recent ones
+            filtered = [j for j in all_jobs if str(j.get('id')) != str(job_id)]
+            import random
+            similar = random.sample(filtered, min(limit, len(filtered)))
+            
+            return jsonify({
+                'success': True,
+                'similar_jobs': [sanitize_job(j, 'sheets') for j in similar]
+            })
+        except Exception as sheets_err:
+            logger.warning(f"Sheets similar jobs failed: {sheets_err}")
+        
+        return jsonify({'success': True, 'similar_jobs': []})
+    except Exception as e:
+        logger.error(f"Similar Jobs API Error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/')
