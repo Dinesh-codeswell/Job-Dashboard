@@ -271,7 +271,7 @@ def get_job(job_id):
 def get_similar_jobs(job_id):
     """Get similar jobs based on company, location, or title keywords."""
     try:
-        limit = int(request.args.get('limit', 9))
+        limit = int(request.args.get('limit', 3))  # Default 3 similar jobs
         
         # First, get the current job to find similar ones
         current_job = None

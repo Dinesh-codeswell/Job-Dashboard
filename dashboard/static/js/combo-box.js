@@ -184,10 +184,14 @@ class ComboBox {
             }
         });
 
-        // Close on scroll
-        document.addEventListener('scroll', () => {
+        // Close on scroll (only on window scroll, not dropdown scroll)
+        window.addEventListener('scroll', (e) => {
+            // Don't close if scrolling inside the dropdown
+            if (e.target === this.dropdown || this.dropdown?.contains(e.target)) {
+                return;
+            }
             this.close();
-        }, true);
+        }, { passive: true });
     }
 
     toggle() {
@@ -198,7 +202,10 @@ class ComboBox {
         this.isOpen = true;
         const dropdown = this.container.querySelector('.dropdown-menu');
         const chevron = this.container.querySelector('button svg');
-        if (dropdown) dropdown.classList.remove('hidden');
+        if (dropdown) {
+            dropdown.classList.remove('hidden');
+            dropdown.style.zIndex = '50';  // Ensure dropdown is above other elements
+        }
         if (chevron) chevron.classList.add('rotate-180');
     }
 
@@ -206,7 +213,10 @@ class ComboBox {
         this.isOpen = false;
         const dropdown = this.container.querySelector('.dropdown-menu');
         const chevron = this.container.querySelector('button svg');
-        if (dropdown) dropdown.classList.add('hidden');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+            dropdown.style.zIndex = '';
+        }
         if (chevron) chevron.classList.remove('rotate-180');
     }
 

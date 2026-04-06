@@ -93,7 +93,7 @@ GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD")
 
-# Keywords for consulting jobs
+# Keywords for consulting jobs (pure consultant roles)
 CONSULTING_KEYWORDS = [
     "Management Consultant",
     "Business Consultant",
@@ -105,10 +105,10 @@ CONSULTING_KEYWORDS = [
     "SAP Consultant",
     "Oracle Consultant",
     "Cloud Consultant",
-    "Cybersecurity Consultant",
     "Data Consultant",
-    "ERP Consultant",
-    "CRM Consultant",
+    "Product Consultant",
+    "AI Consultant",
+    "Analytics Consultant",
     "Risk Consultant",
     "Senior Consultant",
     "Principal Consultant",
@@ -116,11 +116,32 @@ CONSULTING_KEYWORDS = [
     "Consulting Analyst",
 ]
 
+# Internship keywords for consulting roles (pure consultant internships)
+INTERNSHIP_KEYWORDS = [
+    "Consulting Intern",
+    "Business Analyst Intern",
+    "Management Consulting Intern",
+    "Strategy Intern",
+    "Technology Consulting Intern",
+    "Digital Consulting Intern",
+    "SAP Intern",
+    "Oracle Intern",
+    "Cloud Consultant Intern",
+    "Data Consultant Intern",
+    "Product Consultant Intern",
+    "AI Consultant Intern",
+    "Analytics Intern",
+    "Financial Consulting Intern",
+    "Risk Consulting Intern",
+    "IT Consulting Intern",
+    "Summer Analyst",
+    "Winter Intern Consulting",
+    "Intern Consultant",
+    "Business Consulting Intern",
+]
+
 # Roles that are NEVER consulting roles (hard blocklist)
 BLOCKED_TITLE_PATTERNS = [
-    "intern",
-    "trainee",
-    "apprentice",
     "founder's office",
     "founder office",
     "chief of staff",
@@ -129,9 +150,31 @@ BLOCKED_TITLE_PATTERNS = [
     "receptionist",
     "data entry",
     "back office",
+    "research",
+    "promotions",
+    "business development",
+    "sales",
+    "marketing",
+    "producer",
+    "fraud detection",
+    "test analyst",
+    "tester",
+    "quality assurance",
+    "fresher",
+    "presales",
+    "pre-sales",
+    "techno-functional",
+    "implementation",
+    "migration",
+    "functional consultant",
+    "solution advisor",
+    "associate lead consultant",
+    "domain consultant",
+    "package consultant",
 ]
 
 # Roles that require "consultant/consulting" explicitly in title
+# These roles need actual consulting keyword, not just tech skills
 REQUIRES_CONSULTANT_KEYWORD = [
     "analyst",
     "associate",
@@ -153,9 +196,21 @@ REQUIRES_CONSULTANT_KEYWORD = [
     "officer",
     "executive",
     "founder",
+    "sap",
+    "oracle",
+    "erp",
+    "crm",
+    "functional",
+    "technical",
+    "techno",
+    "implementation",
+    "migration",
+    "package",
+    "domain",
 ]
 
 # Valid consulting-related keywords that can stand alone
+# NOTE: "intern" removed - internships handled via INTERNSHIP_KEYWORDS check only
 VALID_CONSULTING_TERMS = [
     "consultant",
     "consulting",
@@ -501,7 +556,16 @@ class UnifiedIndiaJobsScraper:
         # 2. Check if title has any consulting-related keyword
         has_consulting_term = any(term in title_lower for term in VALID_CONSULTING_TERMS)
 
-        # 3. For roles that could be non-consulting, require explicit "consultant" keyword
+        # 3. Special handling for internships - must match INTERNSHIP_KEYWORDS AND have consulting term
+        is_internship_role = any(kw.lower() in title_lower for kw in INTERNSHIP_KEYWORDS)
+        
+        if is_internship_role:
+            if has_consulting_term:
+                return True, "Valid consulting internship"
+            else:
+                return False, "Internship without consulting keyword"
+
+        # 4. For non-internship roles that could be non-consulting, require explicit consulting keyword
         for role_keyword in REQUIRES_CONSULTANT_KEYWORD:
             if role_keyword in title_lower:
                 # This role type needs "consultant/consulting" explicitly
@@ -509,12 +573,60 @@ class UnifiedIndiaJobsScraper:
                     return False, f"Role '{role_keyword}' without consulting keyword"
                 break
 
-        # 4. Reject if no consulting term found at all
+        # 5. Reject if no consulting term found at all
         if not has_consulting_term:
             return False, "No consulting-related terms in title"
 
         return True, "Valid consulting role"
     
+    def normalize_employment_type(self, raw_type: str) -> str:
+        """
+        Normalize employment type from Indeed/Naukri to match LinkedIn format.
+        Handles lowercase, NaN, and various formats.
+        """
+        if not raw_type or str(raw_type).lower() in ['nan', 'none', 'null', '']:
+            return 'Full Time'  # Default for missing/NaN values
+        
+        raw_lower = str(raw_type).lower().strip()
+        
+        # Map Indeed/Naukri formats to standard format
+        type_mapping = {
+            'fulltime': 'Full Time',
+            'full-time': 'Full Time',
+            'full time': 'Full Time',
+            'parttime': 'Part Time',
+            'part-time': 'Part Time',
+            'part time': 'Part Time',
+            'contract': 'Contract',
+            'contractor': 'Contract',
+            'temporary': 'Contract',
+            'internship': 'Internship',
+            'intern': 'Internship',
+            'summer analyst': 'Internship',
+            'summer intern': 'Internship',
+            'remote': 'Remote',
+            'work from home': 'Remote',
+        }
+        
+        # Check for exact match first
+        if raw_lower in type_mapping:
+            return type_mapping[raw_lower]
+        
+        # Check for partial matches
+        if 'full' in raw_lower:
+            return 'Full Time'
+        if 'part' in raw_lower:
+            return 'Part Time'
+        if 'contract' in raw_lower:
+            return 'Contract'
+        if 'intern' in raw_lower or 'summer analyst' in raw_lower:
+            return 'Internship'
+        if 'remote' in raw_lower or 'work from home' in raw_lower:
+            return 'Remote'
+        
+        # Return original with proper capitalization if no match
+        return raw_lower.title()
+
     def _normalize_indeed_naukri_job(self, row: Dict, platform: str) -> Dict[str, Any]:
         """Normalize Indeed/Naukri job data from DataFrame to unified format."""
         # Map DataFrame columns to unified format
@@ -536,6 +648,10 @@ class UnifiedIndiaJobsScraper:
         job_data['search_city'] = row.get('location', '').split(',')[0].strip()
         job_data['date_added'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         job_data['platform'] = platform
+
+        # Normalize employment type to match LinkedIn format
+        raw_type = job_data.get('employment_type', '')
+        job_data['employment_type'] = self.normalize_employment_type(raw_type)
 
         # Clean description
         desc = job_data.get('job_description', '')
@@ -836,6 +952,7 @@ class UnifiedIndiaJobsScraper:
     async def run_round_robin(
         self,
         cities: List[str] = None,
+        include_internships: bool = True,
         limit_per_city: int = 10,
         tier_1_only: bool = False,
         batch_size: int = 10
@@ -855,8 +972,9 @@ class UnifiedIndiaJobsScraper:
         
         # Combine keywords
         keywords = CONSULTING_KEYWORDS.copy()
-        # Note: Internship keywords removed - interns are now filtered out automatically
-        # via BLOCKED_TITLE_PATTERNS ("intern", "trainee", "apprentice")
+        if include_internships:
+            keywords.extend(INTERNSHIP_KEYWORDS)
+            print(f"📚 Including {len(INTERNSHIP_KEYWORDS)} internship keywords")
 
         print("\n" + "="*70)
         print("🚀 UNIFIED INDIA JOBS SCRAPER (ROUND-ROBIN MODE)")

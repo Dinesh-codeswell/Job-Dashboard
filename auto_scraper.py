@@ -86,17 +86,18 @@ async def run_scraper():
         # Import the scraper
         from scrape_all_india_jobs import UnifiedIndiaJobsScraper
         
-        # Create scraper instance
+        # Create scraper instance with updated settings
         scraper = UnifiedIndiaJobsScraper(
             platforms=['linkedin', 'indeed', 'naukri'],
-            max_days=2,
+            max_days=3,  # 3-day window to match dashboard
             headless=True  # Run in headless mode for automation
         )
-        
+
         # Run with round-robin strategy for maximum diversity
+        # Includes both consulting roles AND internships
         results = await scraper.run_round_robin(
             cities=None,  # Use default cities from .env
-            include_internships=True,
+            include_internships=True,  # Include consulting internships
             limit_per_city=30,  # Moderate limit to avoid rate limiting
             tier_1_only=False,
             batch_size=10  # Process 10 tasks at a time

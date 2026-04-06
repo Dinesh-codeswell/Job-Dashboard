@@ -60,15 +60,6 @@ class AnimatedLoadingSkeleton {
         // Don't create a wrapper with its own grid - just place cards directly
         // The parent container (jobsGrid) already has the grid classes
         this.container.innerHTML = `
-            <!-- Floating Search Icon -->
-            <div id="search-icon-container" class="search-icon-container">
-                <div class="search-icon-glow">
-                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-            </div>
-
             <!-- Skeleton Cards - Placed directly in parent grid -->
             ${cardsHTML}
         `;

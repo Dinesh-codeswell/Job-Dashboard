@@ -258,9 +258,10 @@ def get_stats():
 
 @app.route('/api/employment-types', methods=['GET'])
 def get_employment_types():
+    # Include Internship to match scraped internship data
     return jsonify({
         'success': True,
-        'types': ['Full Time', 'Contract', 'Internship', 'Remote']
+        'types': ['Full Time', 'Part Time', 'Contract', 'Internship', 'Remote']
     })
 
 @app.route('/api/cities', methods=['GET'])
@@ -273,6 +274,73 @@ def get_cities():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'source': 'supabase'})
+
+@app.route('/api/jobs/<job_id>', methods=['GET'])
+def get_job(job_id):
+    """Get single job details from Supabase."""
+    try:
+        supabase = get_supabase()
+        if supabase:
+            try:
+                # Try finding by UUID or external_id
+                result = supabase.table("jobs").select("*").or_(
+                    f"id.eq.{job_id},external_id.eq.{job_id}"
+                ).execute()
+
+                if result.data:
+                    return jsonify({
+                        'success': True,
+                        'job': sanitize_job(result.data[0], 'supabase')
+                    })
+            except Exception as supabase_err:
+                pass
+
+        return jsonify({'success': False, 'error': 'Job not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/jobs/<job_id>/similar', methods=['GET'])
+def get_similar_jobs(job_id):
+    """Get similar jobs (max 3)."""
+    try:
+        limit = 3
+        supabase = get_supabase()
+        
+        if supabase:
+            try:
+                # Get current job
+                result = supabase.table("jobs").select("*").or_(
+                    f"id.eq.{job_id},external_id.eq.{job_id}"
+                ).execute()
+                
+                if result.data:
+                    current_job = result.data[0]
+                    company = current_job.get('company', '')
+                    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+                    
+                    # Try matching by company first
+                    if company:
+                        query = supabase.table("jobs").select("*").gte("posted_at_timestamp", cutoff).neq("id", job_id)
+                        similar_result = query.ilike("company", f"%{company}%").limit(limit).execute()
+                        if similar_result.data and len(similar_result.data) > 0:
+                            return jsonify({
+                                'success': True,
+                                'similar_jobs': [sanitize_job(j, 'supabase') for j in similar_result.data]
+                            })
+                    
+                    # Fallback: return most recent jobs
+                    recent_result = supabase.table("jobs").select("*").gte("posted_at_timestamp", cutoff).neq("id", job_id).order("posted_at_timestamp", desc=True).limit(limit).execute()
+                    if recent_result.data:
+                        return jsonify({
+                            'success': True,
+                            'similar_jobs': [sanitize_job(j, 'supabase') for j in recent_result.data]
+                        })
+            except Exception:
+                pass
+        
+        return jsonify({'success': True, 'similar_jobs': []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')

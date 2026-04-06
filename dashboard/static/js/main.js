@@ -190,11 +190,31 @@ async function loadJobs(page = 1) {
             Dashboard.jobs = response.jobs || [];
             Dashboard.currentPage = response.pagination?.page || page;
             Dashboard.totalPages = response.pagination?.total_pages || 1;
-            
+
             // Update the total jobs count to match the API response
             const totalFromAPI = response.pagination?.total || 0;
             if (Dashboard.stats) {
                 Dashboard.stats.total_jobs = totalFromAPI;
+                
+                // ONLY update cities/companies from current job list if a filter/search is active
+                // Otherwise keep the original stats from loadStats() which has ALL data
+                const hasActiveFilter = Dashboard.filters.search || Dashboard.filters.city || Dashboard.filters.type;
+                
+                if (hasActiveFilter) {
+                    // When filtered, calculate stats from the filtered results
+                    const cities = {};
+                    const companies = {};
+                    Dashboard.jobs.forEach(job => {
+                        const city = job.search_city || job.Location || '';
+                        const company = job.company || job.Company || '';
+                        if (city) cities[city] = (cities[city] || 0) + 1;
+                        if (company) companies[company] = (companies[company] || 0) + 1;
+                    });
+                    
+                    Dashboard.stats.cities = cities;
+                    Dashboard.stats.companies = companies;
+                }
+                // If no filter active, keep the original stats from loadStats()
             }
 
             // Hide skeleton and show actual jobs
@@ -202,7 +222,8 @@ async function loadJobs(page = 1) {
             renderJobs();
             renderPagination();
             updateResultsCount(totalFromAPI);
-            
+            renderStats();  // Update stats display
+
             // Also update the header stat to match
             animateValue('totalJobs', 0, totalFromAPI, 500);
 
@@ -757,7 +778,7 @@ function initFilterComboBoxes() {
 
     // Type combo box
     const typeComboBox = new ComboBox('typeComboBox', {
-        placeholder: 'Job Type',
+        placeholder: 'All Types',
         darkTheme: true,
         onChange: (item) => {
             Dashboard.filters.type = item.value;
@@ -775,25 +796,32 @@ async function loadFilterOptions(cityComboBox, typeComboBox) {
         const citiesResponse = await fetch('/api/cities');
         const citiesData = await citiesResponse.json();
         if (citiesData.success) {
-            // Format as combo box items
-            const citiesWithCounts = citiesData.cities.map(city => ({
-                value: city,
-                label: city,
-                secondary: ''
-            }));
-            cityComboBox.setItems(citiesWithCounts);
+            // Add "All Cities" as the first option
+            const citiesWithAll = [
+                { value: '', label: 'All Cities', secondary: 'Show all locations' },
+                ...citiesData.cities.map(city => ({
+                    value: city,
+                    label: city,
+                    secondary: ''
+                }))
+            ];
+            cityComboBox.setItems(citiesWithAll);
         }
 
         // Load job types from existing /api/employment-types endpoint
         const typesResponse = await fetch('/api/employment-types');
         const typesData = await typesResponse.json();
         if (typesData.success) {
-            const typesWithCounts = typesData.types.map(type => ({
-                value: type,
-                label: type,
-                secondary: ''
-            }));
-            typeComboBox.setItems(typesWithCounts);
+            // Add "All Types" as the first option
+            const typesWithAll = [
+                { value: '', label: 'All Types', secondary: 'Show all job types' },
+                ...typesData.types.map(type => ({
+                    value: type,
+                    label: type,
+                    secondary: ''
+                }))
+            ];
+            typeComboBox.setItems(typesWithAll);
         }
     } catch (error) {
         console.error('Failed to load filter options:', error);
