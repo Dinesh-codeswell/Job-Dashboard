@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -26,11 +27,40 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+class SafeJSONProvider(DefaultJSONProvider):
+    """Custom JSON provider that handles NaN, Infinity values."""
+    
+    def dumps(self, obj, **kwargs):
+        """Serialize object with NaN handling."""
+        import json
+        
+        def sanitize_for_json(value):
+            """Recursively sanitize values to remove NaN/Infinity."""
+            if isinstance(value, float):
+                import math
+                if math.isnan(value) or math.isinf(value):
+                    return None
+                return value
+            elif isinstance(value, dict):
+                return {k: sanitize_for_json(v) for k, v in value.items()}
+            elif isinstance(value, (list, tuple)):
+                return [sanitize_for_json(item) for item in value]
+            return value
+        
+        sanitized = sanitize_for_json(obj)
+        return super().dumps(sanitized, **kwargs)
+
 app = Flask(__name__, 
             template_folder='../dashboard/templates',
             static_folder='../dashboard/static',
             static_url_path='/static')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'vercel-secret-key')
+
+# Register custom JSON provider for NaN handling
+app.json_provider_class = SafeJSONProvider
+app.json = SafeJSONProvider(app)
+
 CORS(app)
 load_dotenv()
 
@@ -54,21 +84,43 @@ def get_supabase():
 
 def sanitize_job(job, source_type='supabase'):
     """Sanitize job data with unified keys that work for both sources."""
+    import math
+    
+    def safe_str(value, default=''):
+        """Safely convert to string, handling NaN/None."""
+        if value is None:
+            return default
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            return default
+        return str(value)
+    
+    def safe_int(value, default=None):
+        """Safely convert to int, handling NaN/None."""
+        if value is None:
+            return default
+        try:
+            result = int(value)
+            if math.isinf(result) or math.isnan(result):
+                return default
+            return result
+        except (ValueError, TypeError, OverflowError):
+            return default
+    
     if source_type == 'supabase':
         base = {
-            'id': job.get('id') or str(job.get('external_id', '')),
-            'job_title': job.get('job_title', ''),
-            'company': job.get('company', ''),
-            'employment_type': job.get('employment_type', ''),
-            'location': job.get('location', ''),
-            'posted_date': job.get('posted_date', ''),
+            'id': safe_str(job.get('id') or job.get('external_id')),
+            'job_title': safe_str(job.get('job_title')),
+            'company': safe_str(job.get('company')),
+            'employment_type': safe_str(job.get('employment_type')),
+            'location': safe_str(job.get('location')),
+            'posted_date': safe_str(job.get('posted_date')),
             'posted_at_timestamp': job.get('posted_at_timestamp'),
-            'search_city': job.get('search_city', ''),
-            'date_added': job.get('date_added', ''),
-            'company_logo': job.get('company_logo', ''),
-            'job_url': job.get('job_url', ''),
-            'job_description': job.get('job_description', ''),
-            'source': job.get('source', 'unknown')
+            'search_city': safe_str(job.get('search_city')),
+            'date_added': safe_str(job.get('date_added')),
+            'company_logo': safe_str(job.get('company_logo')),
+            'job_url': safe_str(job.get('job_url')),
+            'job_description': safe_str(job.get('job_description')),
+            'source': safe_str(job.get('source'), 'unknown')
         }
         # Add Sheets-compatible aliases for frontend compatibility
         return {
@@ -87,19 +139,19 @@ def sanitize_job(job, source_type='supabase'):
     
     # Sheets format
     base = {
-        'id': str(job.get('id', '')),
-        'job_title': job.get('Job Title', job.get('job_title', '')),
-        'company': job.get('Company', job.get('company', '')),
-        'employment_type': job.get('Employment Type', job.get('employment_type', '')),
-        'location': job.get('Location', job.get('location', '')),
-        'posted_date': job.get('Posted', job.get('posted_date', '')),
+        'id': safe_str(job.get('id')),
+        'job_title': safe_str(job.get('Job Title', job.get('job_title'))),
+        'company': safe_str(job.get('Company', job.get('company'))),
+        'employment_type': safe_str(job.get('Employment Type', job.get('employment_type'))),
+        'location': safe_str(job.get('Location', job.get('location'))),
+        'posted_date': safe_str(job.get('Posted', job.get('posted_date'))),
         'posted_at_timestamp': job.get('posted_at_timestamp'),
-        'search_city': job.get('Search City', job.get('search_city', '')),
-        'date_added': job.get('Date Added', job.get('date_added', '')),
-        'company_logo': job.get('Company Logo') or job.get('company_logo', ''),
-        'job_url': job.get('Job URL', job.get('job_url', '')),
-        'job_description': job.get('Job Description', job.get('job_description', '')),
-        'source': job.get('source', 'unknown')
+        'search_city': safe_str(job.get('Search City', job.get('search_city'))),
+        'date_added': safe_str(job.get('Date Added', job.get('date_added'))),
+        'company_logo': safe_str(job.get('Company Logo') or job.get('company_logo')),
+        'job_url': safe_str(job.get('Job URL', job.get('job_url'))),
+        'job_description': safe_str(job.get('Job Description', job.get('job_description'))),
+        'source': safe_str(job.get('source'), 'unknown')
     }
     # Add Sheets-style keys
     return {
