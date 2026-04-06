@@ -43,16 +43,22 @@ const Utils = {
     },
     
     /**
-     * Format relative time (e.g., "2 hours ago")
+     * Format relative time (e.g., "2 hours ago") - DYNAMIC
+     * Always calculates from the actual timestamp, not stored text
      */
-    formatRelativeTime(dateString) {
-        if (!dateString) return 'N/A';
-        
-        // Check if it's already in relative format (contains "ago")
-        if (dateString.toLowerCase().includes('ago')) {
+    formatRelativeTime(dateString, timestamp = null) {
+        // PRIORITY 1: Use posted_at_timestamp (ISO format) for dynamic calculation
+        if (timestamp) {
+            return this.formatDate(timestamp);
+        }
+
+        // FALLBACK: If no timestamp, check if it's already in relative format
+        if (dateString && dateString.toLowerCase().includes('ago')) {
+            // Can't make it dynamic without a proper timestamp
             return dateString;
         }
-        
+
+        // FALLBACK: Try to parse as date
         return this.formatDate(dateString);
     },
     

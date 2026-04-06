@@ -114,31 +114,55 @@ CONSULTING_KEYWORDS = [
     "Principal Consultant",
     "Lead Consultant",
     "Consulting Analyst",
-    "Business Analyst",
 ]
 
-# Internship keywords
-INTERNSHIP_KEYWORDS = [
-    "Consulting Intern",
-    "Business Analyst Intern",
-    "Management Consulting Intern",
-    "Strategy Intern",
-    "IT Consultant Intern",
-    "Technology Intern",
-    "Digital Consulting Intern",
-    "Financial Analyst Intern",
-    "SAP Intern",
-    "Oracle Intern",
-    "Cloud Consultant Intern",
-    "Cybersecurity Intern",
-    "Data Analyst Intern",
-    "ERP Intern",
-    "CRM Intern",
-    "Risk Analyst Intern",
-    "Business Intern",
-    "Consulting Summer Intern",
-    "Winter Intern Consulting",
-    "Intern Consultant",
+# Roles that are NEVER consulting roles (hard blocklist)
+BLOCKED_TITLE_PATTERNS = [
+    "intern",
+    "trainee",
+    "apprentice",
+    "founder's office",
+    "founder office",
+    "chief of staff",
+    "executive assistant",
+    "personal assistant",
+    "receptionist",
+    "data entry",
+    "back office",
+]
+
+# Roles that require "consultant/consulting" explicitly in title
+REQUIRES_CONSULTANT_KEYWORD = [
+    "analyst",
+    "associate",
+    "manager",
+    "director",
+    "architect",
+    "engineer",
+    "developer",
+    "administrator",
+    "admin",
+    "specialist",
+    "coordinator",
+    "lead",
+    "head",
+    "principal",
+    "senior",
+    "junior",
+    "staff",
+    "officer",
+    "executive",
+    "founder",
+]
+
+# Valid consulting-related keywords that can stand alone
+VALID_CONSULTING_TERMS = [
+    "consultant",
+    "consulting",
+    "advisory",
+    "advisor",
+    "strategy",
+    "transformation",
 ]
 
 
@@ -365,6 +389,7 @@ class UnifiedIndiaJobsScraper:
             "naukri_jobs": 0,
             "total_jobs": 0,
             "duplicates_skipped": 0,
+            "filtered_out": 0,
             "errors": 0
         }
         
@@ -376,7 +401,7 @@ class UnifiedIndiaJobsScraper:
         description = job.job_description or ""
         description = description.replace("… more", "").replace("... more", "")
         description = description.replace("Show less", "").replace("Show more", "")
-        
+
         return {
             "job_title": (job.job_title or "").strip(),
             "company": job.company or "",
@@ -390,6 +415,40 @@ class UnifiedIndiaJobsScraper:
             "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "platform": "linkedin"
         }
+
+    def is_valid_consulting_job(self, job_title: str, company: str = "") -> tuple[bool, str]:
+        """
+        Validate if a job title is actually a consulting role.
+
+        Returns:
+            (is_valid: bool, reason: str)
+        """
+        if not job_title or job_title.strip() in ["", "Post a job", "View job"]:
+            return False, "Empty or invalid job title"
+
+        title_lower = job_title.lower().strip()
+
+        # 1. Check blocked patterns (hard reject)
+        for blocked in BLOCKED_TITLE_PATTERNS:
+            if blocked in title_lower:
+                return False, f"Blocked role: '{blocked}'"
+
+        # 2. Check if title has any consulting-related keyword
+        has_consulting_term = any(term in title_lower for term in VALID_CONSULTING_TERMS)
+
+        # 3. For roles that could be non-consulting, require explicit "consultant" keyword
+        for role_keyword in REQUIRES_CONSULTANT_KEYWORD:
+            if role_keyword in title_lower:
+                # This role type needs "consultant/consulting" explicitly
+                if not has_consulting_term:
+                    return False, f"Role '{role_keyword}' without consulting keyword"
+                break
+
+        # 4. Reject if no consulting term found at all
+        if not has_consulting_term:
+            return False, "No consulting-related terms in title"
+
+        return True, "Valid consulting role"
     
     def _normalize_indeed_naukri_job(self, row: Dict, platform: str) -> Dict[str, Any]:
         """Normalize Indeed/Naukri job data from DataFrame to unified format."""
@@ -449,8 +508,18 @@ class UnifiedIndiaJobsScraper:
                         
                         try:
                             job = await job_scraper.scrape(job_url)
-                            job_data = self._normalize_linkedin_job(job, city)
                             
+                            # Validate job title before processing
+                            job_title = job.job_title or ""
+                            is_valid, reason = self.is_valid_consulting_job(job_title, job.company or "")
+                            
+                            if not is_valid:
+                                self.stats["filtered_out"] += 1
+                                logger.debug(f"  ✗ Filtered: {job_title} - {reason}")
+                                continue
+                            
+                            job_data = self._normalize_linkedin_job(job, city)
+
                             if self.sheets_manager.upload_job("linkedin", job_data):
                                 uploaded += 1
                                 self.stats["linkedin_jobs"] += 1
@@ -510,6 +579,16 @@ class UnifiedIndiaJobsScraper:
                             continue
 
                         platform = row.get('site', 'indeed')
+                        job_title = row.get('title', '')
+                        
+                        # Validate job title before processing
+                        is_valid, reason = self.is_valid_consulting_job(job_title, str(row.get('company', '')))
+                        
+                        if not is_valid:
+                            self.stats["filtered_out"] += 1
+                            logger.debug(f"  ✗ Filtered ({platform}): {job_title} - {reason}")
+                            continue
+                        
                         job_data = self._normalize_indeed_naukri_job(row, platform)
 
                         if self.sheets_manager.upload_job(platform, job_data):
@@ -519,7 +598,7 @@ class UnifiedIndiaJobsScraper:
                             else:
                                 self.stats["naukri_jobs"] += 1
 
-                            logger.info(f"  ✓ {platform.capitalize()}: {row.get('title')} at {row.get('company')}")
+                            logger.info(f"  ✓ {platform.capitalize()}: {job_title} at {row.get('company')}")
 
                 except Exception as e:
                     self.stats["errors"] += 1
@@ -593,8 +672,18 @@ class UnifiedIndiaJobsScraper:
                 
                 try:
                     job = await job_scraper.scrape(job_url)
-                    job_data = self._normalize_linkedin_job(job, task['city'])
                     
+                    # Validate job title before processing
+                    job_title = job.job_title or ""
+                    is_valid, reason = self.is_valid_consulting_job(job_title, job.company or "")
+                    
+                    if not is_valid:
+                        self.stats["filtered_out"] += 1
+                        logger.debug(f"  ✗ Filtered: {job_title} - {reason}")
+                        continue
+                    
+                    job_data = self._normalize_linkedin_job(job, task['city'])
+
                     if self.sheets_manager.upload_job("linkedin", job_data):
                         uploaded += 1
                         self.stats["linkedin_jobs"] += 1
@@ -642,10 +731,20 @@ class UnifiedIndiaJobsScraper:
                 if not job_url or self.sheets_manager.is_duplicate(job_url):
                     self.stats["duplicates_skipped"] += 1
                     continue
-                
+
                 platform = row.get('site', 'indeed')
-                job_data = self._normalize_indeed_naukri_job(row, platform)
+                job_title = row.get('title', '')
                 
+                # Validate job title before processing
+                is_valid, reason = self.is_valid_consulting_job(job_title, str(row.get('company', '')))
+                
+                if not is_valid:
+                    self.stats["filtered_out"] += 1
+                    logger.debug(f"  ✗ Filtered ({platform}): {job_title} - {reason}")
+                    continue
+                
+                job_data = self._normalize_indeed_naukri_job(row, platform)
+
                 if self.sheets_manager.upload_job(platform, job_data):
                     uploaded += 1
                     if platform == 'indeed':
@@ -653,7 +752,7 @@ class UnifiedIndiaJobsScraper:
                     else:
                         self.stats["naukri_jobs"] += 1
                     
-                    logger.info(f"  ✓ {platform.capitalize()}: {row.get('title')} at {row.get('company')}")
+                    logger.info(f"  ✓ {platform.capitalize()}: {job_title} at {row.get('company')}")
             
             logger.info(f"  ✅ API: {uploaded} jobs from '{task['keyword']}' in {task['city']}")
             
@@ -801,6 +900,7 @@ class UnifiedIndiaJobsScraper:
         print(f"📡 Indeed Jobs:   {self.stats['indeed_jobs']}")
         print(f"🇮🇳  Naukri Jobs:    {self.stats['naukri_jobs']}")
         print(f"📈 Total Jobs:    {self.stats['total_jobs']}")
+        print(f"🚫 Filtered Out:  {self.stats['filtered_out']}")
         print(f"⚠️  Duplicates:     {self.stats['duplicates_skipped']}")
         print(f"❌ Errors:         {self.stats['errors']}")
         print("="*70)

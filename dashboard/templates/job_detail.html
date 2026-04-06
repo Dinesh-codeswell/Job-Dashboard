@@ -201,7 +201,7 @@
                     descriptionDiv.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
                 }
                 
-                document.getElementById('posted').textContent = job['Posted'] || 'Recently';
+                document.getElementById('posted').textContent = Utils.formatRelativeTime(job.posted_date, job.posted_at_timestamp);
                 document.getElementById('type').textContent = job['Employment Type'] || 'Full-time';
                 document.getElementById('sidebarLocation').textContent = job['Location'] || 'Location';
 
@@ -303,7 +303,7 @@
                             </div>
                             <div class="flex items-center gap-2 text-sm text-on-surface/60">
                                 <span class="material-symbols-outlined text-xs">update</span>
-                                ${escapeHtml(job.posted_date) || 'Recently'}
+                                ${Utils.formatRelativeTime(job.posted_date, job.posted_at_timestamp)}
                             </div>
                         </div>
                         
@@ -367,6 +367,7 @@
     
     <!-- Sparkles Particle Background Script -->
     <script src="{{ url_for('static', filename='js/sparkles.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {

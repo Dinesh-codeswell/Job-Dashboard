@@ -51,12 +51,22 @@ def parse_linkedin_time(posted_str: str) -> Optional[datetime]:
     if "just now" in s_lower: return now
     return None
 
+def safe_value(value):
+    """Sanitize values to remove NaN/Infinity which break Supabase JSON."""
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return ""
+        return value
+    return value
+
 def sync_data():
     logger.info("--- Starting STRICT 3-Day Sync ---")
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY")
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
-    
+
     if not all([url, key, sheet_id]):
         logger.error("❌ Missing env vars")
         return
@@ -64,7 +74,7 @@ def sync_data():
     try:
         supabase = create_client(url, key)
         cutoff = datetime.now(timezone.utc) - timedelta(days=3)
-        
+
         # 1. CLEANUP: Delete jobs older than 3 days OR with NULL timestamps
         logger.info(f"Purging jobs older than {cutoff.isoformat()} and NULLs...")
         supabase.table("jobs").delete().lt("posted_at_timestamp", cutoff.isoformat()).execute()
@@ -79,24 +89,24 @@ def sync_data():
         prepared_jobs = []
         for i, job in enumerate(all_jobs):
             ts = parse_linkedin_time(job.get("Posted") or job.get("posted_date") or "")
-            
+
             # STRICT RULE: Skip if no date OR if older than 3 days
             if not ts or ts < cutoff:
                 continue
 
             prepared_job = {
-                "external_id": str(job.get("id") or i),
-                "job_title": job.get("Job Title") or job.get("job_title") or "Untitled",
-                "company": job.get("Company") or job.get("company") or "Unknown",
-                "company_logo": job.get("Company Logo") or job.get("company_logo") or "",
-                "location": job.get("Location") or job.get("location") or "",
-                "search_city": job.get("Search City") or job.get("search_city") or "",
-                "employment_type": job.get("Employment Type") or job.get("employment_type") or "",
-                "posted_date": str(job.get("Posted") or job.get("posted_date") or ""),
+                "external_id": str(safe_value(job.get("id") or i)),
+                "job_title": str(safe_value(job.get("Job Title") or job.get("job_title") or "Untitled")),
+                "company": str(safe_value(job.get("Company") or job.get("company") or "Unknown")),
+                "company_logo": str(safe_value(job.get("Company Logo") or job.get("company_logo") or "")),
+                "location": str(safe_value(job.get("Location") or job.get("location") or "")),
+                "search_city": str(safe_value(job.get("Search City") or job.get("search_city") or "")),
+                "employment_type": str(safe_value(job.get("Employment Type") or job.get("employment_type") or "")),
+                "posted_date": str(safe_value(job.get("Posted") or job.get("posted_date") or "")),
                 "posted_at_timestamp": ts.isoformat(),
-                "job_url": job.get("Job URL") or job.get("job_url"),
-                "job_description": job.get("Job Description") or job.get("job_description") or "",
-                "source": job.get("source", "unknown"),
+                "job_url": str(safe_value(job.get("Job URL") or job.get("job_url") or "")),
+                "job_description": str(safe_value(job.get("Job Description") or job.get("job_description") or "")),
+                "source": str(safe_value(job.get("source", "unknown"))),
                 "metadata": {"sync_date": datetime.now(timezone.utc).isoformat()}
             }
             if prepared_job["job_url"]: prepared_jobs.append(prepared_job)
@@ -105,7 +115,7 @@ def sync_data():
         logger.info(f"Upserting {len(prepared_jobs)} STRICTLY FRESH jobs...")
         for i in range(0, len(prepared_jobs), 50):
             supabase.table("jobs").upsert(prepared_jobs[i:i+50], on_conflict="job_url").execute()
-            
+
         logger.info("✅ SUCCESS! Database is now strictly limited to 3-day-old data.")
 
     except Exception as e:

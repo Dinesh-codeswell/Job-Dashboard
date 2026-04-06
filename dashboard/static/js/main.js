@@ -349,8 +349,10 @@ function createJobCard(job, index = 0) {
     const company = Utils.escapeHtml(job.company || 'Company');
     const location = Utils.escapeHtml(job.location || 'Location');
     const type = Utils.escapeHtml(job.employment_type || 'Full-time');
-    const posted = Utils.formatRelativeTime(job.posted_date);
-    const isNew = isNewJob(job.posted_date);
+    
+    // Use posted_at_timestamp for DYNAMIC time display
+    const posted = Utils.formatRelativeTime(job.posted_date, job.posted_at_timestamp);
+    const isNew = isNewJob(job.posted_at_timestamp || job.posted_date);
     
     // Debug: Log the entire job object for first job
     if (index === 0) {
