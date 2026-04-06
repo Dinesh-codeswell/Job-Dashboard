@@ -234,10 +234,12 @@ async function loadJobs(page = 1) {
 async function loadStats() {
     try {
         const response = await API.getStats();
+        console.log('Stats response:', response);
 
         if (response.success) {
             Dashboard.stats = response.stats;
             Dashboard.lastUpdated = response.stats.last_updated;
+            console.log('Stats loaded:', Dashboard.stats);
             renderStats();
         }
     } catch (error) {
@@ -316,20 +318,23 @@ function renderJobs() {
     const grid = document.getElementById('jobsGrid');
     if (!grid) return;
 
+    const searchQuery = Dashboard.filters?.search || '';
+    
     console.log('=== RENDER JOBS CALLED ===');
     console.log('Total jobs:', Dashboard.jobs.length);
-    if (Dashboard.jobs.length > 0) {
-        console.log('First job:', Dashboard.jobs[0]);
-        console.log('First job keys:', Object.keys(Dashboard.jobs[0]));
-        console.log('First job company_logo value:', Dashboard.jobs[0].company_logo);
-    }
-
+    console.log('Search query:', searchQuery);
+    
     if (!Dashboard.jobs || Dashboard.jobs.length === 0) {
+        const searchMessage = searchQuery 
+            ? `<h2>No jobs match "${Utils.escapeHtml(searchQuery)}"</h2>
+               <p>Try different keywords or clear your search</p>`
+            : `<h2>No Jobs Found</h2>
+               <p>Try adjusting your search or filters</p>`;
+        
         grid.innerHTML = `
             <div class="error-state" style="grid-column: 1 / -1;">
                 <div class="error-icon">📭</div>
-                <h2>No Jobs Found</h2>
-                <p>Try adjusting your search or filters</p>
+                ${searchMessage}
                 <button class="btn btn-primary" onclick="clearAllFilters()">Clear Filters</button>
             </div>
         `;
@@ -338,7 +343,7 @@ function renderJobs() {
 
     // Render with staggered animation
     grid.innerHTML = Dashboard.jobs.map((job, index) => createJobCard(job, index)).join('');
-    
+
     // Observe cards for lazy animation
     const cards = grid.querySelectorAll('.job-card');
     cards.forEach(card => Dashboard.observer?.observe(card));
@@ -349,7 +354,7 @@ function createJobCard(job, index = 0) {
     const company = Utils.escapeHtml(job.company || 'Company');
     const location = Utils.escapeHtml(job.location || 'Location');
     const type = Utils.escapeHtml(job.employment_type || 'Full-time');
-    
+
     // Use posted_at_timestamp for DYNAMIC time display
     const posted = Utils.formatRelativeTime(job.posted_date, job.posted_at_timestamp);
     const isNew = isNewJob(job.posted_at_timestamp || job.posted_date);
@@ -695,11 +700,41 @@ function setupEventListeners() {
     }
 
     if (searchInput) {
-        const debouncedSearch = Utils.debounce((e) => {
-            Dashboard.filters.search = e.target.value.trim();
-            goToPage(1);
-        }, 200);
-        searchInput.addEventListener('input', debouncedSearch);
+        // Industry standard: Minimum 3 characters before search triggers
+        // Faster debounce (150ms) for real-time feel
+        let searchTimeout = null;
+        
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // If less than 3 characters, clear search and reload all jobs
+            if (query.length < 3) {
+                Dashboard.filters.search = '';
+                goToPage(1);
+                return;
+            }
+            
+            // Debounce search by 150ms for real-time feel
+            searchTimeout = setTimeout(() => {
+                Dashboard.filters.search = query;
+                goToPage(1);
+            }, 150);
+        });
+        
+        // Clear button
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                searchInput.value = '';
+                Dashboard.filters.search = '';
+                goToPage(1);
+                searchInput.focus();
+            });
+        }
     }
 
     // Refresh button

@@ -450,21 +450,34 @@ class JobScraper(BaseScraper):
     def _format_description_text(self, text: str) -> str:
         """
         Convert plain text to formatted HTML with clear structure.
+        ONLY removes the very first heading artifact (About the job, Job Description, etc.)
+        Preserves ALL subheadings within the JD.
         """
         if not text:
             return None
-        
+
+        # ONLY the topmost headings to filter out (scraping artifacts at the start)
+        top_headings_to_remove = [
+            'about the job',
+            'job description',
+            'company description',
+            'about us',
+            'about our company',
+            'about the role',
+        ]
+
         lines = text.split('\n')
         html_parts = []
         current_list = []
         current_paragraph = []
-        
+        first_heading_removed = False
+
         # Emoji markers for sections
         section_emojis = ['📌', '📍', '🏢', '🕒', '🔎', '💰', '👤', '✅', '⭐', '🎯', '📋', '💼']
-        
+
         for line in lines:
             line = line.strip()
-            
+
             # Skip empty lines - they separate sections
             if not line:
                 # Save current paragraph
@@ -476,14 +489,26 @@ class JobScraper(BaseScraper):
                     html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
                     current_list = []
                 continue
-            
+
+            # Check if this is a heading artifact (ONLY at the very beginning)
+            is_heading_artifact = (
+                not first_heading_removed and
+                any(line.lower() == heading or line.lower().startswith(heading + ':') 
+                    for heading in top_headings_to_remove)
+            )
+
+            if is_heading_artifact:
+                # Skip ONLY the first heading artifact
+                first_heading_removed = True
+                continue
+
             # Check for section headers (emoji, ALL CAPS, or ends with :)
             is_header = (
                 any(line.startswith(emoji) for emoji in section_emojis) or
                 (line.isupper() and len(line) > 3 and len(line) < 100) or
                 line.endswith(':')
             )
-            
+
             if is_header:
                 # Save current content first
                 if current_paragraph:
@@ -494,7 +519,7 @@ class JobScraper(BaseScraper):
                     current_list = []
                 # Add header
                 html_parts.append(f'<h3>{line}</h3>')
-            
+
             # Check for bullet points
             elif line.startswith(('•', '▪', '▸', '◦', '-', '*', '➤')):
                 if current_paragraph:

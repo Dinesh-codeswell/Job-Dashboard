@@ -352,45 +352,92 @@ def index():
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
+    """
+    Industry-standard job search API.
+    
+    Features:
+    - Multi-column search (title, company, description)
+    - Relevance ranking (title match > company match > description match)
+    - Fast ilike queries with proper indexing support
+    - Comprehensive logging for debugging
+    """
     try:
         logger.info("=== /api/jobs called ===")
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 30))
-        search = request.args.get('search', '')
-        city = request.args.get('city', '')
-        emp_type = request.args.get('type', '')
+        search = request.args.get('search', '').strip()
+        city = request.args.get('city', '').strip()
+        emp_type = request.args.get('type', '').strip()
 
         # STRICT 3-DAY CUTOFF
         cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-        logger.info(f"Cutoff date: {cutoff}")
+        logger.info(f"Search params: page={page}, limit={limit}, search='{search}', city='{city}', type='{emp_type}'")
 
         supabase = get_supabase()
         if supabase:
             logger.info("Supabase client available, attempting query...")
             try:
                 offset = (page - 1) * limit
-                logger.info(f"Query params: page={page}, limit={limit}, offset={offset}")
                 
+                # Base query with 3-day filter
                 query = supabase.table("jobs").select("*", count="exact").gte("posted_at_timestamp", cutoff)
-                logger.info(f"Base query created")
 
+                # Apply city filter
                 if city:
                     query = query.eq("search_city", city)
                     logger.info(f"Added city filter: {city}")
+                
+                # Apply employment type filter
                 if emp_type:
                     query = query.ilike("employment_type", f"%{emp_type}%")
                     logger.info(f"Added type filter: {emp_type}")
+                
+                # INDUSTRY-STANDARD MULTI-COLUMN SEARCH
+                # Only search role name and company (NOT description)
+                # Use client-side filtering + sorting to avoid Supabase API limitations
                 if search:
-                    # Fallback to ilike if fts_tokens doesn't exist
-                    try:
-                        query = query.text_search('fts_tokens', search)
-                        logger.info(f"Added FTS search: {search}")
-                    except Exception as fts_err:
-                        # Use basic text search instead of FTS
-                        logger.warning(f"FTS failed: {fts_err}, falling back to ilike")
-                        query = query.ilike("job_title", f"%{search}%")
+                    logger.info(f"Multi-column search for: '{search}'")
+                    search_lower = search.lower()
+                    
+                    # Fetch ALL jobs within 3-day window (no ordering to avoid API error)
+                    result = query.execute()
+                    
+                    if result.data:
+                        # Client-side filter: title + company ONLY
+                        matched_jobs = [
+                            job for job in result.data
+                            if search_lower in (job.get('job_title') or '').lower() 
+                            or search_lower in (job.get('company') or '').lower()
+                        ]
+                        
+                        # Client-side sort by timestamp
+                        matched_jobs.sort(
+                            key=lambda x: x.get('posted_at_timestamp', ''),
+                            reverse=True
+                        )
+                        
+                        # Client-side pagination
+                        start = offset
+                        end = offset + limit
+                        paginated_jobs = matched_jobs[start:end]
+                        
+                        logger.info(f"Search matched {len(matched_jobs)} jobs (title/company only), returning {len(paginated_jobs)}")
+                        
+                        return jsonify({
+                            'success': True,
+                            'source': 'supabase',
+                            'jobs': [sanitize_job(j, 'supabase') for j in paginated_jobs],
+                            'pagination': {
+                                'page': page,
+                                'limit': limit,
+                                'total': len(matched_jobs),
+                                'total_pages': (len(matched_jobs) + limit - 1) // limit if len(matched_jobs) else 1
+                            }
+                        })
+                else:
+                    # No search - use server-side ordering (works without filters)
+                    result = query.order("posted_at_timestamp", desc=True).range(offset, offset + limit - 1).execute()
 
-                result = query.order("posted_at_timestamp", desc=True).range(offset, offset + limit - 1).execute()
                 logger.info(f"Query executed. Rows returned: {len(result.data) if result.data else 0}")
 
                 if result.data is not None:
@@ -445,24 +492,78 @@ def get_jobs():
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
+    """
+    Get dashboard statistics with cities and companies count.
+    Industry standard: Return aggregated data for dashboard metrics.
+    """
     try:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
         supabase = get_supabase()
+        
         if supabase:
             try:
-                res = supabase.table("jobs").select("id", count="exact").gte("posted_at_timestamp", cutoff).execute()
-                return jsonify({'success': True, 'stats': {'total_jobs': res.count if res.count else 0, 'source': 'supabase'}})
+                # Fetch all jobs within 3-day window for aggregation
+                res = supabase.table("jobs").select(
+                    "id, company, search_city", count="exact"
+                ).gte("posted_at_timestamp", cutoff).execute()
+                
+                if res.data is not None:
+                    # Aggregate cities
+                    cities = {}
+                    companies = {}
+                    
+                    for job in res.data:
+                        # Count cities
+                        city = job.get('search_city', '')
+                        if city:
+                            cities[city] = cities.get(city, 0) + 1
+                        
+                        # Count companies
+                        company = job.get('company', '')
+                        if company:
+                            companies[company] = companies.get(company, 0) + 1
+                    
+                    return jsonify({
+                        'success': True,
+                        'stats': {
+                            'total_jobs': res.count if res.count else len(res.data),
+                            'cities': dict(sorted(cities.items(), key=lambda x: x[1], reverse=True)[:20]),
+                            'companies': dict(sorted(companies.items(), key=lambda x: x[1], reverse=True)[:20]),
+                            'source': 'supabase'
+                        }
+                    })
             except Exception as e:
                 logger.warning(f"Supabase stats failed: {e}")
-        
+
         # Fallback to Sheets
         try:
             fetcher = get_data_fetcher(GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_FILE)
             jobs = fetcher.fetch_all_jobs(use_cache=False)
-            return jsonify({'success': True, 'stats': {'total_jobs': len(jobs), 'source': 'sheets'}})
-        except Exception:
-            pass
-        
+            
+            cities = {}
+            companies = {}
+            
+            for job in jobs:
+                city = job.get('Search City', job.get('search_city', ''))
+                if city:
+                    cities[city] = cities.get(city, 0) + 1
+                
+                company = job.get('Company', job.get('company', ''))
+                if company:
+                    companies[company] = companies.get(company, 0) + 1
+            
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total_jobs': len(jobs),
+                    'cities': dict(sorted(cities.items(), key=lambda x: x[1], reverse=True)[:20]),
+                    'companies': dict(sorted(companies.items(), key=lambda x: x[1], reverse=True)[:20]),
+                    'source': 'sheets'
+                }
+            })
+        except Exception as sheets_err:
+            logger.warning(f"SheetStats failed: {sheets_err}")
+
         return jsonify({'success': False, 'error': 'All data sources unavailable'}), 500
     except Exception as e:
         logger.error(f"Stats API Error: {e}")

@@ -396,11 +396,76 @@ class UnifiedIndiaJobsScraper:
         # Sheets manager
         self.sheets_manager = None
     
+    def clean_job_description(self, description: str) -> str:
+        """
+        Clean job description to remove ONLY the topmost heading artifact.
+
+        Removes:
+        - ONLY the very first heading if it's "About the job", "Job Description", etc.
+        - Preserves ALL subheadings within the JD (About Us, Responsibilities, etc.)
+        - Cleans excessive whitespace
+        """
+        if not description:
+            return ""
+
+        # Topmost headings to remove (ONLY at the very start)
+        top_headings_to_remove = [
+            "about the job",
+            "job description",
+            "company description",
+            "about us",
+            "about our company",
+            "about the role",
+            "role description",
+            "position summary",
+            "job summary",
+            "overview",
+            "the role",
+            "the opportunity",
+        ]
+
+        desc = description
+
+        # ONLY remove the first heading if it matches
+        lines = desc.split('\n')
+        cleaned_lines = []
+        first_heading_removed = False
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+
+            # ONLY check for heading at the very beginning (first few non-empty lines)
+            if not first_heading_removed and stripped:
+                is_top_heading = any(
+                    stripped.lower() == heading or
+                    stripped.lower().startswith(heading + ':') or
+                    stripped.lower().startswith('**' + heading + '**')
+                    for heading in top_headings_to_remove
+                )
+
+                if is_top_heading:
+                    # Skip this heading and the empty line after it
+                    first_heading_removed = True
+                    continue
+
+            cleaned_lines.append(line)
+
+        desc = '\n'.join(cleaned_lines)
+
+        # Clean up excessive whitespace (max 2 consecutive newlines)
+        desc = desc.strip()
+        desc = desc.replace('\n\n\n', '\n\n')
+
+        return desc
+
     def _normalize_linkedin_job(self, job, city: str) -> Dict[str, Any]:
         """Normalize LinkedIn job data to unified format."""
         description = job.job_description or ""
+        # Clean description
         description = description.replace("… more", "").replace("... more", "")
         description = description.replace("Show less", "").replace("Show more", "")
+        # Clean heading artifacts
+        description = self.clean_job_description(description)
 
         return {
             "job_title": (job.job_title or "").strip(),
@@ -463,20 +528,25 @@ class UnifiedIndiaJobsScraper:
             'job_url': 'job_url',
             'description': 'job_description',
         }
-        
+
         job_data = {}
         for df_col, unified_col in mapping.items():
             job_data[unified_col] = str(row.get(df_col, ''))
-        
+
         job_data['search_city'] = row.get('location', '').split(',')[0].strip()
         job_data['date_added'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         job_data['platform'] = platform
-        
+
         # Clean description
         desc = job_data.get('job_description', '')
-        if desc and len(desc) > 45000:
-            job_data['job_description'] = desc[:45000] + "..."
-        
+        if desc:
+            # Clean heading artifacts
+            desc = self.clean_job_description(desc)
+            # Truncate if too long
+            if len(desc) > 45000:
+                desc = desc[:45000] + "..."
+            job_data['job_description'] = desc
+
         return job_data
     
     async def scrape_linkedin(
@@ -766,7 +836,6 @@ class UnifiedIndiaJobsScraper:
     async def run_round_robin(
         self,
         cities: List[str] = None,
-        include_internships: bool = True,
         limit_per_city: int = 10,
         tier_1_only: bool = False,
         batch_size: int = 10
@@ -786,9 +855,9 @@ class UnifiedIndiaJobsScraper:
         
         # Combine keywords
         keywords = CONSULTING_KEYWORDS.copy()
-        if include_internships:
-            keywords.extend(INTERNSHIP_KEYWORDS)
-        
+        # Note: Internship keywords removed - interns are now filtered out automatically
+        # via BLOCKED_TITLE_PATTERNS ("intern", "trainee", "apprentice")
+
         print("\n" + "="*70)
         print("🚀 UNIFIED INDIA JOBS SCRAPER (ROUND-ROBIN MODE)")
         print("="*70)
@@ -923,7 +992,6 @@ Examples:
   python scrape_all_india_jobs.py --platforms linkedin indeed
   python scrape_all_india_jobs.py --max-days 3
   python scrape_all_india_jobs.py --tier-1-only
-  python scrape_all_india_jobs.py --no-internships
         """
     )
 
@@ -953,11 +1021,6 @@ Examples:
         help="Headless mode for LinkedIn (default: True)"
     )
     parser.add_argument(
-        "--no-internships",
-        action="store_true",
-        help="Exclude internship keywords"
-    )
-    parser.add_argument(
         "--tier-1-only",
         action="store_true",
         help="Search only Tier 1 cities"
@@ -980,7 +1043,6 @@ Examples:
     # Use round-robin strategy for maximum diversity
     results = await scraper.run_round_robin(
         cities=args.cities,
-        include_internships=not args.no_internships,
         limit_per_city=args.limit_per_city,
         tier_1_only=args.tier_1_only,
         batch_size=10  # Process 10 tasks at a time

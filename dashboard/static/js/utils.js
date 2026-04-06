@@ -4,6 +4,22 @@
 
 const Utils = {
     /**
+     * Highlight search terms in text (industry standard like LinkedIn/Indeed)
+     * Wraps matching terms in <mark> tags for visual emphasis
+     */
+    highlightSearchTerms(text, searchQuery) {
+        if (!text || !searchQuery) return text;
+        
+        const terms = searchQuery.trim().split(/\s+/).filter(t => t.length > 2);
+        if (terms.length === 0) return text;
+        
+        // Create regex for each term (case-insensitive)
+        const regex = new RegExp(`(${terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+        
+        return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+    },
+
+    /**
      * Escape HTML to prevent XSS
      */
     escapeHtml(text) {
