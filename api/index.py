@@ -75,12 +75,27 @@ if not os.path.isabs(GOOGLE_CREDENTIALS_FILE):
     GOOGLE_CREDENTIALS_FILE = str(Path(__file__).parent.parent / GOOGLE_CREDENTIALS_FILE)
 
 def get_supabase():
+    """Initialize Supabase client with detailed logging."""
     try:
-        if SUPABASE_URL and SUPABASE_KEY:
-            return create_client(SUPABASE_URL, SUPABASE_KEY)
+        logger.info(f"Supabase URL present: {bool(SUPABASE_URL)}")
+        logger.info(f"Supabase Key present: {bool(SUPABASE_KEY)}")
+        
+        if not SUPABASE_URL:
+            logger.warning("Supabase URL is empty!")
+            return None
+        if not SUPABASE_KEY:
+            logger.warning("Supabase Key is empty!")
+            return None
+        
+        logger.info(f"Initializing Supabase with URL: {SUPABASE_URL}")
+        client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        logger.info("Supabase client created successfully")
+        return client
     except Exception as e:
         logger.error(f"Supabase Init Error: {e}")
-    return None
+        import traceback
+        logger.error(traceback.format_exc())
+        return None
 
 def sanitize_job(job, source_type='supabase'):
     """Sanitize job data with unified keys that work for both sources."""
@@ -175,6 +190,11 @@ def health_check():
     """Health check endpoint to diagnose deployment issues."""
     status = {
         'status': 'ok',
+        'env_vars': {
+            'SUPABASE_URL': bool(SUPABASE_URL),
+            'SUPABASE_KEY': bool(SUPABASE_KEY),
+            'GOOGLE_SHEET_ID': bool(GOOGLE_SHEET_ID),
+        },
         'supabase_connected': False,
         'sheets_connected': False
     }
@@ -183,13 +203,20 @@ def health_check():
     supabase = get_supabase()
     if supabase:
         status['supabase_connected'] = True
+        # Try a simple query to verify connection
+        try:
+            test_query = supabase.table("jobs").select("id", count="exact").limit(1).execute()
+            status['supabase_query_works'] = test_query.data is not None
+            status['supabase_row_count'] = test_query.count if test_query.count else 0
+        except Exception as e:
+            status['supabase_query_error'] = str(e)
     
     # Check Sheets
     try:
         fetcher = get_data_fetcher(GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_FILE)
         status['sheets_connected'] = fetcher.worksheet is not None
-    except Exception:
-        pass
+    except Exception as e:
+        status['sheets_error'] = str(e)
     
     return jsonify(status)
 
@@ -326,6 +353,7 @@ def index():
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
     try:
+        logger.info("=== /api/jobs called ===")
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 30))
         search = request.args.get('search', '')
@@ -334,28 +362,39 @@ def get_jobs():
 
         # STRICT 3-DAY CUTOFF
         cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+        logger.info(f"Cutoff date: {cutoff}")
 
         supabase = get_supabase()
         if supabase:
+            logger.info("Supabase client available, attempting query...")
             try:
                 offset = (page - 1) * limit
+                logger.info(f"Query params: page={page}, limit={limit}, offset={offset}")
+                
                 query = supabase.table("jobs").select("*", count="exact").gte("posted_at_timestamp", cutoff)
+                logger.info(f"Base query created")
 
                 if city:
                     query = query.eq("search_city", city)
+                    logger.info(f"Added city filter: {city}")
                 if emp_type:
                     query = query.ilike("employment_type", f"%{emp_type}%")
+                    logger.info(f"Added type filter: {emp_type}")
                 if search:
                     # Fallback to ilike if fts_tokens doesn't exist
                     try:
                         query = query.text_search('fts_tokens', search)
-                    except Exception:
+                        logger.info(f"Added FTS search: {search}")
+                    except Exception as fts_err:
                         # Use basic text search instead of FTS
+                        logger.warning(f"FTS failed: {fts_err}, falling back to ilike")
                         query = query.ilike("job_title", f"%{search}%")
 
                 result = query.order("posted_at_timestamp", desc=True).range(offset, offset + limit - 1).execute()
+                logger.info(f"Query executed. Rows returned: {len(result.data) if result.data else 0}")
 
                 if result.data is not None:
+                    logger.info(f"Returning {len(result.data)} jobs from Supabase")
                     return jsonify({
                         'success': True,
                         'source': 'supabase',
@@ -367,15 +406,26 @@ def get_jobs():
                             'total_pages': (result.count + limit - 1) // limit if result.count else 1
                         }
                     })
+                else:
+                    logger.warning("Supabase returned None data")
             except Exception as supabase_err:
-                logger.warning(f"Supabase query failed: {supabase_err}. Falling back to Sheets.")
+                logger.warning(f"Supabase query failed: {supabase_err}")
+                import traceback
+                logger.warning(traceback.format_exc())
+                logger.info("Falling back to Google Sheets...")
+        else:
+            logger.warning("Supabase client not available")
 
         # Fallback to Google Sheets
         try:
+            logger.info("Fetching from Google Sheets...")
             fetcher = get_data_fetcher(GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_FILE)
             all_jobs = fetcher.fetch_all_jobs(use_cache=False)
+            logger.info(f"Fetched {len(all_jobs)} jobs from Sheets")
+            
             # Filter sheets data manually for 3-day rule (simplified)
             filtered = [j for j in all_jobs if "day" not in str(j.get('Posted')).lower() or "1 day" in str(j.get('Posted')).lower() or "2 days" in str(j.get('Posted')).lower()]
+            logger.info(f"After 3-day filter: {len(filtered)} jobs")
 
             start = (page - 1) * limit
             return jsonify({
@@ -389,6 +439,8 @@ def get_jobs():
             return jsonify({'success': False, 'error': 'Data source unavailable', 'details': str(sheets_err)}), 500
     except Exception as e:
         logger.error(f"API Error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/stats', methods=['GET'])
