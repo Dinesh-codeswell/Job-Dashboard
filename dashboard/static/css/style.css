@@ -1052,6 +1052,36 @@ input:focus-visible {
     font-style: italic;
 }
 
+/* BASE ELEMENT SPACING - Apply default spacing to all elements */
+.job-description-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.job-description-content h3:first-child {
+    margin-top: 0;
+}
+
+.job-description-content p {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.job-description-content ul,
+.job-description-content ol {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+}
+
+.job-description-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
 /* SPACING BETWEEN SECTIONS - Enhanced for better readability */
 #description h3 + p,
 .job-description-content h3 + p {

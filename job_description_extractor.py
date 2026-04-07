@@ -397,7 +397,7 @@ class JobDescriptionExtractor:
     # GENERIC HTML PROCESSING
     # ========================================================================
     
-    def _process_generic_html(self, soup_element) -> str:
+    def _process_generic_html(self, soup_element) -> Optional[str]:
         """
         Process generic HTML structure to extract formatted description.
         
@@ -405,7 +405,7 @@ class JobDescriptionExtractor:
             soup_element: BeautifulSoup element
             
         Returns:
-            Formatted HTML string with proper spacing
+            Formatted HTML string with proper spacing, or None if no content extracted
         """
         formatted_parts = []
         self.first_heading_removed = False
@@ -422,6 +422,10 @@ class JobDescriptionExtractor:
                 result = self._process_html_element(element)
                 if result:
                     formatted_parts.append(result)
+        
+        # Return None if no content was extracted
+        if not formatted_parts:
+            return None
         
         return '<div class="job-description-content">\n' + '\n'.join(formatted_parts) + '\n</div>'
     

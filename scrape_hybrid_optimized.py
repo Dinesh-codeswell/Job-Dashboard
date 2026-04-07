@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # ============================================================================
 
-DEFAULT_JOB_BOARDS = os.getenv("DEFAULT_JOB_BOARDS", "linkedin,indeed,naukri").split(",")
+DEFAULT_JOB_BOARDS = os.getenv("DEFAULT_JOB_BOARDS", "linkedin,indeed").split(",")
 DEFAULT_CITIES = os.getenv("DEFAULT_CITIES", "Bangalore,Mumbai,Pune,Gurugram,Chennai,Hyderabad").split(",")
 DEFAULT_RESULTS_PER_CITY = int(os.getenv("DEFAULT_RESULTS_PER_CITY", "10"))
 DEFAULT_HOURS_OLD = int(os.getenv("DEFAULT_HOURS_OLD", "48"))
@@ -101,11 +101,17 @@ CONSULTING_INTERNSHIPS = [
     "Consulting Intern", "Summer Analyst Consulting",
 ]
 
-# CATEGORY 2: PRODUCT MANAGEMENT ROLES (25% weight)
+# CATEGORY 2: PRODUCT MANAGEMENT ROLES (25% weight) - EXPANDED WITH LEADERSHIP
 PRODUCT_KEYWORDS = [
+    # Individual Contributor & Mid-Level
     "Product Manager", "Senior Product Manager", "Associate Product Manager",
     "Product Strategy Manager", "Principal Product Manager",
     "Lead Product Manager", "Group Product Manager",
+    
+    # Leadership & Executive
+    "Head of Product", "Director of Product", "VP of Product",
+    "Chief Product Officer", "CPO", "Product Director",
+    "Product Lead", "Product Head",
 ]
 
 PRODUCT_INTERNSHIPS = [
@@ -113,11 +119,18 @@ PRODUCT_INTERNSHIPS = [
     "Associate Product Manager Intern", "Product Strategy Intern",
 ]
 
-# CATEGORY 3: STRATEGY & GROWTH ROLES (25% weight)
+# CATEGORY 3: STRATEGY & GROWTH ROLES (25% weight) - EXPANDED WITH LEADERSHIP
 STRATEGY_KEYWORDS = [
+    # Individual Contributor & Mid-Level
     "Growth Strategy Manager", "Business Strategy Manager",
     "Corporate Strategy Manager", "Strategy Manager",
     "Growth Manager", "Business Growth Manager",
+    
+    # Leadership & Executive
+    "Head of Strategy", "Director of Strategy", "VP of Strategy",
+    "Chief Strategy Officer", "CSO", "Strategy Director",
+    "Head of Growth", "Director of Growth", "VP of Growth",
+    "Chief Growth Officer", "CGO",
 ]
 
 STRATEGY_INTERNSHIPS = [
@@ -126,12 +139,20 @@ STRATEGY_INTERNSHIPS = [
     "Growth Intern", "Business Growth Intern",
 ]
 
-# CATEGORY 4: OPERATIONS & ANALYTICS ROLES (20% weight)
+# CATEGORY 4: OPERATIONS & ANALYTICS ROLES (20% weight) - EXPANDED WITH LEADERSHIP
 OPERATIONS_KEYWORDS = [
+    # Individual Contributor & Mid-Level
     "Business Operations Manager", "Operations Strategy Manager",
     "Strategy Analyst", "Business Analyst",
     "Program Manager", "Strategic Project Manager",
     "Founder's Office", "Market Research Analyst",
+    
+    # Leadership & Executive
+    "Chief of Staff", "CoS", "Executive Chief of Staff",
+    "Head of Operations", "Director of Operations", "VP of Operations",
+    "Chief Operating Officer", "COO", "Operations Director",
+    "Head of Business Operations", "Director of Business Operations",
+    "Head of Programs", "Director of Programs",
 ]
 
 OPERATIONS_INTERNSHIPS = [
@@ -239,14 +260,30 @@ VALID_ROLE_TERMS = {
                    "strategy analyst", "founder's office", "market research", "chief of staff"],
 }
 
-# NEW: Required title patterns for high confidence (by category)
+# NEW: Required title patterns for high confidence (by category) - EXPANDED
 REQUIRED_PATTERNS_BY_CATEGORY = {
     "consulting": [r'\bconsultant\b', r'\bconsulting\b', r'\badvisor\b', r'\badvisory\b'],
-    "product": [r'\bproduct\s+manager\b', r'\bproduct\s+management\b', r'\bapm\b', r'\bpm\b'],
-    "strategy": [r'\bstrategy\b', r'\bgrowth\b', r'\bstrategic\b'],
-    "operations": [r'\boperations\b', r'\bprogram\s+manager\b', r'\bbusiness\s+analyst\b', 
-                   r'\bstrategy\s+analyst\b', r"founder'?s?\s+office\b", r'\bmarket\s+research\b',
-                   r'\bchief\s+of\s+staff\b'],
+    "product": [
+        r'\bproduct\s+manager\b', r'\bproduct\s+management\b', r'\bapm\b', r'\bpm\b',
+        r'\bhead\s+of\s+product\b', r'\bdirector\s+of\s+product\b', r'\bvp\s+of\s+product\b',
+        r'\bchief\s+product\s+officer\b', r'\bcpo\b', r'\bproduct\s+director\b',
+        r'\bproduct\s+lead\b', r'\bproduct\s+head\b'
+    ],
+    "strategy": [
+        r'\bstrategy\b', r'\bgrowth\b', r'\bstrategic\b',
+        r'\bhead\s+of\s+strategy\b', r'\bdirector\s+of\s+strategy\b', r'\bvp\s+of\s+strategy\b',
+        r'\bchief\s+strategy\s+officer\b', r'\bcso\b',
+        r'\bhead\s+of\s+growth\b', r'\bdirector\s+of\s+growth\b', r'\bvp\s+of\s+growth\b',
+        r'\bchief\s+growth\s+officer\b', r'\bcgo\b'
+    ],
+    "operations": [
+        r'\boperations\b', r'\bprogram\s+manager\b', r'\bbusiness\s+analyst\b', 
+        r'\bstrategy\s+analyst\b', r"founder'?s?\s+office\b", r'\bmarket\s+research\b',
+        r'\bchief\s+of\s+staff\b', r'\bcos\b',
+        r'\bhead\s+of\s+operations\b', r'\bdirector\s+of\s+operations\b', r'\bvp\s+of\s+operations\b',
+        r'\bchief\s+operating\s+officer\b', r'\bcoo\b',
+        r'\bhead\s+of\s+business\s+operations\b', r'\bhead\s+of\s+programs\b'
+    ],
 }
 
 # NEW: Auto-reject patterns (immediate disqualification) - STRICT
@@ -376,10 +413,10 @@ class HybridOptimizedScraper:
         self.stats = {
             "linkedin_jobs": 0,
             "indeed_jobs": 0,
-            "naukri_jobs": 0,
             "total_jobs": 0,
             "duplicates_skipped": 0,
             "filtered_out": 0,
+            "old_jobs_filtered": 0,  # NEW: Track jobs filtered by date
             "errors": 0,
             # Category breakdown
             "consulting_jobs": 0,
@@ -445,21 +482,90 @@ class HybridOptimizedScraper:
         return weighted_keywords
     
     def detect_role_category(self, job_title: str) -> Optional[str]:
-        """Detect which category a job belongs to."""
+        """Detect which category a job belongs to (EXPANDED with leadership roles)."""
         title_lower = job_title.lower().strip()
         
-        # Check each category
+        # Check each category (with leadership roles)
         if any(term in title_lower for term in ["consultant", "consulting", "advisory", "advisor"]):
             return "consulting"
-        elif any(term in title_lower for term in ["product manager", "product management", "apm"]):
+        elif any(term in title_lower for term in [
+            "product manager", "product management", "apm",
+            "head of product", "director of product", "vp of product", "vp product",
+            "chief product officer", "cpo", "product director", "product lead", "product head"
+        ]):
             return "product"
-        elif any(term in title_lower for term in ["strategy", "growth", "strategic"]):
+        elif any(term in title_lower for term in [
+            "strategy", "growth", "strategic",
+            "head of strategy", "director of strategy", "vp of strategy", "vp strategy",
+            "chief strategy officer", "cso",
+            "head of growth", "director of growth", "vp of growth", "vp growth",
+            "chief growth officer", "cgo"
+        ]):
             return "strategy"
-        elif any(term in title_lower for term in ["operations", "program manager", "business analyst", 
-                                                    "strategy analyst", "founder", "market research", "chief of staff"]):
+        elif any(term in title_lower for term in [
+            "operations", "program manager", "business analyst", 
+            "strategy analyst", "founder", "market research",
+            "chief of staff", "cos",
+            "head of operations", "director of operations", "vp of operations", "vp operations",
+            "chief operating officer", "coo",
+            "head of business operations", "head of programs", "director of programs"
+        ]):
             return "operations"
         
         return None
+    
+    def normalize_employment_type(self, raw_type: str) -> str:
+        """
+        Normalize employment type to consistent format.
+        
+        Handles:
+        - Indeed: 'fulltime', 'parttime', 'contract', 'internship'
+        - Naukri: 'fulltime', 'parttime', 'contract'
+        - LinkedIn: 'Full Time', 'Part Time', 'Contract', 'Internship'
+        - Missing: 'nan', '', None
+        
+        Returns: Title case with space (e.g., 'Full Time', 'Internship')
+        """
+        if not raw_type or str(raw_type).lower() in ['nan', 'none', '']:
+            return 'Full Time'  # Default
+        
+        type_str = str(raw_type).strip().lower()
+        
+        # Handle comma-separated values (e.g., "fulltime, internship")
+        if ',' in type_str:
+            # Take the first value
+            type_str = type_str.split(',')[0].strip()
+        
+        # Normalize to title case with space
+        type_mapping = {
+            'fulltime': 'Full Time',
+            'full-time': 'Full Time',
+            'full time': 'Full Time',
+            'parttime': 'Part Time',
+            'part-time': 'Part Time',
+            'part time': 'Part Time',
+            'contract': 'Contract',
+            'contractor': 'Contract',
+            'temporary': 'Temporary',
+            'temp': 'Temporary',
+            'internship': 'Internship',
+            'intern': 'Internship',
+            'freelance': 'Freelance',
+            'freelancer': 'Freelance',
+        }
+        
+        # Try exact match first
+        if type_str in type_mapping:
+            return type_mapping[type_str]
+        
+        # Try partial match
+        for key, value in type_mapping.items():
+            if key in type_str:
+                return value
+        
+        # If no match, return title case of original
+        return raw_type.strip().title()
+
     
     def keyword_matches_title(self, keyword: str, job_title: str) -> tuple[bool, str]:
         """
@@ -484,17 +590,36 @@ class HybridOptimizedScraper:
         if any(term in title_lower for term in ['consultant', 'consulting', 'advisory', 'advisor']):
             return True, "Matches consulting category"
         
-        # Category 2: Product
-        if any(term in title_lower for term in ['product manager', 'product management', 'apm', 'associate product']):
+        # Category 2: Product (EXPANDED with leadership)
+        product_terms = [
+            'product manager', 'product management', 'apm', 'associate product',
+            'head of product', 'director of product', 'vp of product', 'vp product',
+            'chief product officer', 'cpo', 'product director', 'product lead', 'product head'
+        ]
+        if any(term in title_lower for term in product_terms):
             return True, "Matches product category"
         
-        # Category 3: Strategy & Growth
-        if any(term in title_lower for term in ['strategy', 'growth', 'strategic']):
+        # Category 3: Strategy & Growth (EXPANDED with leadership)
+        strategy_terms = [
+            'strategy', 'growth', 'strategic',
+            'head of strategy', 'director of strategy', 'vp of strategy', 'vp strategy',
+            'chief strategy officer', 'cso',
+            'head of growth', 'director of growth', 'vp of growth', 'vp growth',
+            'chief growth officer', 'cgo'
+        ]
+        if any(term in title_lower for term in strategy_terms):
             return True, "Matches strategy category"
         
-        # Category 4: Operations & Analytics
-        if any(term in title_lower for term in ['operations', 'program manager', 'business analyst', 
-                                                  'strategy analyst', 'founder', 'market research', 'chief of staff']):
+        # Category 4: Operations & Analytics (EXPANDED with leadership)
+        operations_terms = [
+            'operations', 'program manager', 'business analyst', 
+            'strategy analyst', 'founder', 'market research',
+            'chief of staff', 'cos',
+            'head of operations', 'director of operations', 'vp of operations', 'vp operations',
+            'chief operating officer', 'coo',
+            'head of business operations', 'head of programs', 'director of programs'
+        ]
+        if any(term in title_lower for term in operations_terms):
             return True, "Matches operations category"
         
         # Internships - accept if has "intern" + any role keyword
@@ -621,13 +746,43 @@ class HybridOptimizedScraper:
             return False, f"Insufficient context for {category} role (score: {score}/{min_score})"
     
     def is_job_fresh(self, posted_date: str) -> bool:
-        """Check if job is within max_days threshold."""
-        if not posted_date:
+        """
+        Check if job is within max_days threshold.
+        
+        CRITICAL: Indeed/Naukri often return old jobs despite hours_old parameter.
+        This method provides strict post-scraping validation.
+        
+        Args:
+            posted_date: Date string in various formats
+            
+        Returns:
+            True if job is within max_days threshold, False otherwise
+        """
+        if not posted_date or str(posted_date).strip() in ['', 'nan', 'None']:
+            # No date = reject (don't assume fresh)
             return False
         
         posted_str = str(posted_date).strip().lower()
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=self.max_days)
+        
+        # Parse ISO format dates FIRST (most common for Indeed/Naukri)
+        # Format: 2026-04-07, 2026-04-06, etc.
+        iso_match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', posted_str)
+        if iso_match:
+            try:
+                y, m, d = map(int, iso_match.groups())
+                job_time = datetime(y, m, d, tzinfo=timezone.utc)
+                is_fresh = job_time >= cutoff
+                
+                if not is_fresh:
+                    days_old = (now - job_time).days
+                    logger.debug(f"Job too old: {posted_date} ({days_old} days old, cutoff: {self.max_days} days)")
+                
+                return is_fresh
+            except Exception as e:
+                logger.debug(f"Error parsing ISO date '{posted_date}': {e}")
+                return False
         
         # Parse relative dates (e.g., "1 day ago", "2 weeks ago")
         if "day" in posted_str or "week" in posted_str or "month" in posted_str or "hour" in posted_str:
@@ -642,24 +797,16 @@ class HybridOptimizedScraper:
                 elif "week" in posted_str:
                     job_time = now - timedelta(weeks=num)
                 elif "month" in posted_str:
-                    job_time = now - timedelta(days=num * 30)
+                    # Reject if months old
+                    return False
                 else:
                     return False
                 
                 return job_time >= cutoff
         
-        # Parse ISO format dates
-        iso_match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', posted_str)
-        if iso_match:
-            try:
-                y, m, d = map(int, iso_match.groups())
-                job_time = datetime(y, m, d, tzinfo=timezone.utc)
-                return job_time >= cutoff
-            except:
-                pass
-        
-        # If can't parse, assume it's fresh
-        return True
+        # If can't parse, REJECT (don't assume fresh)
+        logger.debug(f"Could not parse date '{posted_date}', rejecting")
+        return False
     
     def connect_sheets(self) -> bool:
         """Connect to Google Sheets."""
@@ -749,7 +896,10 @@ class HybridOptimizedScraper:
         """
         uploaded = 0
         
-        logger.info(f"Starting LinkedIn scraping: {len(cities)} cities, {len(weighted_keywords)} weighted keywords")
+        logger.info("="*70)
+        logger.info("🔵 LINKEDIN SCRAPING STARTED")
+        logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        logger.info("="*70)
         
         async with BrowserManager(headless=self.headless) as browser:
             try:
@@ -948,7 +1098,9 @@ class HybridOptimizedScraper:
                         self.stats["errors"] += 1
                         logger.error(f"Error processing {keyword} in {city}: {e}")
         
-        logger.info(f"LinkedIn scraping complete: {uploaded} jobs uploaded")
+        logger.info("="*70)
+        logger.info(f"🔵 LINKEDIN SCRAPING COMPLETE: {uploaded} jobs uploaded")
+        logger.info("="*70)
         return uploaded
     
     def scrape_indeed_naukri_batch(
@@ -958,23 +1110,28 @@ class HybridOptimizedScraper:
         limit_per_city: int = 10
     ) -> int:
         """
-        Scrape Indeed and Naukri jobs with WEIGHTED KEYWORD DISTRIBUTION.
+        Scrape Indeed jobs with WEIGHTED KEYWORD DISTRIBUTION.
         Uses pre-shuffled keywords to ensure category mixing.
+        
+        NOTE: Naukri removed due to 406 Recaptcha errors.
         """
         uploaded = 0
         
-        logger.info(f"Starting Indeed/Naukri scraping: {len(cities)} cities, {len(weighted_keywords)} weighted keywords")
+        logger.info("="*70)
+        logger.info("🟢 INDEED SCRAPING STARTED")
+        logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        logger.info("="*70)
         
         for city in cities:
             # Check for shutdown request
             if self.shutdown_requested:
-                logger.info("⚠️  Shutdown requested, stopping Indeed/Naukri scraping...")
+                logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
                 break
             
             for keyword, category, is_internship in weighted_keywords:
                 # Check for shutdown request
                 if self.shutdown_requested:
-                    logger.info("⚠️  Shutdown requested, stopping Indeed/Naukri scraping...")
+                    logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
                     break
                 
                 role_type = "internship" if is_internship else "full-time"
@@ -984,9 +1141,9 @@ class HybridOptimizedScraper:
                     # Rate limiting
                     time.sleep(1)
                     
-                    # Scrape both platforms
+                    # Scrape Indeed ONLY (Naukri removed due to Recaptcha)
                     df = scrape_multi_platform(
-                        sites=["indeed", "naukri"],
+                        sites=["indeed"],  # CHANGED: Removed "naukri"
                         search_term=keyword,
                         location=city,
                         results_wanted=limit_per_city,
@@ -1009,6 +1166,14 @@ class HybridOptimizedScraper:
                         platform = row.get('site', 'indeed')
                         job_title = row.get('title', '')
                         company = str(row.get('company', ''))
+                        posted_date = str(row.get('date_posted', ''))
+                        
+                        # CRITICAL: Date validation - Indeed/Naukri ignore hours_old parameter
+                        if not self.is_job_fresh(posted_date):
+                            self.stats["filtered_out"] += 1
+                            self.stats["old_jobs_filtered"] += 1
+                            logger.info(f"❌ Rejected ({platform}): '{job_title}' | Reason: Too old (posted: {posted_date})")
+                            continue
                         
                         # EARLY VALIDATION: Check before processing description
                         is_valid, reason = self.is_valid_role(job_title, company, keyword)
@@ -1024,14 +1189,10 @@ class HybridOptimizedScraper:
                         formatted_desc = raw_desc
                         if raw_desc:
                             try:
-                                from job_description_extractor import extract_indeed_description, extract_naukri_description, extract_from_text
+                                from job_description_extractor import extract_indeed_description, extract_from_text
                                 
-                                if platform == 'indeed':
-                                    formatted_desc = extract_indeed_description(raw_desc) or extract_from_text(raw_desc) or raw_desc
-                                elif platform == 'naukri':
-                                    formatted_desc = extract_naukri_description(raw_desc) or extract_from_text(raw_desc) or raw_desc
-                                else:
-                                    formatted_desc = extract_from_text(raw_desc) or raw_desc
+                                # Indeed only (Naukri removed)
+                                formatted_desc = extract_indeed_description(raw_desc) or extract_from_text(raw_desc) or raw_desc
                                 
                                 if len(formatted_desc) > 45000:
                                     formatted_desc = formatted_desc[:45000]
@@ -1040,11 +1201,14 @@ class HybridOptimizedScraper:
                                 formatted_desc = raw_desc[:45000] if len(raw_desc) > 45000 else raw_desc
                         
                         # Normalize
+                        raw_employment_type = str(row.get('job_type', 'Full Time'))
+                        normalized_employment_type = self.normalize_employment_type(raw_employment_type)
+                        
                         job_data = {
                             "job_title": self.sanitizer.sanitize_html(job_title),
                             "company": self.sanitizer.sanitize_html(company),
                             "company_logo": self.sanitizer.sanitize_url(str(row.get('company_logo', ''))),
-                            "employment_type": str(row.get('job_type', 'Full Time')),
+                            "employment_type": normalized_employment_type,
                             "location": str(row.get('location', '')),
                             "posted_date": str(row.get('date_posted', '')),
                             "job_url": self.sanitizer.sanitize_url(job_url),
@@ -1059,10 +1223,7 @@ class HybridOptimizedScraper:
                         if self.upload_job(platform, job_data):
                             uploaded += 1
                             valid_jobs_count += 1
-                            if platform == 'indeed':
-                                self.stats["indeed_jobs"] += 1
-                            else:
-                                self.stats["naukri_jobs"] += 1
+                            self.stats["indeed_jobs"] += 1  # Only Indeed now
                             self.stats["total_jobs"] += 1
                             logger.info(f"✓ {platform.capitalize()} [{category}]: {job_title}")
                     
@@ -1079,7 +1240,9 @@ class HybridOptimizedScraper:
             
             time.sleep(2)
         
-        logger.info(f"Indeed/Naukri scraping complete: {uploaded} jobs uploaded")
+        logger.info("="*70)
+        logger.info(f"🟢 INDEED SCRAPING COMPLETE: {uploaded} jobs uploaded")
+        logger.info("="*70)
         return uploaded
     
     async def run(
@@ -1112,20 +1275,36 @@ class HybridOptimizedScraper:
         if not self.connect_sheets():
             return {"success": False, "error": "Google Sheets connection failed"}
         
-        # Scrape LinkedIn
-        if "linkedin" in self.platforms:
-            await self.scrape_linkedin_batch(cities, weighted_keywords, limit_per_city)
+        # PARALLEL EXECUTION: Run all platforms simultaneously
+        tasks = []
         
-        # Scrape Indeed/Naukri (run in executor since it's synchronous)
-        if any(p in self.platforms for p in ['indeed', 'naukri']):
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None,
-                self.scrape_indeed_naukri_batch,
-                cities,
-                weighted_keywords,
-                limit_per_city
+        # Add LinkedIn task
+        if "linkedin" in self.platforms:
+            logger.info("🚀 Starting LinkedIn scraping (parallel mode)")
+            tasks.append(
+                asyncio.create_task(
+                    self.scrape_linkedin_batch(cities, weighted_keywords, limit_per_city)
+                )
             )
+        
+        # Add Indeed task (run in executor since it's synchronous)
+        if "indeed" in self.platforms:
+            logger.info("🚀 Starting Indeed scraping (parallel mode)")
+            loop = asyncio.get_event_loop()
+            tasks.append(
+                loop.run_in_executor(
+                    None,
+                    self.scrape_indeed_naukri_batch,
+                    cities,
+                    weighted_keywords,
+                    limit_per_city
+                )
+            )
+        
+        # Wait for all platforms to complete (or until shutdown)
+        if tasks:
+            logger.info(f"⏳ Running {len(tasks)} platform(s) in parallel...")
+            await asyncio.gather(*tasks, return_exceptions=True)
         
         # Print summary
         self._print_summary()
@@ -1149,7 +1328,6 @@ class HybridOptimizedScraper:
         print("="*70)
         print(f"LinkedIn Jobs:  {self.stats['linkedin_jobs']}")
         print(f"Indeed Jobs:    {self.stats['indeed_jobs']}")
-        print(f"Naukri Jobs:    {self.stats['naukri_jobs']}")
         print(f"Total Jobs:     {self.stats['total_jobs']}")
         print("-"*70)
         print("CATEGORY BREAKDOWN:")
@@ -1163,6 +1341,8 @@ class HybridOptimizedScraper:
         print(f"  Internships:  {self.stats['internship_jobs']}")
         print("-"*70)
         print(f"Filtered Out:   {self.stats['filtered_out']}")
+        print(f"  - Old Jobs:   {self.stats['old_jobs_filtered']} (posted > {self.max_days} days ago)")
+        print(f"  - Invalid:    {self.stats['filtered_out'] - self.stats['old_jobs_filtered']}")
         print(f"Duplicates:     {self.stats['duplicates_skipped']}")
         print(f"Errors:         {self.stats['errors']}")
         print("-"*70)
@@ -1226,9 +1406,9 @@ async def main():
     parser.add_argument(
         "--platforms",
         nargs="+",
-        choices=["linkedin", "indeed", "naukri"],
+        choices=["linkedin", "indeed"],
         default=DEFAULT_JOB_BOARDS,
-        help="Platforms to scrape"
+        help="Platforms to scrape (Naukri removed due to Recaptcha)"
     )
     parser.add_argument(
         "--max-days",
