@@ -219,10 +219,22 @@ class JobDescriptionExtractor:
                 
                 elif isinstance(element, Tag):
                     if element.name == 'strong':
-                        # Strong tags are headings in LinkedIn
+                        # Strong tags MIGHT be headings - check length and content
                         text = element.get_text(strip=True)
                         if text:
-                            formatted_parts.append(f'<h3>{text}</h3>')
+                            # If short (<80 chars) and looks like a heading, treat as H3
+                            # Otherwise, it's just emphasis in a paragraph
+                            is_heading = (
+                                len(text) < 80 and
+                                (text.endswith(':') or 
+                                 text.isupper() or
+                                 any(kw in text.lower() for kw in self.SECTION_KEYWORDS))
+                            )
+                            if is_heading:
+                                formatted_parts.append(f'<h3>{text}</h3>')
+                            else:
+                                # Just emphasis, treat as paragraph
+                                formatted_parts.append(f'<p>{text}</p>')
                     
                     elif element.name == 'ul':
                         # Process list - keep the structure
@@ -248,18 +260,59 @@ class JobDescriptionExtractor:
                         # Process paragraph - check if it contains strong tags (headings)
                         strong_tags = element.find_all('strong')
                         if strong_tags:
-                            # This paragraph contains headings, process them separately
-                            for child in element.children:
-                                if isinstance(child, Tag) and child.name == 'strong':
-                                    text = child.get_text(strip=True)
-                                    if text:
-                                        formatted_parts.append(f'<h3>{text}</h3>')
-                                elif isinstance(child, NavigableString):
-                                    text = str(child).strip()
-                                    if text and len(text) > 2:
-                                        formatted_parts.append(f'<p>{text}</p>')
+                            # Check if strong tags are headings or just emphasis
+                            has_heading = False
+                            for strong in strong_tags:
+                                text = strong.get_text(strip=True)
+                                if text and len(text) < 80 and (
+                                    text.endswith(':') or 
+                                    text.isupper() or
+                                    any(kw in text.lower() for kw in self.SECTION_KEYWORDS)
+                                ):
+                                    has_heading = True
+                                    break
+                            
+                            if has_heading:
+                                # This paragraph contains headings, process them separately
+                                for child in element.children:
+                                    if isinstance(child, Tag) and child.name == 'strong':
+                                        text = child.get_text(strip=True)
+                                        if text:
+                                            # Check if it's a heading
+                                            is_heading = (
+                                                len(text) < 80 and
+                                                (text.endswith(':') or 
+                                                 text.isupper() or
+                                                 any(kw in text.lower() for kw in self.SECTION_KEYWORDS))
+                                            )
+                                            if is_heading:
+                                                formatted_parts.append(f'<h3>{text}</h3>')
+                                            else:
+                                                formatted_parts.append(f'<p><strong>{text}</strong></p>')
+                                    elif isinstance(child, NavigableString):
+                                        text = str(child).strip()
+                                        if text and len(text) > 2:
+                                            formatted_parts.append(f'<p>{text}</p>')
+                                    elif isinstance(child, Tag) and child.name == 'br':
+                                        # Skip br tags
+                                        continue
+                                    elif isinstance(child, Tag):
+                                        # Other tags, get text
+                                        text = child.get_text(strip=True)
+                                        if text and len(text) > 2:
+                                            formatted_parts.append(f'<p>{text}</p>')
+                            else:
+                                # Strong tags are just emphasis, keep paragraph intact
+                                # Get HTML to preserve strong tags
+                                para_html = str(element)
+                                # Clean up the HTML
+                                para_html = re.sub(r'<p[^>]*>', '', para_html)
+                                para_html = re.sub(r'</p>', '', para_html)
+                                para_html = para_html.strip()
+                                if para_html and len(para_html) > 2:
+                                    formatted_parts.append(f'<p>{para_html}</p>')
                         else:
-                            # Regular paragraph
+                            # Regular paragraph without strong tags
                             text = element.get_text(strip=True)
                             if text and len(text) > 2:
                                 formatted_parts.append(f'<p>{text}</p>')
@@ -586,6 +639,7 @@ class JobDescriptionExtractor:
     def extract_from_plain_text(self, text: str) -> Optional[str]:
         """
         Convert plain text to formatted HTML with intelligent structure detection.
+        Optimized for Indeed job descriptions.
         
         Args:
             text: Plain text job description
@@ -595,6 +649,10 @@ class JobDescriptionExtractor:
         """
         if not text or len(text) < 50:
             return None
+        
+        # CRITICAL: Split inline bullets into separate lines
+        # Format: "* Item 1 * Item 2 * Item 3" → ["* Item 1", "* Item 2", "* Item 3"]
+        text = re.sub(r'\s+\*\s+', '\n* ', text)
         
         lines = text.split('\n')
         formatted_parts = []
@@ -633,15 +691,67 @@ class JobDescriptionExtractor:
                     self.first_heading_removed = True
                     continue
             
-            # Check for section headers
-            is_header = (
+            # CRITICAL: Check for Indeed-style headings (wrapped in ** or *)
+            # Format: *Description** or **Position Overview** or *In this position you will:**
+            # BUT: Single * at start with no ** is a bullet point
+            # AND: Long text with ** is NOT a heading, it's emphasis in a paragraph
+            if line.startswith('*'):
+                # Check if it's a heading (has ** somewhere) or just a bullet
+                if '**' in line or (line.endswith('*') and line.count('*') > 1):
+                    # Check if it's too long to be a heading (>80 chars = paragraph)
+                    clean_text = line.strip('*').strip()
+                    if len(clean_text) > 80:
+                        # Too long for heading, treat as paragraph
+                        if current_list:
+                            formatted_parts.append('<ul>\n' + '\n'.join(f'<li>{item}</li>' for item in current_list) + '\n</ul>')
+                            current_list = []
+                        # Remove ** markers and add as paragraph
+                        clean_text = clean_text.replace('**', '')
+                        current_paragraph.append(clean_text)
+                        continue
+                    
+                    # This is a heading
+                    # Save current content first
+                    if current_paragraph:
+                        formatted_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                        current_paragraph = []
+                    if current_list:
+                        formatted_parts.append('<ul>\n' + '\n'.join(f'<li>{item}</li>' for item in current_list) + '\n</ul>')
+                        current_list = []
+                    
+                    # Clean up the heading (remove * markers)
+                    if clean_text:
+                        formatted_parts.append(f'<h3>{clean_text}</h3>')
+                    continue
+                else:
+                    # Single * at start = bullet point
+                    if current_paragraph:
+                        formatted_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
+                        current_paragraph = []
+                    # Remove * and add to list
+                    clean_text = line.lstrip('*').strip()
+                    if clean_text:
+                        current_list.append(clean_text)
+                    continue
+            
+            # Check for section headers (but NOT full sentences)
+            is_short_header = (
                 any(line.startswith(emoji) for emoji in section_emojis) or
                 (line.isupper() and len(line) > 3 and len(line) < 100) or
-                line.endswith(':') or
-                any(keyword in line.lower() for keyword in self.SECTION_KEYWORDS)
+                (line.endswith(':') and len(line) < 80 and not line.count('.') > 1) or  # Short line ending with :
+                (any(keyword in line.lower() for keyword in self.SECTION_KEYWORDS) and len(line) < 80)
             )
             
-            if is_header:
+            # CRITICAL: Don't treat full sentences as headings
+            is_full_sentence = (
+                len(line) > 100 or  # Long lines are paragraphs
+                line.count('.') > 1 or  # Multiple sentences
+                line.count(',') > 2 or  # Multiple clauses
+                line.count('—') > 0 or  # Em dash indicates paragraph
+                ' and ' in line.lower() or ' or ' in line.lower()  # Conjunctions
+            )
+            
+            if is_short_header and not is_full_sentence:
                 # Save current content first
                 if current_paragraph:
                     formatted_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
@@ -652,13 +762,13 @@ class JobDescriptionExtractor:
                 # Add header
                 formatted_parts.append(f'<h3>{line}</h3>')
             
-            # Check for bullet points
-            elif line.startswith(('•', '▪', '▸', '◦', '-', '*', '➤', '→', '✓', '✔')):
+            # Check for bullet points (but NOT headings with *)
+            elif line.startswith(('•', '▪', '▸', '◦', '-', '➤', '→', '✓', '✔')) and not line.startswith('*'):
                 if current_paragraph:
                     formatted_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
                     current_paragraph = []
                 # Remove bullet character and add to list
-                clean_text = re.sub(r'^[•▪▸◦\-*➤→✓✔]\s*', '', line)
+                clean_text = re.sub(r'^[•▪▸◦\-➤→✓✔]\s*', '', line)
                 current_list.append(clean_text)
             
             # Check for numbered lists

@@ -899,9 +899,10 @@ input:focus-visible {
 }
 
 /* ============================================================================
-   Job Description Formatting
+   Job Description Formatting - ENHANCED FOR PIXEL-PERFECT LAYOUT
    ============================================================================ */
 
+/* Base container styling */
 #description {
     font-size: 16px;
     line-height: 1.8;
@@ -909,102 +910,136 @@ input:focus-visible {
     text-align: left;
 }
 
-/* Job Description Content Wrapper - Adds spacing between all elements */
+/* CRITICAL: Apply spacing to ALL direct children */
+#description > *,
 .job-description-content > * {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem !important;
 }
 
+#description > *:last-child,
 .job-description-content > *:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 
-/* HEADINGS - Clear visual hierarchy with extra spacing */
+/* HEADINGS - Clear visual hierarchy with EXTRA spacing */
 #description h3,
-.job-description-content h3 {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--on-surface);
-    margin-top: 2.5rem;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-    line-height: 1.3;
-    border-left: 4px solid var(--primary);
-    padding-left: 1rem;
+.job-description-content h3,
+#description h2,
+.job-description-content h2,
+#description h4,
+.job-description-content h4 {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: var(--on-surface) !important;
+    margin-top: 2.5rem !important;
+    margin-bottom: 1.25rem !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.3 !important;
+    border-left: 4px solid var(--primary) !important;
+    padding-left: 1rem !important;
+    display: block !important;
 }
 
+/* First heading should not have top margin */
 #description h3:first-child,
-.job-description-content h3:first-child {
-    margin-top: 0;
+.job-description-content h3:first-child,
+#description h2:first-child,
+.job-description-content h2:first-child {
+    margin-top: 0 !important;
 }
 
 /* PARAGRAPHS - Clear separation with proper spacing */
 #description p,
 .job-description-content p {
-    margin-bottom: 1.5rem;
-    text-align: left;
-    line-height: 1.8;
+    margin-bottom: 1.5rem !important;
+    margin-top: 0.75rem !important;
+    text-align: left !important;
+    line-height: 1.8 !important;
+    color: var(--on-surface-variant) !important;
+    display: block !important;
+}
+
+#description p:first-child,
+.job-description-content p:first-child {
+    margin-top: 0 !important;
 }
 
 #description p:last-child,
 .job-description-content p:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 
 /* LISTS - Bullet points with proper styling and spacing */
 #description ul,
 .job-description-content ul {
-    list-style: none;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
+    list-style: none !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 1.75rem !important;
+    padding-left: 0.5rem !important;
+    display: block !important;
 }
 
 #description ul li,
 .job-description-content ul li {
-    margin-bottom: 0.75rem;
-    padding-left: 1.5rem;
-    position: relative;
-    color: var(--on-surface-variant);
-    line-height: 1.6;
+    margin-bottom: 0.875rem !important;
+    padding-left: 1.75rem !important;
+    position: relative !important;
+    color: var(--on-surface-variant) !important;
+    line-height: 1.7 !important;
+    display: block !important;
+}
+
+#description ul li:last-child,
+.job-description-content ul li:last-child {
+    margin-bottom: 0 !important;
 }
 
 #description ul li::before,
 .job-description-content ul li::before {
-    content: "•";
-    color: var(--primary);
-    font-weight: bold;
-    font-size: 18px;
-    position: absolute;
-    left: 0;
-    top: -2px;
+    content: "•" !important;
+    color: var(--primary) !important;
+    font-weight: bold !important;
+    font-size: 20px !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: -2px !important;
 }
 
 /* NUMBERED LISTS */
 #description ol,
 .job-description-content ol {
-    list-style: none;
-    counter-reset: item;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
+    list-style: none !important;
+    counter-reset: item !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 1.75rem !important;
+    padding-left: 0.5rem !important;
+    display: block !important;
 }
 
 #description ol li,
 .job-description-content ol li {
-    margin-bottom: 0.75rem;
-    padding-left: 2rem;
-    position: relative;
-    color: var(--on-surface-variant);
-    line-height: 1.6;
-    counter-increment: item;
+    margin-bottom: 0.875rem !important;
+    padding-left: 2.25rem !important;
+    position: relative !important;
+    color: var(--on-surface-variant) !important;
+    line-height: 1.7 !important;
+    counter-increment: item !important;
+    display: block !important;
+}
+
+#description ol li:last-child,
+.job-description-content ol li:last-child {
+    margin-bottom: 0 !important;
 }
 
 #description ol li::before,
 .job-description-content ol li::before {
-    content: counter(item) ".";
-    color: var(--primary);
-    font-weight: 600;
-    position: absolute;
-    left: 0;
-    top: 0;
+    content: counter(item) "." !important;
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
 }
 
 /* NESTED LISTS */
@@ -1016,23 +1051,23 @@ input:focus-visible {
 .job-description-content ol ol,
 .job-description-content ul ol,
 .job-description-content ol ul {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    padding-left: 1.5rem;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+    padding-left: 1.5rem !important;
 }
 
 /* LINKS */
 #description a,
 .job-description-content a {
-    color: var(--primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    transition: color 0.2s;
+    color: var(--primary) !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+    transition: color 0.2s !important;
 }
 
 #description a:hover,
 .job-description-content a:hover {
-    color: var(--primary-fixed);
+    color: var(--primary-fixed) !important;
 }
 
 /* STRONG/BOLD */
@@ -1040,8 +1075,8 @@ input:focus-visible {
 #description b,
 .job-description-content strong,
 .job-description-content b {
-    font-weight: 600;
-    color: var(--on-surface);
+    font-weight: 600 !important;
+    color: var(--on-surface) !important;
 }
 
 /* EMPHASIS */
@@ -1049,80 +1084,88 @@ input:focus-visible {
 #description i,
 .job-description-content em,
 .job-description-content i {
-    font-style: italic;
+    font-style: italic !important;
 }
 
-/* BASE ELEMENT SPACING - Apply default spacing to all elements */
-.job-description-content h3 {
-    margin-top: 2rem;
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    font-size: 1.1rem;
-}
+/* SPACING BETWEEN DIFFERENT ELEMENT TYPES - CRITICAL FOR VISUAL SEPARATION */
 
-.job-description-content h3:first-child {
-    margin-top: 0;
-}
-
-.job-description-content p {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-    line-height: 1.6;
-}
-
-.job-description-content ul,
-.job-description-content ol {
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
-    padding-left: 1.5rem;
-}
-
-.job-description-content li {
-    margin-bottom: 0.5rem;
-    line-height: 1.5;
-}
-
-/* SPACING BETWEEN SECTIONS - Enhanced for better readability */
-#description h3 + p,
-.job-description-content h3 + p {
-    margin-top: 0.5rem;
-}
-
+/* Heading after paragraph - EXTRA space */
 #description p + h3,
-.job-description-content p + h3 {
-    margin-top: 2.5rem;
+#description p + h2,
+#description p + h4,
+.job-description-content p + h3,
+.job-description-content p + h2,
+.job-description-content p + h4 {
+    margin-top: 3rem !important;
 }
 
+/* Paragraph after heading - LESS space */
+#description h3 + p,
+#description h2 + p,
+#description h4 + p,
+.job-description-content h3 + p,
+.job-description-content h2 + p,
+.job-description-content h4 + p {
+    margin-top: 0.75rem !important;
+}
+
+/* List after paragraph - MEDIUM space */
 #description p + ul,
 #description p + ol,
 .job-description-content p + ul,
 .job-description-content p + ol {
-    margin-top: 1rem;
+    margin-top: 1.25rem !important;
 }
 
+/* Paragraph after list - MEDIUM space */
 #description ul + p,
 #description ol + p,
 .job-description-content ul + p,
 .job-description-content ol + p {
-    margin-top: 1.5rem;
+    margin-top: 1.5rem !important;
 }
 
+/* Heading after list - EXTRA space */
 #description ul + h3,
 #description ol + h3,
+#description ul + h2,
+#description ol + h2,
 .job-description-content ul + h3,
-.job-description-content ol + h3 {
-    margin-top: 2.5rem;
+.job-description-content ol + h3,
+.job-description-content ul + h2,
+.job-description-content ol + h2 {
+    margin-top: 3rem !important;
 }
 
+/* List after heading - LESS space */
 #description h3 + ul,
 #description h3 + ol,
+#description h2 + ul,
+#description h2 + ol,
 .job-description-content h3 + ul,
-.job-description-content h3 + ol {
-    margin-top: 0.5rem;
+.job-description-content h3 + ol,
+.job-description-content h2 + ul,
+.job-description-content h2 + ol {
+    margin-top: 0.75rem !important;
+}
+
+/* List after list - MEDIUM space */
+#description ul + ul,
+#description ol + ol,
+#description ul + ol,
+#description ol + ul,
+.job-description-content ul + ul,
+.job-description-content ol + ol,
+.job-description-content ul + ol,
+.job-description-content ol + ul {
+    margin-top: 1.5rem !important;
 }
 
 /* BR tags for line breaks */
 #description br,
 .job-description-content br {
-    line-height: 1.8;
+    line-height: 2 !important;
+    display: block !important;
+    content: "" !important;
+    margin-top: 0.5rem !important;
 }

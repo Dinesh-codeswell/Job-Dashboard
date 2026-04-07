@@ -632,118 +632,87 @@ class HybridOptimizedScraper:
     
     def is_valid_role(self, job_title: str, company: str = "", search_keyword: str = "") -> tuple[bool, str]:
         """
-        ENHANCED: Multi-category validation with strict quality checks AND keyword matching.
-        Supports: Consulting, Product, Strategy, Operations roles.
+        SIMPLIFIED VALIDATION (v2.0): Accept more, filter less.
+        
+        Previous version had 1.3% success rate (5/378 jobs) - TOO STRICT!
+        New approach: 3 simple checks only.
+        
+        Philosophy: Let users filter in dashboard, don't pre-filter aggressively.
+        Expected success rate: 40-50% (vs 1.3% before)
+        
         Returns (is_valid, reason) tuple.
         """
         if not job_title or job_title.strip() in ["", "Post a job", "View job"]:
             return False, "Empty or invalid job title"
         
         title_lower = job_title.lower().strip()
-        company_lower = company.lower().strip()
         
-        # TIER 0: CROSS-CATEGORY MATCHING - Accept if matches ANY of our 4 categories
-        # This allows "Product Manager" to be accepted even when searching for "Strategy Consultant"
-        keyword_matches, keyword_reason = self.keyword_matches_title(search_keyword, job_title)
-        if not keyword_matches:
-            return False, f"Not in target categories: {keyword_reason}"
-        
-        # TIER 1: Auto-reject patterns (immediate disqualification)
+        # ========================================================================
+        # CHECK 1: Auto-reject pure tech/sales roles (STRICT)
+        # ========================================================================
         for pattern in AUTO_REJECT_PATTERNS:
             if re.search(pattern, title_lower):
-                return False, f"Auto-reject: Pure tech/sales role"
+                return False, f"Pure tech/sales role"
         
-        # TIER 2: Check blocked patterns
-        for blocked in BLOCKED_TITLE_PATTERNS:
+        # ========================================================================
+        # CHECK 2: Does title contain ANY target keyword? (PERMISSIVE)
+        # ========================================================================
+        # Expanded keywords to include broader roles
+        target_keywords = [
+            # Consulting
+            'consultant', 'consulting', 'advisory', 'advisor',
+            
+            # Product (including leadership)
+            'product manager', 'product management', 'apm', 'associate product',
+            'head of product', 'director of product', 'vp of product', 'vp product',
+            'chief product officer', 'cpo', 'product director', 'product lead',
+            
+            # Strategy & Growth (including leadership)
+            'strategy', 'growth', 'strategic',
+            'head of strategy', 'director of strategy', 'vp of strategy',
+            'chief strategy officer', 'cso',
+            'head of growth', 'director of growth', 'vp of growth',
+            'chief growth officer', 'cgo',
+            
+            # Operations & Analytics (including leadership)
+            'operations', 'business operations',
+            'program manager', 'project manager',  # EXPANDED: Added "project manager"
+            'business analyst', 'strategy analyst', 'analyst',  # EXPANDED: Added generic "analyst"
+            'chief of staff', 'cos',
+            'head of operations', 'director of operations', 'vp of operations',
+            'chief operating officer', 'coo',
+            "founder's office", 'market research',
+            
+            # Leadership & Management (EXPANDED)
+            'manager', 'director', 'head of', 'vp of', 'chief',
+            'lead', 'senior', 'principal',
+        ]
+        
+        # Check if ANY keyword matches
+        has_target_keyword = any(keyword in title_lower for keyword in target_keywords)
+        
+        if not has_target_keyword:
+            return False, f"No target keywords found in: {job_title}"
+        
+        # ========================================================================
+        # CHECK 3: Block obviously irrelevant roles (MINIMAL)
+        # ========================================================================
+        blocked_terms = [
+            'executive assistant', 'personal assistant', 'receptionist',
+            'data entry', 'back office', 'promotions',
+            'fresher', 'coordinator', 'administrator',
+            'customer success', 'account manager', 'relationship manager',
+            'scrum master', 'delivery manager',
+        ]
+        
+        for blocked in blocked_terms:
             if blocked in title_lower:
                 return False, f"Blocked role: '{blocked}'"
         
-        # TIER 3: Detect role category
-        category = self.detect_role_category(job_title)
-        
-        if not category:
-            return False, "Does not match any target role category"
-        
-        # TIER 4: Category-specific validation
-        required_patterns = REQUIRED_PATTERNS_BY_CATEGORY.get(category, [])
-        has_required_term = any(re.search(pattern, title_lower) for pattern in required_patterns)
-        
-        if not has_required_term:
-            return False, f"Missing required terms for {category} role"
-        
-        # TIER 5: Special handling for internships
-        is_internship = "intern" in title_lower
-        
-        if is_internship:
-            # Internship must explicitly mention the role type
-            if category in ["consulting", "product", "strategy", "operations"]:
-                return True, f"Valid {category} internship"
-            else:
-                return False, "Internship without clear role category"
-        
-        # TIER 6: Company validation (STRICT - bonus for target companies)
-        is_target_company = any(firm in company_lower for firm in ALL_TARGET_COMPANIES)
-        
-        # TIER 7: Special validation for broad roles (Founder's Office, Business Analyst)
-        broad_roles = ["founder", "business analyst", "program manager", "operations manager"]
-        is_broad_role = any(role in title_lower for role in broad_roles)
-        
-        if is_broad_role and not is_target_company:
-            # Broad roles MUST be from target companies (STRICT)
-            return False, f"Broad role '{job_title}' not from target company"
-        
-        # TIER 8: Title structure validation
-        if len(title_lower.split()) <= 1:
-            return False, "Title too short/generic"
-        
-        # TIER 9: Context scoring by category
-        score = 0
-        
-        if category == "consulting":
-            if "consult" in title_lower: score += 3
-            if "advisory" in title_lower or "advisor" in title_lower: score += 2
-            if "strategy" in title_lower: score += 1
-            if "management" in title_lower or "business" in title_lower: score += 1
-            min_score = 3
-        
-        elif category == "product":
-            if "product manager" in title_lower: score += 4
-            if "product management" in title_lower: score += 4
-            if "senior" in title_lower or "lead" in title_lower or "principal" in title_lower: score += 1
-            if "associate" in title_lower or "apm" in title_lower: score += 1
-            if "strategy" in title_lower: score += 1
-            min_score = 4
-        
-        elif category == "strategy":
-            if "strategy" in title_lower: score += 3
-            if "growth" in title_lower: score += 2
-            if "business" in title_lower or "corporate" in title_lower: score += 1
-            if "manager" in title_lower or "lead" in title_lower: score += 1
-            min_score = 3
-        
-        elif category == "operations":
-            if "operations" in title_lower: score += 2
-            if "business" in title_lower: score += 1
-            if "strategy" in title_lower: score += 1
-            if "program manager" in title_lower: score += 3
-            if "business analyst" in title_lower: score += 3
-            if "founder" in title_lower and "office" in title_lower: score += 3
-            if "market research" in title_lower: score += 3
-            if "chief of staff" in title_lower: score += 4
-            min_score = 2
-        
-        else:
-            min_score = 2
-        
-        # Bonus for target companies
-        if is_target_company:
-            score += 1
-        
-        # Final validation
-        if score >= min_score:
-            return True, f"Valid {category} role (score: {score}/{min_score})"
-        else:
-            return False, f"Insufficient context for {category} role (score: {score}/{min_score})"
+        # ========================================================================
+        # ACCEPT: If we got here, the job passed all checks
+        # ========================================================================
+        return True, f"Valid role: {job_title}"
     
     def is_job_fresh(self, posted_date: str) -> bool:
         """
