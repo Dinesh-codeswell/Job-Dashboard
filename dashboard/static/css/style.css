@@ -909,8 +909,18 @@ input:focus-visible {
     text-align: left;
 }
 
-/* HEADINGS - Clear visual hierarchy */
-#description h3 {
+/* Job Description Content Wrapper - Adds spacing between all elements */
+.job-description-content > * {
+    margin-bottom: 1.5rem;
+}
+
+.job-description-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* HEADINGS - Clear visual hierarchy with extra spacing */
+#description h3,
+.job-description-content h3 {
     font-size: 22px;
     font-weight: 700;
     color: var(--on-surface);
@@ -922,29 +932,34 @@ input:focus-visible {
     padding-left: 1rem;
 }
 
-#description h3:first-child {
+#description h3:first-child,
+.job-description-content h3:first-child {
     margin-top: 0;
 }
 
-/* PARAGRAPHS - Clear separation */
-#description p {
+/* PARAGRAPHS - Clear separation with proper spacing */
+#description p,
+.job-description-content p {
     margin-bottom: 1.5rem;
     text-align: left;
     line-height: 1.8;
 }
 
-#description p:last-child {
+#description p:last-child,
+.job-description-content p:last-child {
     margin-bottom: 0;
 }
 
-/* LISTS - Bullet points with proper styling */
-#description ul {
+/* LISTS - Bullet points with proper styling and spacing */
+#description ul,
+.job-description-content ul {
     list-style: none;
     margin-bottom: 1.5rem;
     padding-left: 0.5rem;
 }
 
-#description ul li {
+#description ul li,
+.job-description-content ul li {
     margin-bottom: 0.75rem;
     padding-left: 1.5rem;
     position: relative;
@@ -952,7 +967,8 @@ input:focus-visible {
     line-height: 1.6;
 }
 
-#description ul li::before {
+#description ul li::before,
+.job-description-content ul li::before {
     content: "•";
     color: var(--primary);
     font-weight: bold;
@@ -963,14 +979,16 @@ input:focus-visible {
 }
 
 /* NUMBERED LISTS */
-#description ol {
+#description ol,
+.job-description-content ol {
     list-style: none;
     counter-reset: item;
     margin-bottom: 1.5rem;
     padding-left: 0.5rem;
 }
 
-#description ol li {
+#description ol li,
+.job-description-content ol li {
     margin-bottom: 0.75rem;
     padding-left: 2rem;
     position: relative;
@@ -979,7 +997,8 @@ input:focus-visible {
     counter-increment: item;
 }
 
-#description ol li::before {
+#description ol li::before,
+.job-description-content ol li::before {
     content: counter(item) ".";
     color: var(--primary);
     font-weight: 600;
@@ -992,72 +1011,88 @@ input:focus-visible {
 #description ul ul,
 #description ol ol,
 #description ul ol,
-#description ol ul {
+#description ol ul,
+.job-description-content ul ul,
+.job-description-content ol ol,
+.job-description-content ul ol,
+.job-description-content ol ul {
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
     padding-left: 1.5rem;
 }
 
 /* LINKS */
-#description a {
+#description a,
+.job-description-content a {
     color: var(--primary);
     text-decoration: underline;
     text-underline-offset: 2px;
     transition: color 0.2s;
 }
 
-#description a:hover {
+#description a:hover,
+.job-description-content a:hover {
     color: var(--primary-fixed);
 }
 
 /* STRONG/BOLD */
 #description strong,
-#description b {
+#description b,
+.job-description-content strong,
+.job-description-content b {
     font-weight: 600;
     color: var(--on-surface);
 }
 
 /* EMPHASIS */
 #description em,
-#description i {
+#description i,
+.job-description-content em,
+.job-description-content i {
     font-style: italic;
 }
 
-/* SPACING BETWEEN SECTIONS */
-#description h3 + p {
+/* SPACING BETWEEN SECTIONS - Enhanced for better readability */
+#description h3 + p,
+.job-description-content h3 + p {
     margin-top: 0.5rem;
 }
 
-#description p + h3 {
+#description p + h3,
+.job-description-content p + h3 {
     margin-top: 2.5rem;
 }
 
 #description p + ul,
-#description p + ol {
+#description p + ol,
+.job-description-content p + ul,
+.job-description-content p + ol {
     margin-top: 1rem;
 }
 
 #description ul + p,
-#description ol + p {
+#description ol + p,
+.job-description-content ul + p,
+.job-description-content ol + p {
     margin-top: 1.5rem;
 }
 
 #description ul + h3,
-#description ol + h3 {
+#description ol + h3,
+.job-description-content ul + h3,
+.job-description-content ol + h3 {
     margin-top: 2.5rem;
 }
 
 #description h3 + ul,
-#description h3 + ol {
+#description h3 + ol,
+.job-description-content h3 + ul,
+.job-description-content h3 + ol {
     margin-top: 0.5rem;
 }
 
-/* Ensure proper spacing between all elements */
-#description > * + * {
-    margin-top: 0;
-}
-
 /* BR tags for line breaks */
-#description br {
+#description br,
+.job-description-content br {
     line-height: 1.8;
 }

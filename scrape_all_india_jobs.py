@@ -514,13 +514,17 @@ class UnifiedIndiaJobsScraper:
         return desc
 
     def _normalize_linkedin_job(self, job, city: str) -> Dict[str, Any]:
-        """Normalize LinkedIn job data to unified format."""
+        """Normalize LinkedIn job data to unified format with pixel-perfect description."""
         description = job.job_description or ""
-        # Clean description
-        description = description.replace("… more", "").replace("... more", "")
-        description = description.replace("Show less", "").replace("Show more", "")
-        # Clean heading artifacts
-        description = self.clean_job_description(description)
+        
+        # Description is already formatted by the new extractor in job.py
+        # Just clean up any remaining artifacts
+        if description:
+            description = description.replace("… more", "").replace("... more", "")
+            description = description.replace("Show less", "").replace("Show more", "")
+            # Truncate if too long
+            if len(description) > 45000:
+                description = description[:45000]
 
         return {
             "job_title": (job.job_title or "").strip(),
@@ -530,7 +534,7 @@ class UnifiedIndiaJobsScraper:
             "location": (job.location or city).strip(),
             "posted_date": job.posted_date or "",
             "job_url": job.linkedin_url,
-            "job_description": description[:45000] if len(description) > 45000 else description,
+            "job_description": description,
             "search_city": city,
             "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "platform": "linkedin"
@@ -628,7 +632,10 @@ class UnifiedIndiaJobsScraper:
         return raw_lower.title()
 
     def _normalize_indeed_naukri_job(self, row: Dict, platform: str) -> Dict[str, Any]:
-        """Normalize Indeed/Naukri job data from DataFrame to unified format."""
+        """Normalize Indeed/Naukri job data from DataFrame to unified format with pixel-perfect description."""
+        # Import the extractor
+        from job_description_extractor import extract_indeed_description, extract_naukri_description, extract_from_text
+        
         # Map DataFrame columns to unified format
         mapping = {
             'title': 'job_title',
@@ -653,15 +660,34 @@ class UnifiedIndiaJobsScraper:
         raw_type = job_data.get('employment_type', '')
         job_data['employment_type'] = self.normalize_employment_type(raw_type)
 
-        # Clean description
-        desc = job_data.get('job_description', '')
-        if desc:
-            # Clean heading artifacts
-            desc = self.clean_job_description(desc)
-            # Truncate if too long
-            if len(desc) > 45000:
-                desc = desc[:45000] + "..."
-            job_data['job_description'] = desc
+        # Extract pixel-perfect description
+        raw_desc = job_data.get('job_description', '')
+        if raw_desc:
+            try:
+                # Try platform-specific extraction first
+                if platform == 'indeed':
+                    formatted_desc = extract_indeed_description(raw_desc)
+                elif platform == 'naukri':
+                    formatted_desc = extract_naukri_description(raw_desc)
+                else:
+                    formatted_desc = extract_from_text(raw_desc)
+                
+                # Fallback to plain text extraction if platform-specific fails
+                if not formatted_desc:
+                    formatted_desc = extract_from_text(raw_desc)
+                
+                # Use formatted description if available, otherwise use raw
+                if formatted_desc:
+                    job_data['job_description'] = formatted_desc[:45000] if len(formatted_desc) > 45000 else formatted_desc
+                else:
+                    # Last resort: clean the raw description
+                    desc = self.clean_job_description(raw_desc)
+                    job_data['job_description'] = desc[:45000] if len(desc) > 45000 else desc
+            except Exception as e:
+                logger.debug(f"Description extraction error: {e}")
+                # Fallback to basic cleaning
+                desc = self.clean_job_description(raw_desc)
+                job_data['job_description'] = desc[:45000] if len(desc) > 45000 else desc
 
         return job_data
     

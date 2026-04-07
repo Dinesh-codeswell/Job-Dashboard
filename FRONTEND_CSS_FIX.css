@@ -1,0 +1,296 @@
+/* ============================================================================
+   JOB DESCRIPTION STYLING - PIXEL PERFECT SPACING
+   ============================================================================
+   
+   Add this CSS to your dashboard stylesheet to ensure proper spacing
+   between paragraphs, headings, and sections.
+   
+   File: dashboard/static/css/style.css (or equivalent)
+   ============================================================================ */
+
+/* Main container */
+.job-description {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  font-size: 1rem;
+}
+
+/* Headings - Clear visual hierarchy */
+.job-description h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.job-description h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 1.75rem;
+  margin-bottom: 0.875rem;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.job-description h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.job-description h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.625rem;
+  color: #2a2a2a;
+  line-height: 1.4;
+}
+
+.job-description h5,
+.job-description h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #2a2a2a;
+  line-height: 1.5;
+}
+
+/* Paragraphs - CRITICAL: Proper spacing between paragraphs */
+.job-description p {
+  margin-top: 0;
+  margin-bottom: 1rem;  /* 16px spacing between paragraphs */
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* Last paragraph in a section should have more space */
+.job-description p:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+/* Lists - Proper spacing */
+.job-description ul,
+.job-description ol {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;  /* Space after lists */
+  padding-left: 1.5rem;
+  line-height: 1.6;
+}
+
+/* List items */
+.job-description li {
+  margin-bottom: 0.5rem;  /* Space between list items */
+}
+
+/* Nested lists */
+.job-description ul ul,
+.job-description ol ol,
+.job-description ul ol,
+.job-description ol ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Inline formatting */
+.job-description strong,
+.job-description b {
+  font-weight: 600;
+  color: #000;
+}
+
+.job-description em,
+.job-description i {
+  font-style: italic;
+}
+
+.job-description u {
+  text-decoration: underline;
+}
+
+/* Links */
+.job-description a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.job-description a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquotes */
+.job-description blockquote {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 4px solid #e0e0e0;
+  color: #666;
+  font-style: italic;
+}
+
+/* Code blocks */
+.job-description code {
+  background-color: #f5f5f5;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.job-description pre {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.job-description pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Tables */
+.job-description table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.job-description th,
+.job-description td {
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.job-description th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Horizontal rules */
+.job-description hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 2rem 0;
+}
+
+/* First and last element spacing */
+.job-description > *:first-child {
+  margin-top: 0 !important;
+}
+
+.job-description > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Section spacing - Add extra space between major sections */
+.job-description h3 + p {
+  margin-top: 0.5rem;  /* Space between heading and first paragraph */
+}
+
+.job-description h3 + ul,
+.job-description h3 + ol {
+  margin-top: 0.5rem;  /* Space between heading and list */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .job-description {
+    font-size: 0.95rem;
+  }
+  
+  .job-description h1 {
+    font-size: 1.75rem;
+  }
+  
+  .job-description h2 {
+    font-size: 1.5rem;
+  }
+  
+  .job-description h3 {
+    font-size: 1.125rem;
+  }
+  
+  .job-description ul,
+  .job-description ol {
+    padding-left: 1.25rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .job-description {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  
+  .job-description h1,
+  .job-description h2,
+  .job-description h3 {
+    page-break-after: avoid;
+  }
+  
+  .job-description ul,
+  .job-description ol,
+  .job-description p {
+    page-break-inside: avoid;
+  }
+}
+
+/* ============================================================================
+   CRITICAL FIX: Ensure spacing is preserved even with inline styles
+   ============================================================================ */
+
+/* Override any inline styles that might remove spacing */
+.job-description p[style] {
+  margin-bottom: 1rem !important;
+}
+
+.job-description h3[style] {
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.job-description ul[style],
+.job-description ol[style] {
+  margin-bottom: 1.5rem !important;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus styles for keyboard navigation */
+.job-description a:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .job-description {
+    color: #000;
+  }
+  
+  .job-description h1,
+  .job-description h2,
+  .job-description h3 {
+    color: #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .job-description * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

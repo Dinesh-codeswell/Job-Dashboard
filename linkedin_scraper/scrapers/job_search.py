@@ -127,9 +127,24 @@ class JobSearchScraper(BaseScraper):
                         # Clean URL (remove query params)
                         clean_url = href.split('?')[0] if '?' in href else href
                         
-                        # Ensure full URL
+                        # Ensure full URL - FIXED: Check if already has protocol
                         if not clean_url.startswith('http'):
-                            clean_url = f"https://www.linkedin.com{clean_url}"
+                            # Only prepend if it's a relative URL (starts with /)
+                            if clean_url.startswith('/'):
+                                clean_url = f"https://www.linkedin.com{clean_url}"
+                            else:
+                                # If it doesn't start with / or http, it might be malformed
+                                # Try to fix common issues
+                                if 'linkedin.com' in clean_url:
+                                    # Already has linkedin.com, just add protocol
+                                    clean_url = f"https://{clean_url}"
+                                else:
+                                    # Assume it's a relative path
+                                    clean_url = f"https://www.linkedin.com/{clean_url}"
+                        
+                        # Fix double 'l' issue if present (llinkedin.com -> linkedin.com)
+                        clean_url = clean_url.replace('llinkedin.com', 'linkedin.com')
+                        clean_url = clean_url.replace('//linkedin.com', '//www.linkedin.com')
                         
                         # Avoid duplicates
                         if clean_url not in seen_urls:

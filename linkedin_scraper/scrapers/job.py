@@ -417,21 +417,36 @@ class JobScraper(BaseScraper):
     
     async def _get_description(self) -> Optional[str]:
         """
-        Extract complete job description from LinkedIn.
-        Returns formatted HTML with proper structure.
+        Extract pixel-perfect job description from LinkedIn.
+        Uses advanced JobDescriptionExtractor for perfect formatting.
         """
+        try:
+            # Import the extractor
+            import sys
+            from pathlib import Path
+            sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+            from job_description_extractor import extract_linkedin_description
+            
+            # Use the pixel-perfect extractor
+            description = await extract_linkedin_description(self.page)
+            return description
+            
+        except Exception as e:
+            logger.error(f"Error extracting description: {e}")
+            # Fallback to basic extraction
+            return await self._get_description_fallback()
+    
+    async def _get_description_fallback(self) -> Optional[str]:
+        """Fallback description extraction if advanced extractor fails."""
         try:
             # Find "About the job" section
             about_heading = self.page.locator('h2:has-text("About the job")').first
             if await about_heading.count() > 0:
-                # Get parent container
                 parent = about_heading.locator('xpath=ancestor::div[@class][2]')
                 if await parent.count() > 0:
-                    # Get all text
                     text = await parent.inner_text()
                     if text and len(text) > 100:
-                        # Format it properly
-                        return self._format_description_text(text)
+                        return text.strip()
             
             # Fallback: Get main content
             main_content = self.page.locator('main').first
@@ -440,112 +455,9 @@ class JobScraper(BaseScraper):
                 if 'About the job' in text:
                     description = text.split('About the job')[1] if 'About the job' in text else text
                     if description and len(description) > 100:
-                        return self._format_description_text(description.strip())
+                        return description.strip()
             
             return None
         except Exception as e:
-            logger.error(f"Error extracting description: {e}")
+            logger.error(f"Fallback extraction error: {e}")
             return None
-
-    def _format_description_text(self, text: str) -> str:
-        """
-        Convert plain text to formatted HTML with clear structure.
-        ONLY removes the very first heading artifact (About the job, Job Description, etc.)
-        Preserves ALL subheadings within the JD.
-        """
-        if not text:
-            return None
-
-        # ONLY the topmost headings to filter out (scraping artifacts at the start)
-        top_headings_to_remove = [
-            'about the job',
-            'job description',
-            'company description',
-            'about us',
-            'about our company',
-            'about the role',
-        ]
-
-        lines = text.split('\n')
-        html_parts = []
-        current_list = []
-        current_paragraph = []
-        first_heading_removed = False
-
-        # Emoji markers for sections
-        section_emojis = ['📌', '📍', '🏢', '🕒', '🔎', '💰', '👤', '✅', '⭐', '🎯', '📋', '💼']
-
-        for line in lines:
-            line = line.strip()
-
-            # Skip empty lines - they separate sections
-            if not line:
-                # Save current paragraph
-                if current_paragraph:
-                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
-                    current_paragraph = []
-                # Save current list
-                if current_list:
-                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
-                    current_list = []
-                continue
-
-            # Check if this is a heading artifact (ONLY at the very beginning)
-            is_heading_artifact = (
-                not first_heading_removed and
-                any(line.lower() == heading or line.lower().startswith(heading + ':') 
-                    for heading in top_headings_to_remove)
-            )
-
-            if is_heading_artifact:
-                # Skip ONLY the first heading artifact
-                first_heading_removed = True
-                continue
-
-            # Check for section headers (emoji, ALL CAPS, or ends with :)
-            is_header = (
-                any(line.startswith(emoji) for emoji in section_emojis) or
-                (line.isupper() and len(line) > 3 and len(line) < 100) or
-                line.endswith(':')
-            )
-
-            if is_header:
-                # Save current content first
-                if current_paragraph:
-                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
-                    current_paragraph = []
-                if current_list:
-                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
-                    current_list = []
-                # Add header
-                html_parts.append(f'<h3>{line}</h3>')
-
-            # Check for bullet points
-            elif line.startswith(('•', '▪', '▸', '◦', '-', '*', '➤')):
-                if current_paragraph:
-                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
-                    current_paragraph = []
-                current_list.append(line[1:].strip())
-            
-            # Check for numbered lists
-            elif len(line) > 3 and line[0].isdigit() and '.' in line[:3]:
-                if current_paragraph:
-                    html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
-                    current_paragraph = []
-                current_list.append(line.split('. ', 1)[-1] if '. ' in line else line)
-            
-            # Regular text - add to paragraph
-            else:
-                if current_list:
-                    html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
-                    current_list = []
-                current_paragraph.append(line)
-        
-        # Don't forget remaining content
-        if current_paragraph:
-            html_parts.append('<p>' + ' '.join(current_paragraph) + '</p>')
-        if current_list:
-            html_parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in current_list) + '</ul>')
-        
-        result = '\n\n'.join(html_parts)
-        return result if result and len(result) > 50 else None
