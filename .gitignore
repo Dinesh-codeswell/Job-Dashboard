@@ -71,3 +71,4 @@ $RECYCLE.BIN/
 # Cache files that may contain API responses
 *_cache.json
 cache/
+*.md

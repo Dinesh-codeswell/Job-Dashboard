@@ -380,6 +380,9 @@ function createJobCard(job, index = 0) {
     const posted = Utils.formatRelativeTime(job.posted_date, job.posted_at_timestamp);
     const isNew = isNewJob(job.posted_at_timestamp || job.posted_date);
     
+    // Generate unique ID for this timestamp element for dynamic updates
+    const timestampId = `posted-${job.id || index}-${Date.now()}`;
+    
     // Debug: Log the entire job object for first job
     if (index === 0) {
         console.log('=== FIRST JOB OBJECT ===', job);
@@ -415,7 +418,7 @@ function createJobCard(job, index = 0) {
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-4">
                                 <span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">Featured</span>
-                                <span class="text-outline text-xs">${posted}</span>
+                                <span id="${timestampId}" class="text-outline text-xs" data-updateable="true" data-timestamp="${job.posted_at_timestamp || ''}">${posted}</span>
                             </div>
                             <h3 class="text-3xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">${title}</h3>
                             <p class="text-on-surface-variant text-lg mb-6">${company}</p>
@@ -454,7 +457,7 @@ function createJobCard(job, index = 0) {
                             <div class="flex items-center gap-2 mb-3">
                                 <span class="text-outline text-xs">${type}</span>
                                 <span class="w-1 h-1 bg-outline rounded-full"></span>
-                                <span class="text-outline text-xs">${posted}</span>
+                                <span id="${timestampId}" class="text-outline text-xs" data-updateable="true" data-timestamp="${job.posted_at_timestamp || ''}">${posted}</span>
                             </div>
                             <h3 class="text-xl font-bold font-headline mb-1 group-hover:text-primary transition-colors">${title}</h3>
                             <p class="text-on-surface-variant text-sm mb-4">${company}</p>
@@ -881,6 +884,19 @@ function startAutoRefresh() {
             autoRefresh();
         }
     }, 1000);
+
+    // Start updating timestamps every 60 seconds for dynamic relative time display
+    startTimestampUpdater();
+}
+
+function startTimestampUpdater() {
+    // Update timestamps immediately on first render
+    Utils.updateAllTimestamps();
+    
+    // Then update every 60 seconds (1 minute)
+    setInterval(() => {
+        Utils.updateAllTimestamps();
+    }, 60000);
 }
 
 function updateRefreshIndicator() {

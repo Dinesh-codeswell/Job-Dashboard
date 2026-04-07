@@ -77,6 +77,33 @@ const Utils = {
         // FALLBACK: Try to parse as date
         return this.formatDate(dateString);
     },
+
+    /**
+     * Store timestamp for dynamic updates
+     * Called when rendering job cards to enable real-time updates
+     */
+    storeTimestampForUpdate(elementId, timestamp) {
+        if (!elementId || !timestamp) return;
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.dataset.timestamp = timestamp;
+            element.dataset.updateable = 'true';
+        }
+    },
+
+    /**
+     * Update all dynamic timestamps on the page
+     * Call this periodically (e.g., every 60 seconds) to refresh relative times
+     */
+    updateAllTimestamps() {
+        const updateableElements = document.querySelectorAll('[data-updateable="true"][data-timestamp]');
+        updateableElements.forEach(element => {
+            const timestamp = element.dataset.timestamp;
+            if (timestamp) {
+                element.textContent = this.formatDate(timestamp);
+            }
+        });
+    },
     
     /**
      * Truncate text to specified length
