@@ -102,96 +102,81 @@ class JobScraper(BaseScraper):
     async def _get_job_title(self) -> Optional[str]:
         """Extract job title from page."""
         try:
-            # LinkedIn job pages have structure:
-            # Line 0: Company Name
-            # Line 1: (empty)
-            # Line 2: Job Title
-            # Line 3: (empty)
-            # Line 4: Location · Time info
-            
-            try:
-                main_content = self.page.locator('main').first
-                if await main_content.count() > 0:
-                    text = await main_content.inner_text()
-                    lines = [line.strip() for line in text.split('\n')]
-                    
-                    # Filter out empty lines but keep track of original positions
-                    non_empty_lines = []
-                    for i, line in enumerate(lines):
-                        if line:
-                            non_empty_lines.append((i, line))
-                    
-                    # Look for company name followed by job title
-                    for idx, (orig_idx, line) in enumerate(non_empty_lines):
-                        # First non-empty line is usually company name
-                        if idx == 0:
-                            company_name = line
-                            # Second non-empty line should be job title
-                            if len(non_empty_lines) > 1:
-                                job_title = non_empty_lines[1][1]
-                                # Validate it's not employment type or location
-                                skip_patterns = [
-                                    'full-time', 'part-time', 'contract', 
-                                    'united states', 'remote', 'ago', 
-                                    'clicked', 'apply', 'save'
-                                ]
-                                job_title_lower = job_title.lower()
-                                
-                                # Check if job title is valid
-                                if (len(job_title) > 3 and 
-                                    len(job_title) < 150 and
-                                    not any(pattern in job_title_lower for pattern in skip_patterns)):
-                                    return job_title
-            except Exception as e:
-                pass
-            
-            # Try to find job title by looking for text after company link
-            try:
-                company_link = self.page.locator('a[href*="/company/"]').first
-                if await company_link.count() > 0:
-                    # Get parent element and find text after it
-                    parent = company_link.locator('xpath=ancestor::*[3]')
-                    if await parent.count() > 0:
-                        text = await parent.inner_text()
-                        lines = [line.strip() for line in text.split('\n') if line.strip()]
-                        for line in lines:
-                            if line and len(line) > 3 and len(line) < 100:
-                                # Skip employment types and common words
-                                skip_words = ['full-time', 'part-time', 'contract', 'apply', 'save', 'share', 'ago']
-                                if not any(word in line.lower() for word in skip_words):
-                                    return line
-            except:
-                pass
-            
-            # Try h2 elements (LinkedIn sometimes uses h2 for job titles)
-            h2_elements = await self.page.locator('h2').all()
-            for elem in h2_elements:
-                text = await elem.inner_text()
-                text = text.strip()
-                # Job title is usually not "About the job" or notifications
-                skip_words = ['notification', 'about the job', 'full-time', 'part-time']
-                if text and len(text) > 3 and len(text) < 100 and not any(w in text.lower() for w in skip_words):
-                    return text
-            
-            # Fallback: try original selectors
-            selectors = [
-                'h1[data-test-job-title]',
-                'h1.job-title',
-                'h1',
-                '.job-title h1',
-                '[data-test-job-title]'
+            # FIXED: Use specific selectors for LinkedIn's current layout
+            # Try specific job title selectors first (most reliable)
+            title_selectors = [
+                'h1.top-card-layout__title',  # New LinkedIn layout (PRIMARY)
+                'h1.t-24.t-bold',  # Alternative layout
+                'h2.top-card-layout__title',  # Sometimes uses h2
+                'h1[class*="job"]',  # Fallback with "job" in class
+                'h1[data-test-job-title]',  # Old layout
+                'h1.job-title',  # Old layout
             ]
             
-            for selector in selectors:
+            for selector in title_selectors:
                 try:
                     title_elem = self.page.locator(selector).first
                     if await title_elem.count() > 0:
                         title = await title_elem.inner_text()
                         title = title.strip()
-                        if title and len(title) > 3:
+                        # Validate it's not company name or location
+                        # Company names often have "  Location" pattern
+                        if title and len(title) > 3 and len(title) < 150:
+                            # Skip if it looks like "Company  Location" format
+                            if '  ' in title and (',' in title or 'India' in title):
+                                continue
+                            # Skip if it's obviously a location
+                            if any(city in title for city in ['Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 'Gurugram', 'Ahmedabad']):
+                                continue
                             return title
                 except:
                     continue
+            
+            # Fallback: Try h1 elements and validate
+            h1_elements = await self.page.locator('h1').all()
+            for elem in h1_elements:
+                try:
+                    text = await elem.inner_text()
+                    text = text.strip()
+                    if text and len(text) > 3 and len(text) < 150:
+                        # Skip if it looks like "Company  Location" format
+                        if '  ' in text and (',' in text or 'India' in text):
+                            continue
+                        # Skip if it's obviously a location
+                        if any(city in text for city in ['Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 'Gurugram', 'Ahmedabad']):
+                            continue
+                        # Skip common non-title text
+                        skip_words = ['notification', 'about the job', 'full-time', 'part-time', 'apply', 'save']
+                        if not any(w in text.lower() for w in skip_words):
+                            return text
+                except:
+                    continue
+            
+            # Last resort: Parse main content carefully
+            try:
+                main_content = self.page.locator('main').first
+                if await main_content.count() > 0:
+                    text = await main_content.inner_text()
+                    lines = [line.strip() for line in text.split('\n') if line.strip()]
+                    
+                    # Look for a line that looks like a job title
+                    # (not company, not location, not employment type)
+                    for line in lines[:10]:  # Check first 10 lines only
+                        if len(line) > 3 and len(line) < 150:
+                            # Skip if it looks like "Company  Location"
+                            if '  ' in line and (',' in line or 'India' in line):
+                                continue
+                            # Skip locations
+                            if any(city in line for city in ['Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 'Gurugram', 'Ahmedabad']):
+                                continue
+                            # Skip employment types
+                            skip_patterns = ['full-time', 'part-time', 'contract', 'ago', 'clicked', 'apply', 'save', 'share']
+                            if any(pattern in line.lower() for pattern in skip_patterns):
+                                continue
+                            # This might be the job title
+                            return line
+            except:
+                pass
             
             return None
         except:
@@ -200,14 +185,46 @@ class JobScraper(BaseScraper):
     async def _get_company(self) -> Optional[str]:
         """Extract company name from company link."""
         try:
-            # Find company links that have text (not just images)
+            # FIXED: More precise selectors for company name
+            # Try specific selectors first (most reliable)
+            company_selectors = [
+                'a.topcard__org-name-link',  # New LinkedIn layout
+                'a[data-tracking-control-name*="public_jobs_topcard-org-name"]',
+                'a[href*="/company/"].topcard__flavor',
+                'span.topcard__flavor a[href*="/company/"]',
+            ]
+            
+            for selector in company_selectors:
+                try:
+                    elem = self.page.locator(selector).first
+                    if await elem.count() > 0:
+                        text = await elem.inner_text()
+                        text = text.strip()
+                        # Clean up: remove location if accidentally included
+                        if text and len(text) > 1:
+                            # Remove common location patterns
+                            text = text.split('\n')[0].strip()  # Take first line only
+                            # Remove trailing location info (e.g., "Company  Location")
+                            if '  ' in text:
+                                text = text.split('  ')[0].strip()
+                            return text
+                except:
+                    continue
+            
+            # Fallback: Find company links that have text (not just images)
             company_links = await self.page.locator('a[href*="/company/"]').all()
             for link in company_links:
                 text = await link.inner_text()
                 text = text.strip()
                 # Skip empty or very short text (likely image-only links)
                 if text and len(text) > 1 and not text.startswith('logo'):
-                    return text
+                    # Clean up: remove location if accidentally included
+                    text = text.split('\n')[0].strip()  # Take first line only
+                    if '  ' in text:
+                        text = text.split('  ')[0].strip()
+                    # Skip if it looks like a location (has comma or "India")
+                    if ',' not in text and 'India' not in text:
+                        return text
         except:
             pass
         return None
@@ -346,7 +363,43 @@ class JobScraper(BaseScraper):
     async def _get_location(self) -> Optional[str]:
         """Extract job location from job details panel."""
         try:
-            # Look for location text in the page
+            # FIXED: More precise location extraction
+            # Try specific location selectors first
+            location_selectors = [
+                'span.topcard__flavor--bullet',  # New LinkedIn layout
+                'span[class*="job-details-jobs-unified-top-card__bullet"]',
+                'div[class*="job-details-jobs-unified-top-card__primary-description"] span',
+            ]
+            
+            for selector in location_selectors:
+                try:
+                    elems = await self.page.locator(selector).all()
+                    for elem in elems:
+                        text = await elem.inner_text()
+                        text = text.strip()
+                        # Check if it looks like a location (has comma or known location keywords)
+                        if text and len(text) > 3 and len(text) < 100:
+                            if (',' in text or 
+                                'Remote' in text or 
+                                'India' in text or
+                                'United States' in text or
+                                'Worldwide' in text or
+                                'Europe' in text or
+                                any(city in text for city in ['Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 'Gurugram', 'Gurgaon'])):
+                                # Skip if it looks like a salary or other info
+                                if not text.startswith('$') and 'per year' not in text.lower() and 'applicant' not in text.lower():
+                                    # Clean up: remove company name if accidentally included
+                                    if '  ' in text:
+                                        # Take the part after double space (location part)
+                                        parts = text.split('  ')
+                                        for part in parts:
+                                            if ',' in part or 'India' in part or 'Remote' in part:
+                                                return part.strip()
+                                    return text
+                except:
+                    continue
+            
+            # Fallback: Look for location text in the page
             text_elements = await self.page.locator('span, div').all()
             for elem in text_elements:
                 try:
@@ -356,17 +409,26 @@ class JobScraper(BaseScraper):
                     if text and len(text) > 3 and len(text) < 100:
                         if (',' in text or 
                             'Remote' in text or 
+                            'India' in text or
                             'United States' in text or
                             'US' == text or
                             'Worldwide' in text or
                             'Europe' in text):
                             # Skip if it looks like a salary or other info
                             if not text.startswith('$') and 'per year' not in text.lower():
-                                return text
+                                # Clean up: remove company name if accidentally included
+                                if '  ' in text:
+                                    parts = text.split('  ')
+                                    for part in parts:
+                                        if ',' in part or 'India' in part or 'Remote' in part:
+                                            return part.strip()
+                                # Skip if it contains company name patterns
+                                if not any(word in text for word in ['logo', 'company', 'about']):
+                                    return text
                 except:
                     continue
             
-            # Fallback: try original approach
+            # Last resort: try original approach
             try:
                 main_content = self.page.locator('main').first
                 if await main_content.count() > 0:
@@ -374,8 +436,14 @@ class JobScraper(BaseScraper):
                     lines = text.split('\n')
                     for line in lines:
                         line = line.strip()
-                        if line and (',' in line or 'Remote' in line or 'United States' in line):
+                        if line and (',' in line or 'Remote' in line or 'India' in line or 'United States' in line):
                             if len(line) > 3 and len(line) < 100 and not line.startswith('$'):
+                                # Clean up
+                                if '  ' in line:
+                                    parts = line.split('  ')
+                                    for part in parts:
+                                        if ',' in part or 'India' in part or 'Remote' in part:
+                                            return part.strip()
                                 return line
             except:
                 pass

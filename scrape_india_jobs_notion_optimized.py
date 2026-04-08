@@ -536,23 +536,144 @@ class OptimizedIndiaJobsScraper:
                     continue
 
                 try:
-                    job = await job_scraper.scrape(job_url)
+                    # ========================================================================
+                    # CRITICAL OPTIMIZATION: EARLY VALIDATION (Extract title FIRST)
+                    # ========================================================================
+                    # Navigate to job page and extract ONLY title (fast)
+                    quick_title = ""
+                    quick_company = ""
+                    
+                    try:
+                        await browser.page.goto(job_url, wait_until="domcontentloaded", timeout=10000)
+                        
+                        # Extract title quickly (no full scrape yet)
+                        title_selectors = [
+                            'h1.top-card-layout__title',
+                            'h1.t-24.t-bold',
+                            'h2.top-card-layout__title',
+                            'h1[class*="job"]',
+                            'h1',
+                        ]
+                        
+                        for selector in title_selectors:
+                            try:
+                                title_elem = await browser.page.query_selector(selector)
+                                if title_elem:
+                                    quick_title = await title_elem.inner_text()
+                                    if quick_title and quick_title.strip():
+                                        # Validate it's not "Company  Location" format
+                                        if '  ' in quick_title and (',' in quick_title or 'India' in quick_title):
+                                            continue
+                                        quick_title = quick_title.strip()
+                                        break
+                            except:
+                                continue
+                        
+                        # Extract company quickly
+                        company_selectors = [
+                            'a.topcard__org-name-link',
+                            'span.topcard__flavor',
+                            'a[data-tracking-control-name*="company"]',
+                        ]
+                        
+                        for selector in company_selectors:
+                            try:
+                                company_elem = await browser.page.query_selector(selector)
+                                if company_elem:
+                                    quick_company = await company_elem.inner_text()
+                                    if quick_company and quick_company.strip():
+                                        quick_company = quick_company.strip()
+                                        # Clean up company name
+                                        if '  ' in quick_company:
+                                            quick_company = quick_company.split('  ')[0].strip()
+                                        break
+                            except:
+                                continue
+                    
+                    except Exception as e:
+                        logger.debug(f"  ⚠️  Early extraction failed: {str(e)[:100]}")
+                    
+                    # EARLY VALIDATION: Check if job should be excluded BEFORE full scrape
+                    if quick_title:
+                        if self._should_exclude_job(quick_title, ""):
+                            results["excluded"] += 1
+                            logger.info(f"  ❌ Excluded (early): {quick_title} at {quick_company}")
+                            continue
+                        else:
+                            logger.info(f"  ✅ Valid (early): {quick_title} at {quick_company}")
+                    
+                    # ========================================================================
+                    # LIGHTWEIGHT SCRAPE: Only extract what Notion needs (NO DESCRIPTION!)
+                    # ========================================================================
+                    # We already have title and company from early validation
+                    # Just need: location, posted_date, employment_type
+                    
+                    job_title = quick_title
+                    company = quick_company
+                    location = ""
+                    posted_date = ""
+                    employment_type = ""
+                    
+                    try:
+                        # Extract location (fast)
+                        location_selectors = [
+                            'span.topcard__flavor--bullet',
+                            'span[class*="job-details-jobs-unified-top-card__bullet"]',
+                        ]
+                        for selector in location_selectors:
+                            try:
+                                loc_elem = await browser.page.query_selector(selector)
+                                if loc_elem:
+                                    loc_text = await loc_elem.inner_text()
+                                    if loc_text and (',' in loc_text or 'India' in loc_text or 'Remote' in loc_text):
+                                        location = loc_text.strip()
+                                        break
+                            except:
+                                continue
+                        
+                        # Extract posted date (fast)
+                        date_elems = await browser.page.query_selector_all('span, div')
+                        for elem in date_elems[:20]:  # Check first 20 elements only
+                            try:
+                                text = await elem.inner_text()
+                                if text and ('ago' in text.lower() or 'day' in text.lower() or 'hour' in text.lower()):
+                                    if len(text) < 50:
+                                        posted_date = text.strip()
+                                        break
+                            except:
+                                continue
+                        
+                        # Extract employment type (fast)
+                        type_elems = await browser.page.query_selector_all('span, div')
+                        for elem in type_elems[:30]:  # Check first 30 elements only
+                            try:
+                                text = await elem.inner_text()
+                                text_lower = text.strip().lower()
+                                if text_lower in ['full-time', 'part-time', 'contract', 'internship', 'full time', 'part time']:
+                                    employment_type = text.strip().title().replace('-', ' ')
+                                    break
+                            except:
+                                continue
+                    
+                    except Exception as e:
+                        logger.debug(f"  ⚠️  Lightweight extraction error: {str(e)[:100]}")
+                    
                     results["jobs_scraped"] += 1
 
-                    # Check if core role (not excluded)
-                    if self._should_exclude_job(job.job_title, job.job_description):
+                    # Final validation (in case early validation was skipped)
+                    if self._should_exclude_job(job_title, ""):
                         results["excluded"] += 1
-                        logger.debug(f"  ❌ Excluded (non-core): {job.job_title}")
+                        logger.debug(f"  ❌ Excluded (final): {job_title}")
                         continue
 
                     results["jobs_24h"] += 1
 
-                    # Prepare data for Notion
+                    # Prepare data for Notion (NO DESCRIPTION NEEDED!)
                     job_data = {
-                        "company": job.company or "Unknown",
-                        "role": job.job_title or "Unknown",
+                        "company": company or "Unknown",
+                        "role": job_title or "Unknown",
                         "date_added": datetime.now().strftime("%Y-%m-%d"),
-                        "location": job.location or location,
+                        "location": location or "India",
                         "url": job_url
                     }
 
@@ -560,18 +681,18 @@ class OptimizedIndiaJobsScraper:
                     if role_filter:
                         if not role_filter.add_role(job_data):
                             results["jobs_filtered_out"] += 1
-                            logger.debug(f"  ⏭️  Filtered (role limit/duplicate): {job.job_title}")
+                            logger.debug(f"  ⏭️  Filtered (role limit/duplicate): {job_title}")
                             continue
 
                     # Add to Notion
                     if self.notion:
                         if self.notion.add_job(job_data):
                             results["jobs_added"] += 1
-                            print(f"  ✓ {job_data['role']} at {job.company}")
+                            print(f"  ✓ {job_data['role']} at {company}")
                         else:
                             results["errors"].append(f"Failed to add {job_url}")
                     else:
-                        print(f"  ✓ {job_data['role']} at {job.company} [Notion not configured]")
+                        print(f"  ✓ {job_data['role']} at {company} [Notion not configured]")
 
                 except ScrapingError as e:
                     results["errors"].append(f"Scraping error: {e}")

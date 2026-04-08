@@ -857,17 +857,23 @@ class HybridOptimizedScraper:
         self,
         cities: List[str],
         weighted_keywords: List[tuple],
-        limit_per_keyword: int = 10
+        limit_per_keyword: int = 10,
+        max_jobs: int = None  # NEW: Hard limit on total jobs
     ) -> int:
         """
-        Scrape LinkedIn jobs with WEIGHTED KEYWORD DISTRIBUTION.
+        Scrape LinkedIn jobs with WEIGHTED KEYWORD DISTRIBUTION and QUOTA CONTROL.
         Keywords are pre-shuffled to ensure mixing across categories.
+        
+        Args:
+            max_jobs: Maximum number of jobs to scrape (stops when reached)
         """
         uploaded = 0
         
         logger.info("="*70)
         logger.info("🔵 LINKEDIN SCRAPING STARTED")
         logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        if max_jobs:
+            logger.info(f"Quota: {max_jobs} jobs (will stop when reached)")
         logger.info("="*70)
         
         async with BrowserManager(headless=self.headless) as browser:
@@ -881,20 +887,33 @@ class HybridOptimizedScraper:
             completed = 0
             
             for city in cities:
-                # Check for shutdown request
+                # Check for shutdown request OR quota reached
                 if self.shutdown_requested:
                     logger.info("⚠️  Shutdown requested, stopping LinkedIn scraping...")
                     break
                 
+                if max_jobs and uploaded >= max_jobs:
+                    logger.info(f"✅ LinkedIn quota reached ({uploaded}/{max_jobs} jobs)")
+                    break
+                
                 for keyword, category, is_internship in weighted_keywords:
-                    # Check for shutdown request
+                    # Check for shutdown request OR quota reached
                     if self.shutdown_requested:
                         logger.info("⚠️  Shutdown requested, stopping LinkedIn scraping...")
                         break
                     
+                    if max_jobs and uploaded >= max_jobs:
+                        logger.info(f"✅ LinkedIn quota reached ({uploaded}/{max_jobs} jobs)")
+                        break
+                    
                     completed += 1
                     role_type = "internship" if is_internship else "full-time"
-                    logger.info(f"[{completed}/{total_tasks}] Processing: {keyword} ({category}, {role_type}) in {city}")
+                    
+                    # Calculate remaining quota
+                    remaining = max_jobs - uploaded if max_jobs else limit_per_keyword
+                    actual_limit = min(limit_per_keyword, remaining) if max_jobs else limit_per_keyword
+                    
+                    logger.info(f"[{completed}/{total_tasks}] Processing: {keyword} ({category}, {role_type}) in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
                     
                     try:
                         search_scraper = OptimizedJobSearchScraper(browser.page, callback=ConsoleCallback())
@@ -903,7 +922,7 @@ class HybridOptimizedScraper:
                         job_urls = await search_scraper.search(
                             keywords=keyword,
                             location=city,
-                            limit=limit_per_keyword,
+                            limit=actual_limit,  # Use adjusted limit
                             days_ago=self.max_days
                         )
                         
@@ -916,6 +935,11 @@ class HybridOptimizedScraper:
                         skipped_early = 0
                         
                         for job_url in job_urls:
+                            # Check quota again (inner loop)
+                            if max_jobs and uploaded >= max_jobs:
+                                logger.info(f"✅ LinkedIn quota reached mid-search ({uploaded}/{max_jobs})")
+                                break
+                            
                             # Check for shutdown request
                             if self.shutdown_requested:
                                 logger.info("⚠️  Shutdown requested, stopping job processing...")
@@ -1044,7 +1068,7 @@ class HybridOptimizedScraper:
                                     valid_jobs_count += 1
                                     self.stats["linkedin_jobs"] += 1
                                     self.stats["total_jobs"] += 1
-                                    logger.info(f"✓ LinkedIn [{category}]: {job.job_title} at {job.company}")
+                                    logger.info(f"✓ LinkedIn [{category}]: {job.job_title} at {job.company} [{uploaded}/{max_jobs or '∞'}]")
                             
                             except Exception as e:
                                 self.stats["errors"] += 1
@@ -1069,6 +1093,9 @@ class HybridOptimizedScraper:
         
         logger.info("="*70)
         logger.info(f"🔵 LINKEDIN SCRAPING COMPLETE: {uploaded} jobs uploaded")
+        if max_jobs:
+            quota_pct = (uploaded / max_jobs * 100) if max_jobs > 0 else 0
+            logger.info(f"   Quota utilization: {quota_pct:.1f}% ({uploaded}/{max_jobs})")
         logger.info("="*70)
         return uploaded
     
@@ -1076,46 +1103,72 @@ class HybridOptimizedScraper:
         self,
         cities: List[str],
         weighted_keywords: List[tuple],
-        limit_per_city: int = 10
+        limit_per_city: int = 10,
+        max_jobs: int = None  # NEW: Hard limit on total jobs
     ) -> int:
         """
-        Scrape Indeed jobs with WEIGHTED KEYWORD DISTRIBUTION.
+        Scrape Indeed jobs with WEIGHTED KEYWORD DISTRIBUTION and QUOTA CONTROL.
         Uses pre-shuffled keywords to ensure category mixing.
         
         NOTE: Naukri removed due to 406 Recaptcha errors.
+        
+        CRITICAL OPTIMIZATION: Indeed ignores hours_old parameter and returns old jobs.
+        Solution: Pre-filter DataFrame by date BEFORE processing individual jobs.
+        
+        Args:
+            max_jobs: Maximum number of jobs to scrape (stops when reached)
         """
         uploaded = 0
         
         logger.info("="*70)
         logger.info("🟢 INDEED SCRAPING STARTED")
         logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        if max_jobs:
+            logger.info(f"Quota: {max_jobs} jobs (will stop when reached)")
         logger.info("="*70)
         
         for city in cities:
-            # Check for shutdown request
+            # Check for shutdown request OR quota reached
             if self.shutdown_requested:
                 logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
                 break
             
+            if max_jobs and uploaded >= max_jobs:
+                logger.info(f"✅ Indeed quota reached ({uploaded}/{max_jobs} jobs)")
+                break
+            
             for keyword, category, is_internship in weighted_keywords:
-                # Check for shutdown request
+                # Check for shutdown request OR quota reached
                 if self.shutdown_requested:
                     logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
                     break
                 
+                if max_jobs and uploaded >= max_jobs:
+                    logger.info(f"✅ Indeed quota reached ({uploaded}/{max_jobs} jobs)")
+                    break
+                
                 role_type = "internship" if is_internship else "full-time"
-                logger.info(f"Scraping: {keyword} ({category}, {role_type}) in {city}")
+                
+                # Calculate remaining quota
+                remaining = max_jobs - uploaded if max_jobs else limit_per_city
+                actual_limit = min(limit_per_city, remaining) if max_jobs else limit_per_city
+                
+                logger.info(f"Scraping: {keyword} ({category}, {role_type}) in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
                     
                 try:
                     # Rate limiting
                     time.sleep(1)
                     
+                    # CRITICAL: Request MORE jobs than needed (Indeed returns old ones)
+                    # We'll filter them out, so request 3x to compensate
+                    request_limit = actual_limit * 3
+                    
                     # Scrape Indeed ONLY (Naukri removed due to Recaptcha)
                     df = scrape_multi_platform(
-                        sites=["indeed"],  # CHANGED: Removed "naukri"
+                        sites=["indeed"],
                         search_term=keyword,
                         location=city,
-                        results_wanted=limit_per_city,
+                        results_wanted=request_limit,  # Request MORE
                         hours_old=self.max_days * 24,
                         verbose=0
                     )
@@ -1123,10 +1176,46 @@ class HybridOptimizedScraper:
                     if len(df) == 0:
                         continue
                     
+                    # ========================================================================
+                    # CRITICAL OPTIMIZATION: PRE-FILTER BY DATE (Before processing)
+                    # ========================================================================
+                    original_count = len(df)
+                    
+                    # Filter out old jobs FIRST
+                    fresh_jobs = []
+                    for _, row in df.iterrows():
+                        posted_date = str(row.get('date_posted', ''))
+                        if self.is_job_fresh(posted_date):
+                            fresh_jobs.append(row)
+                        else:
+                            self.stats["old_jobs_filtered"] += 1
+                    
+                    # Log filtering results
+                    filtered_count = original_count - len(fresh_jobs)
+                    if filtered_count > 0:
+                        logger.info(f"⚡ Pre-filtered {filtered_count}/{original_count} old jobs (saved {filtered_count} validations)")
+                    
+                    # If no fresh jobs, skip to next keyword
+                    if len(fresh_jobs) == 0:
+                        logger.info(f"❌ No fresh jobs found for '{keyword}' in {city} (all {original_count} were too old)")
+                        continue
+                    
+                    # Limit to actual_limit (we requested 3x, now trim to what we need)
+                    fresh_jobs = fresh_jobs[:actual_limit]
+                    
+                    logger.info(f"✅ Found {len(fresh_jobs)} fresh jobs (filtered from {original_count})")
+                    
+                    # ========================================================================
+                    # Process ONLY fresh jobs
+                    # ========================================================================
                     valid_jobs_count = 0
                     
-                    # Process each job
-                    for _, row in df.iterrows():
+                    for row in fresh_jobs:
+                        # Check quota again (inner loop)
+                        if max_jobs and uploaded >= max_jobs:
+                            logger.info(f"✅ Indeed quota reached mid-processing ({uploaded}/{max_jobs})")
+                            break
+                        
                         job_url = row.get('job_url', '')
                         if not job_url or self.is_duplicate(job_url):
                             self.stats["duplicates_skipped"] += 1
@@ -1137,12 +1226,7 @@ class HybridOptimizedScraper:
                         company = str(row.get('company', ''))
                         posted_date = str(row.get('date_posted', ''))
                         
-                        # CRITICAL: Date validation - Indeed/Naukri ignore hours_old parameter
-                        if not self.is_job_fresh(posted_date):
-                            self.stats["filtered_out"] += 1
-                            self.stats["old_jobs_filtered"] += 1
-                            logger.info(f"❌ Rejected ({platform}): '{job_title}' | Reason: Too old (posted: {posted_date})")
-                            continue
+                        # Date already validated in pre-filter, skip check
                         
                         # EARLY VALIDATION: Check before processing description
                         is_valid, reason = self.is_valid_role(job_title, company, keyword)
@@ -1194,12 +1278,12 @@ class HybridOptimizedScraper:
                             valid_jobs_count += 1
                             self.stats["indeed_jobs"] += 1  # Only Indeed now
                             self.stats["total_jobs"] += 1
-                            logger.info(f"✓ {platform.capitalize()} [{category}]: {job_title}")
+                            logger.info(f"✓ {platform.capitalize()} [{category}]: {job_title} [{uploaded}/{max_jobs or '∞'}]")
                     
                     # Log success rate
-                    if len(df) > 0:
-                        success_rate = (valid_jobs_count / len(df)) * 100
-                        logger.info(f"Success rate for '{keyword}' in {city}: {success_rate:.1f}% ({valid_jobs_count}/{len(df)})")
+                    if len(fresh_jobs) > 0:
+                        success_rate = (valid_jobs_count / len(fresh_jobs)) * 100
+                        logger.info(f"📊 '{keyword}' in {city}: {success_rate:.1f}% success ({valid_jobs_count}/{len(fresh_jobs)} fresh jobs)")
                 
                 except Exception as e:
                     self.stats["errors"] += 1
@@ -1211,6 +1295,10 @@ class HybridOptimizedScraper:
         
         logger.info("="*70)
         logger.info(f"🟢 INDEED SCRAPING COMPLETE: {uploaded} jobs uploaded")
+        if max_jobs:
+            quota_pct = (uploaded / max_jobs * 100) if max_jobs > 0 else 0
+            logger.info(f"   Quota utilization: {quota_pct:.1f}% ({uploaded}/{max_jobs})")
+        logger.info(f"   Old jobs filtered: {self.stats['old_jobs_filtered']} (saved processing time)")
         logger.info("="*70)
         return uploaded
     
@@ -1218,16 +1306,36 @@ class HybridOptimizedScraper:
         self,
         cities: List[str] = None,
         include_internships: bool = True,
-        limit_per_city: int = 10
+        limit_per_city: int = 10,
+        target_total_jobs: int = 100,  # NEW: Total jobs to scrape
+        linkedin_ratio: float = 0.60,  # NEW: 60% LinkedIn
     ) -> Dict[str, Any]:
-        """Run hybrid scraping workflow with weighted keyword distribution."""
+        """
+        Run hybrid scraping workflow with CONTROLLED DISTRIBUTION.
+        
+        NEW: Enforces 60:40 LinkedIn:Indeed ratio by setting quotas.
+        
+        Args:
+            target_total_jobs: Total jobs to scrape (default: 100)
+            linkedin_ratio: Percentage of jobs from LinkedIn (default: 0.60 = 60%)
+        """
         cities = cities or DEFAULT_CITIES
+        
+        # Calculate platform quotas
+        linkedin_quota = int(target_total_jobs * linkedin_ratio)
+        indeed_quota = target_total_jobs - linkedin_quota
         
         # Get weighted keywords (pre-shuffled for mixing)
         weighted_keywords = self.get_weighted_keywords(include_internships=include_internships)
         
+        # Calculate limits per keyword to hit quotas
+        # Formula: quota / (num_cities * num_keywords)
+        total_searches = len(cities) * len(weighted_keywords)
+        linkedin_limit_per_search = max(1, linkedin_quota // total_searches) if "linkedin" in self.platforms else 0
+        indeed_limit_per_search = max(1, indeed_quota // total_searches) if "indeed" in self.platforms else 0
+        
         logger.info("="*70)
-        logger.info("HYBRID OPTIMIZED SCRAPER STARTING - MULTI-CATEGORY")
+        logger.info("HYBRID OPTIMIZED SCRAPER - CONTROLLED DISTRIBUTION")
         logger.info("="*70)
         logger.info(f"Platforms: {', '.join(self.platforms)}")
         logger.info(f"Cities: {len(cities)}")
@@ -1238,27 +1346,41 @@ class HybridOptimizedScraper:
         logger.info(f"  - Operations: {len([k for k in weighted_keywords if k[1] == 'operations'])}")
         logger.info(f"Time Filter: Past {self.max_days} days")
         logger.info(f"Include Internships: {include_internships}")
+        logger.info("-"*70)
+        logger.info("DISTRIBUTION QUOTAS:")
+        logger.info(f"  Target Total: {target_total_jobs} jobs")
+        logger.info(f"  LinkedIn:     {linkedin_quota} jobs ({linkedin_ratio*100:.0f}%) - {linkedin_limit_per_search} per search")
+        logger.info(f"  Indeed:       {indeed_quota} jobs ({(1-linkedin_ratio)*100:.0f}%) - {indeed_limit_per_search} per search")
         logger.info("="*70)
+        
+        # Store quotas for tracking
+        self.linkedin_quota = linkedin_quota
+        self.indeed_quota = indeed_quota
         
         # Connect to Google Sheets
         if not self.connect_sheets():
             return {"success": False, "error": "Google Sheets connection failed"}
         
-        # PARALLEL EXECUTION: Run all platforms simultaneously
+        # PARALLEL EXECUTION: Run all platforms simultaneously with quotas
         tasks = []
         
-        # Add LinkedIn task
+        # Add LinkedIn task with quota
         if "linkedin" in self.platforms:
-            logger.info("🚀 Starting LinkedIn scraping (parallel mode)")
+            logger.info(f"🚀 Starting LinkedIn scraping (quota: {linkedin_quota} jobs)")
             tasks.append(
                 asyncio.create_task(
-                    self.scrape_linkedin_batch(cities, weighted_keywords, limit_per_city)
+                    self.scrape_linkedin_batch(
+                        cities, 
+                        weighted_keywords, 
+                        linkedin_limit_per_search,
+                        max_jobs=linkedin_quota  # NEW: Hard limit
+                    )
                 )
             )
         
-        # Add Indeed task (run in executor since it's synchronous)
+        # Add Indeed task with quota (run in executor since it's synchronous)
         if "indeed" in self.platforms:
-            logger.info("🚀 Starting Indeed scraping (parallel mode)")
+            logger.info(f"🚀 Starting Indeed scraping (quota: {indeed_quota} jobs)")
             loop = asyncio.get_event_loop()
             tasks.append(
                 loop.run_in_executor(
@@ -1266,16 +1388,17 @@ class HybridOptimizedScraper:
                     self.scrape_indeed_naukri_batch,
                     cities,
                     weighted_keywords,
-                    limit_per_city
+                    indeed_limit_per_search,
+                    indeed_quota  # NEW: Hard limit
                 )
             )
         
         # Wait for all platforms to complete (or until shutdown)
         if tasks:
-            logger.info(f"⏳ Running {len(tasks)} platform(s) in parallel...")
+            logger.info(f"⏳ Running {len(tasks)} platform(s) in parallel with quotas...")
             await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Print summary
+        # Print summary with distribution analysis
         self._print_summary()
         
         return {
@@ -1285,9 +1408,13 @@ class HybridOptimizedScraper:
         }
     
     def _print_summary(self):
-        """Print workflow summary with category breakdown and success rate analysis."""
+        """Print workflow summary with category breakdown, success rate, and DISTRIBUTION analysis."""
         total_processed = self.stats["total_jobs"] + self.stats["filtered_out"]
         success_rate = (self.stats["total_jobs"] / total_processed * 100) if total_processed > 0 else 0
+        
+        # Calculate platform distribution
+        linkedin_pct = (self.stats['linkedin_jobs'] / self.stats['total_jobs'] * 100) if self.stats['total_jobs'] > 0 else 0
+        indeed_pct = (self.stats['indeed_jobs'] / self.stats['total_jobs'] * 100) if self.stats['total_jobs'] > 0 else 0
         
         print("\n" + "="*70)
         if self.shutdown_requested:
@@ -1295,9 +1422,32 @@ class HybridOptimizedScraper:
         else:
             print("EXECUTION SUMMARY - MULTI-CATEGORY SCRAPER")
         print("="*70)
-        print(f"LinkedIn Jobs:  {self.stats['linkedin_jobs']}")
-        print(f"Indeed Jobs:    {self.stats['indeed_jobs']}")
+        print(f"LinkedIn Jobs:  {self.stats['linkedin_jobs']} ({linkedin_pct:.1f}%)")
+        print(f"Indeed Jobs:    {self.stats['indeed_jobs']} ({indeed_pct:.1f}%)")
         print(f"Total Jobs:     {self.stats['total_jobs']}")
+        
+        # Distribution analysis
+        if hasattr(self, 'linkedin_quota') and hasattr(self, 'indeed_quota'):
+            print("-"*70)
+            print("DISTRIBUTION ANALYSIS:")
+            print(f"  Target:  LinkedIn {self.linkedin_quota} ({linkedin_pct:.0f}%) | Indeed {self.indeed_quota} ({indeed_pct:.0f}%)")
+            print(f"  Actual:  LinkedIn {self.stats['linkedin_jobs']} ({linkedin_pct:.1f}%) | Indeed {self.stats['indeed_jobs']} ({indeed_pct:.1f}%)")
+            
+            # Check if distribution is close to target
+            target_linkedin_pct = (self.linkedin_quota / (self.linkedin_quota + self.indeed_quota) * 100)
+            deviation = abs(linkedin_pct - target_linkedin_pct)
+            
+            if deviation < 5:
+                print(f"  Status:  ✅ Distribution on target (deviation: {deviation:.1f}%)")
+            elif deviation < 15:
+                print(f"  Status:  ⚠️  Slight deviation from target ({deviation:.1f}%)")
+            else:
+                print(f"  Status:  ❌ Significant deviation from target ({deviation:.1f}%)")
+                if linkedin_pct < target_linkedin_pct - 10:
+                    print(f"           LinkedIn underperforming - may need more keywords or cities")
+                elif linkedin_pct > target_linkedin_pct + 10:
+                    print(f"           LinkedIn overperforming - Indeed may need adjustment")
+        
         print("-"*70)
         print("CATEGORY BREAKDOWN:")
         print(f"  Consulting:   {self.stats['consulting_jobs']}")
@@ -1358,6 +1508,18 @@ class HybridOptimizedScraper:
             if self.stats['duplicates_skipped'] > 10:
                 print(f"  • {self.stats['duplicates_skipped']} duplicates skipped - deduplication working well")
             
+            # Distribution insights
+            if hasattr(self, 'linkedin_quota'):
+                if linkedin_pct < 50:
+                    print(f"  • LinkedIn underperforming ({linkedin_pct:.1f}%) - may need:")
+                    print(f"    - More keywords or cities")
+                    print(f"    - Higher limit_per_keyword")
+                    print(f"    - Check if LinkedIn rate limiting is too aggressive")
+                elif linkedin_pct > 70:
+                    print(f"  • LinkedIn overperforming ({linkedin_pct:.1f}%) - Indeed may need:")
+                    print(f"    - More keywords or cities")
+                    print(f"    - Higher limit_per_city")
+            
             print("="*70 + "\n")
 
 
@@ -1366,9 +1528,9 @@ class HybridOptimizedScraper:
 # ============================================================================
 
 async def main():
-    """Main entry point with graceful shutdown handling."""
+    """Main entry point with graceful shutdown handling and distribution control."""
     parser = argparse.ArgumentParser(
-        description="Hybrid Optimized India Jobs Scraper",
+        description="Hybrid Optimized India Jobs Scraper with 60:40 LinkedIn:Indeed Distribution",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -1389,12 +1551,24 @@ async def main():
         "--limit-per-city",
         type=int,
         default=DEFAULT_RESULTS_PER_CITY,
-        help="Jobs per keyword per city"
+        help="Jobs per keyword per city (used for quota calculation)"
     )
     parser.add_argument(
         "--cities",
         nargs="+",
         help="Specific cities to search"
+    )
+    parser.add_argument(
+        "--target-total",
+        type=int,
+        default=100,
+        help="Target total jobs to scrape (default: 100)"
+    )
+    parser.add_argument(
+        "--linkedin-ratio",
+        type=float,
+        default=0.60,
+        help="LinkedIn percentage (0.0-1.0, default: 0.60 = 60%%)"
     )
     
     args = parser.parse_args()
@@ -1416,10 +1590,12 @@ async def main():
     logger.info("Press Ctrl+C to stop gracefully (will finish current job and save progress)")
     
     try:
-        # Run scraper
+        # Run scraper with distribution control
         results = await scraper.run(
             cities=args.cities,
-            limit_per_city=args.limit_per_city
+            limit_per_city=args.limit_per_city,
+            target_total_jobs=args.target_total,
+            linkedin_ratio=args.linkedin_ratio
         )
         
         if scraper.shutdown_requested:
