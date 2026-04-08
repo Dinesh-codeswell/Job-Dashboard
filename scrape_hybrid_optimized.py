@@ -81,7 +81,59 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")
 
 # ============================================================================
-# ROLE CATEGORIES WITH WEIGHTED DISTRIBUTION
+# HIGH-YIELD KEYWORDS (FROM NOTION SCRAPER - PROVEN TO WORK)
+# ============================================================================
+
+# These 36 keywords are proven to return 10-12 jobs each on LinkedIn
+# DO NOT add more keywords - quality over quantity!
+HIGH_YIELD_KEYWORDS = [
+    # TIER 0: Strategic Leadership (highest priority)
+    "Founder's Office",
+    "Chief of Staff",
+    "Entrepreneur in Residence",
+    "EIR",
+
+    # TIER 1: Product Management
+    "Product Manager",
+    "APM",
+    "Associate Product Manager",
+    "Senior Product Manager",
+
+    # TIER 2: Strategy & Growth
+    "Strategy Manager",
+    "Growth Manager",
+    "Business Strategy Manager",
+    "Corporate Strategy Manager",
+
+    # TIER 3: Consulting
+    "Management Consultant",
+    "Strategy Consultant",
+    "Business Consultant",
+    "Senior Consultant",
+
+    # TIER 4: Operations & Analytics
+    "Business Operations Manager",
+    "Program Manager",
+    "Business Analyst",
+    "Strategy Analyst",
+
+    # TIER 5: Internships (high-yield only)
+    "Product Manager Intern",
+    "Strategy Intern",
+    "Business Analyst Intern",
+    "Consulting Intern",
+    "Founder's Office Intern",
+]
+
+# REMOVED: All the low-yield keywords that return 0-1 jobs
+# Examples of REMOVED keywords:
+# - "Principal Consultant" (returns 1 job, 0% success)
+# - "CGO", "CSO", "COO" (returns 1 job each, 0% success)
+# - "VP of Strategy", "Director of Product" (returns 1 job, 0% success)
+# - All the leadership titles that are too specific
+
+# ============================================================================
+# ROLE CATEGORIES (SIMPLIFIED - NO WEIGHTED DISTRIBUTION)
 # ============================================================================
 
 # CATEGORY 1: CONSULTING ROLES (30% weight)
@@ -286,19 +338,6 @@ REQUIRED_PATTERNS_BY_CATEGORY = {
     ],
 }
 
-# NEW: Auto-reject patterns (immediate disqualification) - STRICT
-AUTO_REJECT_PATTERNS = [
-    r'\bsoftware\s+developer\b', r'\bsoftware\s+engineer\b', 
-    r'\bfrontend\s+developer\b', r'\bbackend\s+developer\b',
-    r'\bfull\s+stack\b', r'\bdevops\b', r'\bdata\s+engineer\b',
-    r'\bmachine\s+learning\s+engineer\b', r'\bsolution\s+architect\b',
-    r'\bui\s+designer\b', r'\bux\s+designer\b', r'\bgraphic\s+designer\b',
-    r'\bsales\s+executive\b', r'\bsales\s+manager\b', r'\bmarketing\s+manager\b',
-    r'\bhr\s+manager\b', r'\brecruiter\b', r'\btalent\s+acquisition\b',
-    r'\bcustomer\s+support\b', r'\btechnical\s+support\b',
-]
-
-
 # ============================================================================
 # LINKEDIN SCRAPER (OPTIMIZED WITH DATE FILTER)
 # ============================================================================
@@ -329,7 +368,8 @@ class OptimizedJobSearchScraper(JobSearchScraper):
             return []
 
         await self.wait_and_focus(1)
-        await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=2)
+        # CRITICAL FIX: Scroll MORE to load more jobs (was 2, now 5)
+        await self.scroll_page_to_bottom(pause_time=0.5, max_scrolls=5)
         await self.callback.on_progress("Loaded filtered listings", 50)
 
         job_urls = await self._extract_job_urls(limit)
@@ -434,52 +474,17 @@ class HybridOptimizedScraper:
         logger.info("\n🛑 Shutdown requested... finishing current job and saving progress")
         self.shutdown_requested = True
     
-    def get_weighted_keywords(self, include_internships: bool = True) -> List[tuple]:
+    def get_high_yield_keywords(self) -> List[str]:
         """
-        Get keywords with weighted distribution for mixing.
-        Returns list of (keyword, category, is_internship) tuples.
+        Get ONLY high-yield keywords that are proven to work.
         
-        Distribution:
-        - 30% Consulting
-        - 25% Product
-        - 25% Strategy
-        - 20% Operations
+        CRITICAL INSIGHT: LinkedIn returns 1 job for specific keywords, 10-12 for generic ones.
+        Solution: Use ONLY the 36 generic keywords from Notion scraper.
+        
+        Returns:
+            List of keyword strings (no tuples, no categories)
         """
-        weighted_keywords = []
-        
-        # Consulting (30%)
-        for kw in CONSULTING_KEYWORDS:
-            weighted_keywords.append((kw, "consulting", False))
-        if include_internships:
-            for kw in CONSULTING_INTERNSHIPS:
-                weighted_keywords.append((kw, "consulting", True))
-        
-        # Product (25%)
-        for kw in PRODUCT_KEYWORDS:
-            weighted_keywords.append((kw, "product", False))
-        if include_internships:
-            for kw in PRODUCT_INTERNSHIPS:
-                weighted_keywords.append((kw, "product", True))
-        
-        # Strategy (25%)
-        for kw in STRATEGY_KEYWORDS:
-            weighted_keywords.append((kw, "strategy", False))
-        if include_internships:
-            for kw in STRATEGY_INTERNSHIPS:
-                weighted_keywords.append((kw, "strategy", True))
-        
-        # Operations (20%)
-        for kw in OPERATIONS_KEYWORDS:
-            weighted_keywords.append((kw, "operations", False))
-        if include_internships:
-            for kw in OPERATIONS_INTERNSHIPS:
-                weighted_keywords.append((kw, "operations", True))
-        
-        # Shuffle to ensure mixing (not all consulting first, then all product, etc.)
-        import random
-        random.shuffle(weighted_keywords)
-        
-        return weighted_keywords
+        return HIGH_YIELD_KEYWORDS
     
     def detect_role_category(self, job_title: str) -> Optional[str]:
         """Detect which category a job belongs to (EXPANDED with leadership roles)."""
@@ -632,87 +637,302 @@ class HybridOptimizedScraper:
     
     def is_valid_role(self, job_title: str, company: str = "", search_keyword: str = "") -> tuple[bool, str]:
         """
-        SIMPLIFIED VALIDATION (v2.0): Accept more, filter less.
+        VALIDATION v6.0: PRECISE matching for user's exact requirements.
         
-        Previous version had 1.3% success rate (5/378 jobs) - TOO STRICT!
-        New approach: 3 simple checks only.
+        USER REQUIREMENTS (CRYSTAL CLEAR):
         
-        Philosophy: Let users filter in dashboard, don't pre-filter aggressively.
-        Expected success rate: 40-50% (vs 1.3% before)
+        ACCEPT (Core Non-Technical Roles):
+        1. ALL Consultant roles (HIGHEST PRIORITY - NEVER reject)
+           - Product Consultant, Financial Consultant, Technical Consultant, etc.
+        2. Program Manager (all levels)
+        3. Product Manager (all levels)
+        4. Growth roles
+        5. Strategy roles
+        6. Operations roles (business operations, not technical ops)
+        7. Analyst roles (Business Analyst, Strategy Analyst, Product Analyst)
+        8. Founder's Office / Chief of Staff
+        9. ALL internships for above roles
+        
+        REJECT:
+        - Technical roles (Full Stack Developer, Software Engineer, etc.)
+        - Marketing roles (Marketing Manager, Marketing Intern, etc.)
+        - HR roles (HR Manager, HR Executive, Recruiter)
+        - Sales roles (Sales Executive, BDE, etc.)
+        - Admin/Support roles
+        
+        Philosophy: Two-step validation
+        1. Check if it's a WANTED role (consultant, PM, analyst, etc.)
+        2. Check if it's NOT a REJECTED role (tech, marketing, HR, sales)
         
         Returns (is_valid, reason) tuple.
         """
-        if not job_title or job_title.strip() in ["", "Post a job", "View job"]:
+        if not job_title or job_title.strip() in ["", "Post a job", "View job", "Join LinkedIn"]:
             return False, "Empty or invalid job title"
         
         title_lower = job_title.lower().strip()
         
         # ========================================================================
-        # CHECK 1: Auto-reject pure tech/sales roles (STRICT)
+        # STEP 1: HARD REJECT - Technical & Unwanted Roles (STRICT)
         # ========================================================================
-        for pattern in AUTO_REJECT_PATTERNS:
-            if re.search(pattern, title_lower):
-                return False, f"Pure tech/sales role"
+        # These are NEVER acceptable, even if they match wanted categories
         
-        # ========================================================================
-        # CHECK 2: Does title contain ANY target keyword? (PERMISSIVE)
-        # ========================================================================
-        # Expanded keywords to include broader roles
-        target_keywords = [
-            # Consulting
-            'consultant', 'consulting', 'advisory', 'advisor',
+        hard_reject_keywords = [
+            # Technical/Engineering roles (REJECT ALL)
+            'software engineer', 'software developer', 'full stack', 'fullstack',
+            'frontend developer', 'backend developer', 'front end', 'back end',
+            'web developer', 'mobile developer', 'ios developer', 'android developer',
+            'devops', 'sre', 'site reliability',
+            'data engineer', 'ml engineer', 'machine learning engineer',
+            'ai engineer', 'artificial intelligence',
+            'cloud engineer', 'infrastructure engineer',
+            'qa engineer', 'test engineer', 'sdet',
+            'ui developer', 'ux developer',
+            '.net developer', 'java developer', 'python developer',
+            'react developer', 'angular developer', 'node developer',
             
-            # Product (including leadership)
-            'product manager', 'product management', 'apm', 'associate product',
-            'head of product', 'director of product', 'vp of product', 'vp product',
-            'chief product officer', 'cpo', 'product director', 'product lead',
+            # Marketing roles (REJECT ALL)
+            'marketing manager', 'marketing executive', 'marketing coordinator',
+            'marketing intern', 'marketing associate',
+            'digital marketing', 'performance marketing', 'growth marketing',
+            'social media manager', 'social media executive', 'social media intern',
+            'brand manager', 'brand executive',
+            'seo executive', 'seo manager', 'seo specialist',
+            'content marketing', 'email marketing',
+            'marketing communications', 'marcom',
             
-            # Strategy & Growth (including leadership)
-            'strategy', 'growth', 'strategic',
-            'head of strategy', 'director of strategy', 'vp of strategy',
-            'chief strategy officer', 'cso',
-            'head of growth', 'director of growth', 'vp of growth',
-            'chief growth officer', 'cgo',
+            # HR roles (REJECT ALL)
+            'hr manager', 'hr executive', 'hr business partner', 'hrbp',
+            'human resources manager', 'human resources executive',
+            'recruiter', 'recruitment', 'talent acquisition',
+            'hr intern', 'hr associate',
             
-            # Operations & Analytics (including leadership)
-            'operations', 'business operations',
-            'program manager', 'project manager',  # EXPANDED: Added "project manager"
-            'business analyst', 'strategy analyst', 'analyst',  # EXPANDED: Added generic "analyst"
-            'chief of staff', 'cos',
-            'head of operations', 'director of operations', 'vp of operations',
-            'chief operating officer', 'coo',
-            "founder's office", 'market research',
+            # Sales roles (REJECT ALL)
+            'sales executive', 'sales manager', 'sales associate',
+            'sales intern', 'sales representative', 'sales rep',
+            'business development executive', 'bde',
+            'account executive', 'account manager',
+            'sdr', 'sales development',
+            'inside sales', 'outside sales',
             
-            # Leadership & Management (EXPANDED)
-            'manager', 'director', 'head of', 'vp of', 'chief',
-            'lead', 'senior', 'principal',
+            # Admin/Support roles (REJECT ALL)
+            'admin', 'administrative assistant', 'office admin',
+            'executive assistant', 'personal assistant',
+            'receptionist', 'front desk',
+            'customer support', 'customer service', 'customer success',
+            'technical support', 'support engineer',
+            'data entry', 'data operator',
+            'telecaller', 'tele caller',
+            
+            # Other unwanted
+            'accountant', 'accounting',
+            'copywriter', 'copy writer',
+            'video editor', 'video editing',
+            'content writer', 'content creator',
+            'graphic designer', 'ui designer', 'ux designer',
         ]
         
-        # Check if ANY keyword matches
-        has_target_keyword = any(keyword in title_lower for keyword in target_keywords)
-        
-        if not has_target_keyword:
-            return False, f"No target keywords found in: {job_title}"
+        for rejected in hard_reject_keywords:
+            if rejected in title_lower:
+                return False, f"Hard reject: '{rejected}' (technical/marketing/HR/sales role)"
         
         # ========================================================================
-        # CHECK 3: Block obviously irrelevant roles (MINIMAL)
+        # STEP 2: POSITIVE VALIDATION - Must match wanted categories
         # ========================================================================
-        blocked_terms = [
-            'executive assistant', 'personal assistant', 'receptionist',
-            'data entry', 'back office', 'promotions',
-            'fresher', 'coordinator', 'administrator',
-            'customer success', 'account manager', 'relationship manager',
-            'scrum master', 'delivery manager',
-        ]
+        # Job must match at least ONE of these categories to be accepted
         
-        for blocked in blocked_terms:
-            if blocked in title_lower:
-                return False, f"Blocked role: '{blocked}'"
+        # Category 1: CONSULTANT (HIGHEST PRIORITY - ALL types accepted)
+        is_consultant = (
+            'consultant' in title_lower or
+            'consulting' in title_lower or
+            'advisory' in title_lower or
+            'advisor' in title_lower
+        )
+        
+        # Category 2: PROGRAM MANAGER (all levels)
+        is_program_manager = (
+            'program manager' in title_lower or
+            'programme manager' in title_lower or
+            'program management' in title_lower or
+            ('program' in title_lower and any(term in title_lower for term in ['lead', 'head', 'director', 'vp']))
+        )
+        
+        # Category 3: PRODUCT MANAGER (all levels + all variations)
+        is_product_manager = (
+            'product manager' in title_lower or
+            'product management' in title_lower or
+            'product owner' in title_lower or
+            'product lead' in title_lower or
+            'product specialist' in title_lower or
+            'product development' in title_lower or
+            'product designer' in title_lower or  # Product design (non-technical)
+            'apm' in title_lower or
+            'associate product' in title_lower or
+            'assistant product' in title_lower or
+            'junior product manager' in title_lower or
+            'senior product manager' in title_lower or
+            'lead product manager' in title_lower or
+            'principal product manager' in title_lower or
+            'staff product manager' in title_lower or
+            'director product' in title_lower or
+            'vp product' in title_lower or
+            'head of product' in title_lower or
+            'chief product officer' in title_lower or
+            'cpo' == title_lower or
+            # Specialized product roles
+            'ai product manager' in title_lower or
+            'ml product manager' in title_lower or
+            'technical product manager' in title_lower or
+            'digital product manager' in title_lower or
+            'platform product manager' in title_lower or
+            'product manager ai' in title_lower or
+            'product manager ml' in title_lower or
+            # Numbered levels
+            'product manager 1' in title_lower or
+            'product manager 2' in title_lower or
+            'product manager 3' in title_lower or
+            'product manager i' in title_lower or
+            'product manager ii' in title_lower or
+            'product manager iii' in title_lower or
+            # Internships
+            'product intern' in title_lower or
+            'product management intern' in title_lower
+        )
+        
+        # Category 3B: PROJECT MANAGER (all levels)
+        is_project_manager = (
+            'project manager' in title_lower or
+            'project management' in title_lower or
+            'project lead' in title_lower or
+            'project coordinator' in title_lower or
+            'senior project manager' in title_lower or
+            'lead project manager' in title_lower or
+            'principal project manager' in title_lower or
+            'project director' in title_lower or
+            'pmo' in title_lower or
+            'project management office' in title_lower or
+            'project intern' in title_lower
+        )
+        
+        # Category 4: GROWTH roles
+        is_growth = (
+            'growth manager' in title_lower or
+            'growth lead' in title_lower or
+            'growth strategist' in title_lower or
+            'growth analyst' in title_lower or
+            'growth intern' in title_lower or
+            'growth associate' in title_lower or
+            'growth specialist' in title_lower or
+            'senior growth' in title_lower or
+            'principal growth' in title_lower or
+            'growth product manager' in title_lower or
+            'product growth' in title_lower or
+            ('growth' in title_lower and any(term in title_lower for term in 
+                ['head', 'director', 'vp', 'manager', 'lead', 'analyst', 'strategist']))
+        )
+        
+        # Category 5: STRATEGY roles
+        is_strategy = (
+            'strategy manager' in title_lower or
+            'strategy lead' in title_lower or
+            'strategy analyst' in title_lower or
+            'strategy intern' in title_lower or
+            'strategic' in title_lower or
+            'strategist' in title_lower or
+            'business strategy' in title_lower or
+            'corporate strategy' in title_lower or
+            'product strategy' in title_lower or
+            'growth strategy' in title_lower or
+            'strategy consultant' in title_lower or
+            'strategy associate' in title_lower or
+            'senior strategy' in title_lower or
+            'principal strategy' in title_lower or
+            ('strategy' in title_lower and any(term in title_lower for term in 
+                ['head', 'director', 'vp', 'chief', 'manager', 'lead', 'analyst', 'associate']))
+        )
+        
+        # Category 6: OPERATIONS roles (business operations, not technical)
+        is_operations = (
+            'business operations' in title_lower or
+            'operations manager' in title_lower or
+            'operations lead' in title_lower or
+            'operations analyst' in title_lower or
+            'operations intern' in title_lower or
+            'operations associate' in title_lower or
+            'operations specialist' in title_lower or
+            'operations governance' in title_lower or  # NEW
+            'governance specialist' in title_lower or  # NEW
+            'senior operations' in title_lower or
+            'principal operations' in title_lower or
+            'biz ops' in title_lower or
+            'bizops' in title_lower or
+            # More flexible matching for operations roles
+            ('operations' in title_lower and not any(bad in title_lower for bad in ['sales operations', 'marketing operations'])) or
+            ('governance' in title_lower and any(good in title_lower for good in ['operations', 'business', 'corporate']))
+        )
+        
+        # Category 7: ANALYST roles (business/strategy/product, not technical)
+        is_analyst = (
+            'business analyst' in title_lower or
+            'strategy analyst' in title_lower or
+            'product analyst' in title_lower or
+            'operations analyst' in title_lower or
+            'management analyst' in title_lower or
+            'consulting analyst' in title_lower or
+            'financial analyst' in title_lower or
+            'investment analyst' in title_lower or
+            'research analyst' in title_lower or
+            'market research analyst' in title_lower or
+            'business intelligence analyst' in title_lower or
+            'analytics manager' in title_lower or
+            'senior analyst' in title_lower or
+            'lead analyst' in title_lower or
+            'principal analyst' in title_lower or
+            'analyst intern' in title_lower or
+            ('analyst' in title_lower and any(term in title_lower for term in 
+                ['business', 'strategy', 'product', 'operations', 'management', 
+                 'consulting', 'financial', 'investment', 'research', 'market']))
+        )
+        
+        # Category 8: FOUNDER'S OFFICE / CHIEF OF STAFF
+        is_founders_office = (
+            "founder's office" in title_lower or
+            'founder office' in title_lower or
+            'chief of staff' in title_lower or
+            'cos' == title_lower or
+            'entrepreneur in residence' in title_lower or
+            'eir' in title_lower
+        )
+        
+        # Check if ANY wanted category matches
+        if not (is_consultant or is_program_manager or is_product_manager or 
+                is_project_manager or is_growth or is_strategy or is_operations or 
+                is_analyst or is_founders_office):
+            return False, "Does not match any wanted category (consultant/PM/product/project/analyst/strategy/growth/operations)"
         
         # ========================================================================
-        # ACCEPT: If we got here, the job passed all checks
+        # ACCEPT: Job passed all checks
         # ========================================================================
-        return True, f"Valid role: {job_title}"
+        matched_categories = []
+        if is_consultant:
+            matched_categories.append("consultant")
+        if is_program_manager:
+            matched_categories.append("program-manager")
+        if is_product_manager:
+            matched_categories.append("product-manager")
+        if is_project_manager:
+            matched_categories.append("project-manager")
+        if is_growth:
+            matched_categories.append("growth")
+        if is_strategy:
+            matched_categories.append("strategy")
+        if is_operations:
+            matched_categories.append("operations")
+        if is_analyst:
+            matched_categories.append("analyst")
+        if is_founders_office:
+            matched_categories.append("founders-office")
+        
+        return True, f"Valid role (matches: {', '.join(matched_categories)})"
     
     def is_job_fresh(self, posted_date: str) -> bool:
         """
@@ -856,22 +1076,25 @@ class HybridOptimizedScraper:
     async def scrape_linkedin_batch(
         self,
         cities: List[str],
-        weighted_keywords: List[tuple],
+        keywords: List[str],  # CHANGED: Simple list, not tuples
         limit_per_keyword: int = 10,
-        max_jobs: int = None  # NEW: Hard limit on total jobs
+        max_jobs: int = None
     ) -> int:
         """
-        Scrape LinkedIn jobs with WEIGHTED KEYWORD DISTRIBUTION and QUOTA CONTROL.
-        Keywords are pre-shuffled to ensure mixing across categories.
+        Scrape LinkedIn jobs with HIGH-YIELD keywords only.
+        
+        CRITICAL FIX: Use ONLY 36 proven keywords (not 100+).
+        Each keyword returns 10-12 jobs (not 1).
         
         Args:
+            keywords: Simple list of keyword strings
             max_jobs: Maximum number of jobs to scrape (stops when reached)
         """
         uploaded = 0
         
         logger.info("="*70)
-        logger.info("🔵 LINKEDIN SCRAPING STARTED")
-        logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        logger.info("🔵 LINKEDIN SCRAPING STARTED (HIGH-YIELD KEYWORDS ONLY)")
+        logger.info(f"Cities: {len(cities)}, Keywords: {len(keywords)}")
         if max_jobs:
             logger.info(f"Quota: {max_jobs} jobs (will stop when reached)")
         logger.info("="*70)
@@ -883,37 +1106,24 @@ class HybridOptimizedScraper:
             except:
                 logger.warning("No saved session, will need to login")
             
-            total_tasks = len(cities) * len(weighted_keywords)
+            total_tasks = len(cities) * len(keywords)
             completed = 0
             
             for city in cities:
-                # Check for shutdown request OR quota reached
-                if self.shutdown_requested:
-                    logger.info("⚠️  Shutdown requested, stopping LinkedIn scraping...")
+                if self.shutdown_requested or (max_jobs and uploaded >= max_jobs):
                     break
                 
-                if max_jobs and uploaded >= max_jobs:
-                    logger.info(f"✅ LinkedIn quota reached ({uploaded}/{max_jobs} jobs)")
-                    break
-                
-                for keyword, category, is_internship in weighted_keywords:
-                    # Check for shutdown request OR quota reached
-                    if self.shutdown_requested:
-                        logger.info("⚠️  Shutdown requested, stopping LinkedIn scraping...")
-                        break
-                    
-                    if max_jobs and uploaded >= max_jobs:
-                        logger.info(f"✅ LinkedIn quota reached ({uploaded}/{max_jobs} jobs)")
+                for keyword in keywords:  # CHANGED: Simple iteration
+                    if self.shutdown_requested or (max_jobs and uploaded >= max_jobs):
                         break
                     
                     completed += 1
-                    role_type = "internship" if is_internship else "full-time"
                     
                     # Calculate remaining quota
                     remaining = max_jobs - uploaded if max_jobs else limit_per_keyword
                     actual_limit = min(limit_per_keyword, remaining) if max_jobs else limit_per_keyword
                     
-                    logger.info(f"[{completed}/{total_tasks}] Processing: {keyword} ({category}, {role_type}) in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
+                    logger.info(f"[{completed}/{total_tasks}] Processing: {keyword} in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
                     
                     try:
                         search_scraper = OptimizedJobSearchScraper(browser.page, callback=ConsoleCallback())
@@ -922,53 +1132,45 @@ class HybridOptimizedScraper:
                         job_urls = await search_scraper.search(
                             keywords=keyword,
                             location=city,
-                            limit=actual_limit,  # Use adjusted limit
+                            limit=actual_limit,
                             days_ago=self.max_days
                         )
                         
                         logger.info(f"Found {len(job_urls)} jobs for '{keyword}' in {city}")
                         
-                        # CRITICAL OPTIMIZATION: Extract titles FIRST, validate, THEN scrape full details
+                        # Process jobs (same as before)
                         job_scraper = JobScraper(browser.page, callback=ConsoleCallback())
                         
                         valid_jobs_count = 0
                         skipped_early = 0
                         
                         for job_url in job_urls:
-                            # Check quota again (inner loop)
                             if max_jobs and uploaded >= max_jobs:
-                                logger.info(f"✅ LinkedIn quota reached mid-search ({uploaded}/{max_jobs})")
                                 break
                             
-                            # Check for shutdown request
                             if self.shutdown_requested:
-                                logger.info("⚠️  Shutdown requested, stopping job processing...")
                                 break
                             
-                            # Check duplicate first (fast URL check)
                             if self.is_duplicate(job_url):
                                 self.stats["duplicates_skipped"] += 1
                                 continue
                             
                             try:
-                                # Rate limiting
                                 await self.engine.rate_limiter.acquire('linkedin')
                                 
-                                # STAGE 1: FAST - Extract ONLY title and company (no description)
+                                # Early validation (extract title first)
                                 quick_title = ""
                                 quick_company = ""
                                 
                                 try:
                                     await browser.page.goto(job_url, wait_until="domcontentloaded", timeout=10000)
                                     
-                                    # UPDATED SELECTORS for LinkedIn's current HTML structure
-                                    # Try multiple selectors in order of specificity
                                     title_selectors = [
-                                        'h1.top-card-layout__title',  # New LinkedIn layout
-                                        'h1.t-24.t-bold',  # Alternative layout
+                                        'h1.top-card-layout__title',
+                                        'h1.t-24.t-bold',
                                         'h2.top-card-layout__title',
-                                        'h1[class*="job"]',  # Fallback
-                                        'h1',  # Last resort
+                                        'h1[class*="job"]',
+                                        'h1',
                                     ]
                                     
                                     for selector in title_selectors:
@@ -981,11 +1183,10 @@ class HybridOptimizedScraper:
                                         except:
                                             continue
                                     
-                                    # Company extraction with updated selectors
                                     company_selectors = [
-                                        'a.topcard__org-name-link',  # New layout
-                                        'span.topcard__flavor',  # Alternative
-                                        'a[data-tracking-control-name*="company"]',  # Fallback
+                                        'a.topcard__org-name-link',
+                                        'span.topcard__flavor',
+                                        'a[data-tracking-control-name*="company"]',
                                     ]
                                     
                                     for selector in company_selectors:
@@ -998,11 +1199,7 @@ class HybridOptimizedScraper:
                                         except:
                                             continue
                                     
-                                    if not quick_title or not quick_title.strip():
-                                        logger.info(f"⚠️  Could not extract title from {job_url}, falling back to full scrape")
-                                        # Don't skip - fall through to full scrape
-                                    else:
-                                        # EARLY VALIDATION (before full scrape)
+                                    if quick_title:
                                         is_valid, reason = self.is_valid_role(
                                             quick_title.strip(),
                                             quick_company.strip(),
@@ -1012,39 +1209,39 @@ class HybridOptimizedScraper:
                                         if not is_valid:
                                             self.stats["filtered_out"] += 1
                                             skipped_early += 1
-                                            # DETAILED LOGGING - Show what's being rejected and WHY
                                             logger.info(f"❌ Rejected: '{quick_title}' at {quick_company} | Reason: {reason}")
                                             continue
                                         
-                                        # STAGE 2: SLOW - Only scrape full details for valid jobs
                                         logger.info(f"✅ Valid: '{quick_title}' | {reason}")
                                 
                                 except Exception as e:
                                     logger.info(f"⚠️  Early extraction failed: {str(e)[:100]}, falling back to full scrape")
                                 
-                                # Full scrape (only for validated jobs)
+                                # Full scrape
                                 job = await job_scraper.scrape(job_url)
                                 
-                                # Final validation (in case early validation was skipped)
+                                # Final validation
                                 is_valid, reason = self.is_valid_role(
                                     job.job_title or "",
                                     job.company or "",
-                                    keyword  # Pass search keyword for relevance check
+                                    keyword
                                 )
                                 
                                 if not is_valid:
                                     self.stats["filtered_out"] += 1
-                                    # DETAILED LOGGING - Show what's being rejected and WHY
                                     logger.info(f"❌ Rejected: '{job.job_title}' at {job.company} | Reason: {reason}")
                                     continue
                                 
-                                # Only process description if job passed validation
+                                # Process description
                                 description = job.job_description or ""
                                 if description:
                                     description = description.replace("… more", "").replace("... more", "")
                                     description = description.replace("Show less", "").replace("Show more", "")
                                     if len(description) > 45000:
                                         description = description[:45000]
+                                
+                                # Detect category
+                                category = self.detect_role_category(job.job_title or "")
                                 
                                 # Normalize job data
                                 job_data = {
@@ -1059,7 +1256,7 @@ class HybridOptimizedScraper:
                                     "search_city": city,
                                     "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                     "platform": "linkedin",
-                                    "category": category,  # Track category
+                                    "category": category or "unknown",
                                 }
                                 
                                 # Upload immediately
@@ -1068,24 +1265,20 @@ class HybridOptimizedScraper:
                                     valid_jobs_count += 1
                                     self.stats["linkedin_jobs"] += 1
                                     self.stats["total_jobs"] += 1
-                                    logger.info(f"✓ LinkedIn [{category}]: {job.job_title} at {job.company} [{uploaded}/{max_jobs or '∞'}]")
+                                    logger.info(f"✓ LinkedIn [{category or 'unknown'}]: {job.job_title} at {job.company} [{uploaded}/{max_jobs or '∞'}]")
                             
                             except Exception as e:
                                 self.stats["errors"] += 1
                                 logger.debug(f"Error scraping job: {e}")
                         
-                        # Log success rate for this keyword
+                        # Log success rate
                         if len(job_urls) > 0:
                             success_rate = (valid_jobs_count / len(job_urls)) * 100
                             logger.info(f"📊 '{keyword}' in {city}: {success_rate:.1f}% success ({valid_jobs_count}/{len(job_urls)} jobs)")
                             if skipped_early > 0:
                                 logger.info(f"  ⚡ Early rejections (time saved): {skipped_early} jobs")
-                            
-                            # Provide feedback on low success rates
-                            if success_rate < 20 and len(job_urls) >= 5:
-                                logger.info(f"  ℹ️  Low success rate - LinkedIn returned mostly irrelevant results for this keyword")
                         
-                        await asyncio.sleep(0.5)  # Minimal delay between searches
+                        await asyncio.sleep(0.5)
                     
                     except Exception as e:
                         self.stats["errors"] += 1
@@ -1102,13 +1295,12 @@ class HybridOptimizedScraper:
     def scrape_indeed_naukri_batch(
         self,
         cities: List[str],
-        weighted_keywords: List[tuple],
+        keywords: List[str],  # FIXED: Simple list, not tuples
         limit_per_city: int = 10,
-        max_jobs: int = None  # NEW: Hard limit on total jobs
+        max_jobs: int = None
     ) -> int:
         """
-        Scrape Indeed jobs with WEIGHTED KEYWORD DISTRIBUTION and QUOTA CONTROL.
-        Uses pre-shuffled keywords to ensure category mixing.
+        Scrape Indeed jobs with HIGH-YIELD keywords only.
         
         NOTE: Naukri removed due to 406 Recaptcha errors.
         
@@ -1116,51 +1308,36 @@ class HybridOptimizedScraper:
         Solution: Pre-filter DataFrame by date BEFORE processing individual jobs.
         
         Args:
+            keywords: Simple list of keyword strings
             max_jobs: Maximum number of jobs to scrape (stops when reached)
         """
         uploaded = 0
         
         logger.info("="*70)
-        logger.info("🟢 INDEED SCRAPING STARTED")
-        logger.info(f"Cities: {len(cities)}, Keywords: {len(weighted_keywords)}")
+        logger.info("🟢 INDEED SCRAPING STARTED (HIGH-YIELD KEYWORDS ONLY)")
+        logger.info(f"Cities: {len(cities)}, Keywords: {len(keywords)}")
         if max_jobs:
             logger.info(f"Quota: {max_jobs} jobs (will stop when reached)")
         logger.info("="*70)
         
         for city in cities:
-            # Check for shutdown request OR quota reached
-            if self.shutdown_requested:
-                logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
+            if self.shutdown_requested or (max_jobs and uploaded >= max_jobs):
                 break
             
-            if max_jobs and uploaded >= max_jobs:
-                logger.info(f"✅ Indeed quota reached ({uploaded}/{max_jobs} jobs)")
-                break
-            
-            for keyword, category, is_internship in weighted_keywords:
-                # Check for shutdown request OR quota reached
-                if self.shutdown_requested:
-                    logger.info("⚠️  Shutdown requested, stopping Indeed scraping...")
+            for keyword in keywords:  # FIXED: Simple iteration
+                if self.shutdown_requested or (max_jobs and uploaded >= max_jobs):
                     break
-                
-                if max_jobs and uploaded >= max_jobs:
-                    logger.info(f"✅ Indeed quota reached ({uploaded}/{max_jobs} jobs)")
-                    break
-                
-                role_type = "internship" if is_internship else "full-time"
                 
                 # Calculate remaining quota
                 remaining = max_jobs - uploaded if max_jobs else limit_per_city
                 actual_limit = min(limit_per_city, remaining) if max_jobs else limit_per_city
                 
-                logger.info(f"Scraping: {keyword} ({category}, {role_type}) in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
+                logger.info(f"Scraping: {keyword} in {city} [Quota: {uploaded}/{max_jobs or '∞'}]")
                     
                 try:
-                    # Rate limiting
                     time.sleep(1)
                     
-                    # CRITICAL: Request MORE jobs than needed (Indeed returns old ones)
-                    # We'll filter them out, so request 3x to compensate
+                    # Request MORE jobs (Indeed returns old ones)
                     request_limit = actual_limit * 3
                     
                     # Scrape Indeed ONLY (Naukri removed due to Recaptcha)
@@ -1170,6 +1347,7 @@ class HybridOptimizedScraper:
                         location=city,
                         results_wanted=request_limit,  # Request MORE
                         hours_old=self.max_days * 24,
+                        description_format="html",  # CRITICAL: Request HTML, not markdown
                         verbose=0
                     )
                     
@@ -1257,6 +1435,9 @@ class HybridOptimizedScraper:
                         raw_employment_type = str(row.get('job_type', 'Full Time'))
                         normalized_employment_type = self.normalize_employment_type(raw_employment_type)
                         
+                        # Detect category BEFORE creating job_data
+                        category = self.detect_role_category(job_title)
+                        
                         job_data = {
                             "job_title": self.sanitizer.sanitize_html(job_title),
                             "company": self.sanitizer.sanitize_html(company),
@@ -1308,16 +1489,16 @@ class HybridOptimizedScraper:
         include_internships: bool = True,
         limit_per_city: int = 10,
         target_total_jobs: int = 100,  # NEW: Total jobs to scrape
-        linkedin_ratio: float = 0.60,  # NEW: 60% LinkedIn
+        linkedin_ratio: float = 0.80,  # NEW: 80% LinkedIn (changed from 60%)
     ) -> Dict[str, Any]:
         """
         Run hybrid scraping workflow with CONTROLLED DISTRIBUTION.
         
-        NEW: Enforces 60:40 LinkedIn:Indeed ratio by setting quotas.
+        NEW: Enforces 80:20 LinkedIn:Indeed ratio by setting quotas.
         
         Args:
             target_total_jobs: Total jobs to scrape (default: 100)
-            linkedin_ratio: Percentage of jobs from LinkedIn (default: 0.60 = 60%)
+            linkedin_ratio: Percentage of jobs from LinkedIn (default: 0.80 = 80%)
         """
         cities = cities or DEFAULT_CITIES
         
@@ -1325,27 +1506,26 @@ class HybridOptimizedScraper:
         linkedin_quota = int(target_total_jobs * linkedin_ratio)
         indeed_quota = target_total_jobs - linkedin_quota
         
-        # Get weighted keywords (pre-shuffled for mixing)
-        weighted_keywords = self.get_weighted_keywords(include_internships=include_internships)
+        # Get high-yield keywords (FIXED: Use new method)
+        keywords = self.get_high_yield_keywords()
         
-        # Calculate limits per keyword to hit quotas
-        # Formula: quota / (num_cities * num_keywords)
-        total_searches = len(cities) * len(weighted_keywords)
-        linkedin_limit_per_search = max(1, linkedin_quota // total_searches) if "linkedin" in self.platforms else 0
-        indeed_limit_per_search = max(1, indeed_quota // total_searches) if "indeed" in self.platforms else 0
+        # CRITICAL FIX: Don't divide quota by total searches!
+        # Instead, request MORE jobs per search and stop when quota is reached
+        # This ensures we get enough jobs even if some are rejected
+        total_searches = len(cities) * len(keywords)
+        
+        # Request 10-15 jobs per search (LinkedIn typically returns this many)
+        # The quota will stop us when we reach the target
+        linkedin_limit_per_search = 15 if "linkedin" in self.platforms else 0
+        indeed_limit_per_search = 5 if "indeed" in self.platforms else 0
         
         logger.info("="*70)
-        logger.info("HYBRID OPTIMIZED SCRAPER - CONTROLLED DISTRIBUTION")
+        logger.info("HYBRID OPTIMIZED SCRAPER - HIGH-YIELD KEYWORDS ONLY")
         logger.info("="*70)
         logger.info(f"Platforms: {', '.join(self.platforms)}")
         logger.info(f"Cities: {len(cities)}")
-        logger.info(f"Total Keywords: {len(weighted_keywords)}")
-        logger.info(f"  - Consulting: {len([k for k in weighted_keywords if k[1] == 'consulting'])}")
-        logger.info(f"  - Product: {len([k for k in weighted_keywords if k[1] == 'product'])}")
-        logger.info(f"  - Strategy: {len([k for k in weighted_keywords if k[1] == 'strategy'])}")
-        logger.info(f"  - Operations: {len([k for k in weighted_keywords if k[1] == 'operations'])}")
+        logger.info(f"Keywords: {len(keywords)} (high-yield only)")
         logger.info(f"Time Filter: Past {self.max_days} days")
-        logger.info(f"Include Internships: {include_internships}")
         logger.info("-"*70)
         logger.info("DISTRIBUTION QUOTAS:")
         logger.info(f"  Target Total: {target_total_jobs} jobs")
@@ -1371,9 +1551,9 @@ class HybridOptimizedScraper:
                 asyncio.create_task(
                     self.scrape_linkedin_batch(
                         cities, 
-                        weighted_keywords, 
+                        keywords,  # FIXED: Use simple list
                         linkedin_limit_per_search,
-                        max_jobs=linkedin_quota  # NEW: Hard limit
+                        max_jobs=linkedin_quota
                     )
                 )
             )
@@ -1387,9 +1567,9 @@ class HybridOptimizedScraper:
                     None,
                     self.scrape_indeed_naukri_batch,
                     cities,
-                    weighted_keywords,
+                    keywords,  # FIXED: Use simple list
                     indeed_limit_per_search,
-                    indeed_quota  # NEW: Hard limit
+                    indeed_quota
                 )
             )
         
@@ -1530,7 +1710,7 @@ class HybridOptimizedScraper:
 async def main():
     """Main entry point with graceful shutdown handling and distribution control."""
     parser = argparse.ArgumentParser(
-        description="Hybrid Optimized India Jobs Scraper with 60:40 LinkedIn:Indeed Distribution",
+        description="Hybrid Optimized India Jobs Scraper with 80:20 LinkedIn:Indeed Distribution",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -1567,8 +1747,8 @@ async def main():
     parser.add_argument(
         "--linkedin-ratio",
         type=float,
-        default=0.60,
-        help="LinkedIn percentage (0.0-1.0, default: 0.60 = 60%%)"
+        default=0.80,
+        help="LinkedIn percentage (0.0-1.0, default: 0.80 = 80%%)"
     )
     
     args = parser.parse_args()

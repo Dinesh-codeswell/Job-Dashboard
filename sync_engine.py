@@ -111,6 +111,23 @@ def sync_data():
             }
             if prepared_job["job_url"]: prepared_jobs.append(prepared_job)
 
+        # 3.5. DEDUPLICATE by job_url (keep most recent)
+        # This prevents "cannot affect row a second time" error when same job exists in multiple sheets
+        unique_jobs = {}
+        for job in prepared_jobs:
+            url = job["job_url"]
+            if url not in unique_jobs:
+                unique_jobs[url] = job
+            else:
+                # Keep the one with more recent timestamp
+                existing_ts = datetime.fromisoformat(unique_jobs[url]["posted_at_timestamp"])
+                new_ts = datetime.fromisoformat(job["posted_at_timestamp"])
+                if new_ts > existing_ts:
+                    unique_jobs[url] = job
+        
+        prepared_jobs = list(unique_jobs.values())
+        logger.info(f"After deduplication: {len(prepared_jobs)} unique jobs")
+
         # 4. UPSERT
         logger.info(f"Upserting {len(prepared_jobs)} STRICTLY FRESH jobs...")
         for i in range(0, len(prepared_jobs), 50):

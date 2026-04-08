@@ -74,6 +74,8 @@ class IndustryStandardExtractor:
         - Content: Nested divs with actual HTML structure
         - Strategy: Find container, extract inner HTML, clean minimally
         
+        CRITICAL FIX: Increased timeout + better error handling
+        
         Args:
             page: Playwright page object
             
@@ -81,8 +83,12 @@ class IndustryStandardExtractor:
             Clean HTML string preserving original structure
         """
         try:
-            # Wait for content to load
-            await page.wait_for_selector('h2:has-text("About the job")', timeout=10000)
+            # Wait for content to load (increased timeout from 10s to 15s)
+            try:
+                await page.wait_for_selector('h2:has-text("About the job")', timeout=15000)
+            except:
+                logger.warning("LinkedIn: 'About the job' heading not found within 15s")
+                return None
             
             # Get the description container
             # LinkedIn wraps description in a div after "About the job" heading
@@ -112,20 +118,25 @@ class IndustryStandardExtractor:
     
     def extract_indeed(self, raw_html: str) -> Optional[str]:
         """
-        Extract Indeed job description using industry-standard approach.
+        Extract Indeed job description with AGGRESSIVE cleaning.
         
-        Indeed Structure:
-        - Main container: div#jobDescriptionText
-        - Content: Nested HTML with headings, lists, paragraphs
-        - Strategy: Find container, extract inner HTML, clean minimally
+        Indeed has MAJOR issues:
+        1. Escaped characters: \\- \\( \\)
+        2. Encoding issues: Ã¢ÂÂ (UTF-8 mojibake)
+        3. Decorative junk: *͏** ---- etc.
+        4. Poor structure: Everything in one <p> tag
+        
+        Strategy: Extract, fix encoding, remove junk, restructure properly
         
         Args:
             raw_html: Raw HTML from Indeed
             
         Returns:
-            Clean HTML string preserving original structure
+            Clean, properly structured HTML like LinkedIn
         """
         try:
+            logger.info("Indeed: Extracting and cleaning HTML")
+            
             if not raw_html or len(raw_html) < 50:
                 return None
             
@@ -135,27 +146,170 @@ class IndustryStandardExtractor:
             container = (
                 soup.find('div', {'id': 'jobDescriptionText'}) or
                 soup.find('div', class_=lambda x: x and 'jobsearch-jobDescriptionText' in str(x)) or
+                soup.find('div', class_=lambda x: x and 'job-description-content' in str(x)) or
                 soup.find('div', class_=lambda x: x and 'description' in str(x).lower())
             )
             
             if not container:
-                logger.warning("Indeed: Description container not found")
-                return None
+                logger.warning("Indeed: Description container not found, trying full HTML")
+                container = soup
             
-            # CRITICAL FIX: Get inner HTML, not str(container)
-            # str(container) includes the outer div, we want ONLY the content
-            inner_html = ''.join(str(child) for child in container.children)
+            # Clean the HTML first (remove scripts, styles, etc.)
+            cleaned_soup = self._clean_indeed_specific(BeautifulSoup(str(container), 'html.parser'))
             
-            if len(inner_html) < 100:
-                logger.warning("Indeed: Description too short")
-                return None
+            # Check if we have good HTML structure (has proper tags)
+            has_structure = bool(cleaned_soup.find_all(['ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'li', 'strong', 'b']))
             
-            # Clean and return
-            return self._clean_html(inner_html, platform="indeed")
+            if has_structure:
+                # HTML already has good structure, clean and format it properly
+                logger.info(f"Indeed: HTML has structure, cleaning and formatting")
+                
+                # Apply comprehensive cleaning
+                cleaned_html = self._clean_html(str(cleaned_soup), platform="indeed")
+                
+                return cleaned_html
+            else:
+                # No structure, need to rebuild from text
+                logger.info(f"Indeed: No HTML structure, rebuilding from text")
+                text_content = cleaned_soup.get_text(separator='\n', strip=True)
+                
+                if len(text_content) < 100:
+                    logger.warning("Indeed: Description too short")
+                    return None
+                
+                # AGGRESSIVE CLEANING: Fix all Indeed issues
+                cleaned_html = self._rebuild_indeed_structure(text_content)
+                
+                logger.info(f"Indeed: Rebuilt to {len(cleaned_html)} chars of clean HTML")
+                
+                return f'<div class="job-description-content">\n{cleaned_html}\n</div>'
             
         except Exception as e:
             logger.error(f"Indeed extraction error: {e}")
             return None
+    
+    def _rebuild_indeed_structure(self, text: str) -> str:
+        """
+        Rebuild Indeed job description with proper structure.
+        
+        Indeed uses markdown-style formatting that needs conversion:
+        - ### Heading → <h3>Heading</h3>
+        - **Bold** → <strong>Bold</strong>
+        - *Italic* → Remove (decorative)
+        - --- → Remove (decorative)
+        - Bullet points → <ul><li>
+        
+        Args:
+            text: Raw text content from Indeed
+            
+        Returns:
+            Clean, properly structured HTML like LinkedIn
+        """
+        # STEP 1: Fix escaped characters
+        text = text.replace('\\-', '-')
+        text = text.replace('\\(', '(')
+        text = text.replace('\\)', ')')
+        text = text.replace('\\/', '/')
+        text = text.replace('\\.', '.')
+        text = text.replace('\\,', ',')
+        text = text.replace('\\:', ':')
+        text = text.replace('\\;', ';')
+        text = text.replace('\\&', '&')
+        
+        # STEP 2: Fix encoding issues (UTF-8 mojibake)
+        text = text.replace('Ã¢ÂÂ', "'")
+        text = text.replace('â', "'")
+        text = text.replace('â', '"')
+        text = text.replace('â', '"')
+        text = text.replace('â', '—')
+        text = text.replace('Â', '')
+        text = text.replace('‑', '-')  # Non-breaking hyphen
+        
+        # STEP 3: Process line by line
+        lines = text.split('\n')
+        html_parts = []
+        in_list = False
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+            
+            # Skip pure decorative separators
+            if re.match(r'^[-*_=\.•]{3,}$', line):
+                continue
+            
+            # Skip junk symbols
+            if line in ['*͏**', '----', '***', '---', '===', '...', '*', '**']:
+                continue
+            
+            # STEP 4: Convert markdown-style headings (### Heading)
+            if line.startswith('###'):
+                # Close list if open
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                
+                # Extract heading text and remove markdown + asterisks
+                heading = line.replace('###', '').strip()
+                heading = heading.strip('*').strip()
+                if heading:
+                    html_parts.append(f'<h3>{heading}</h3>')
+                continue
+            
+            # STEP 5: Convert bold headings (**Heading**)
+            if line.startswith('**') and line.endswith('**') and len(line) < 100:
+                # Close list if open
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                
+                # Extract heading text
+                heading = line.strip('*').strip()
+                if heading and not heading.startswith('-'):  # Not a separator
+                    html_parts.append(f'<h3>{heading}</h3>')
+                continue
+            
+            # STEP 6: Convert bullet points
+            if line.startswith(('•', '-', '*', '▪', '·')):
+                # Open list if not open
+                if not in_list:
+                    html_parts.append('<ul>')
+                    in_list = True
+                
+                # Clean bullet text - remove leading bullet and asterisks
+                bullet_text = re.sub(r'^[•\-*▪·]\s*', '', line).strip()
+                bullet_text = bullet_text.strip('*').strip()
+                
+                # Skip if it's just decorative
+                if bullet_text and not re.match(r'^[-*_=\.]{2,}$', bullet_text):
+                    html_parts.append(f'<li>{bullet_text}</li>')
+                continue
+            
+            # STEP 7: Regular paragraphs
+            # Close list if open
+            if in_list:
+                html_parts.append('</ul>')
+                in_list = False
+            
+            # Remove inline asterisks for bold (convert **text** to <strong>text</strong>)
+            line = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', line)
+            
+            # Remove single asterisks (decorative)
+            line = line.strip('*').strip()
+            
+            # Add as paragraph if not empty
+            if line and len(line) > 2:
+                html_parts.append(f'<p>{line}</p>')
+        
+        # Close list if still open
+        if in_list:
+            html_parts.append('</ul>')
+        
+        # Join with newlines for proper HTML formatting
+        return '\n'.join(html_parts)
     
     # ========================================================================
     # CORE CLEANING LOGIC (Industry Standard)
@@ -211,8 +365,9 @@ class IndustryStandardExtractor:
         # Step 5: Get cleaned HTML
         cleaned = str(soup)
         
-        # Step 6: Remove excessive whitespace
-        cleaned = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned)
+        # Step 6: Format HTML properly with newlines between tags for proper rendering
+        cleaned = re.sub(r'>\s*<', '>\n<', cleaned)  # Add newlines between tags
+        cleaned = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned)  # Remove excessive newlines
         cleaned = cleaned.strip()
         
         # Step 7: Wrap in container
@@ -220,12 +375,10 @@ class IndustryStandardExtractor:
     
     def _clean_indeed_specific(self, soup: BeautifulSoup) -> BeautifulSoup:
         """
-        Indeed-specific cleaning.
+        Indeed-specific cleaning (LEGACY - now using _rebuild_indeed_structure).
         
-        Indeed issues:
-        - Decorative separators (dashes, asterisks)
-        - Empty divs
-        - Redundant spans
+        This method is kept for backward compatibility but is no longer
+        the primary cleaning method for Indeed descriptions.
         """
         # Remove decorative list items
         for li in soup.find_all('li'):
@@ -233,9 +386,8 @@ class IndustryStandardExtractor:
             if text and re.match(r'^[-*=_\.]+$', text):
                 li.decompose()
         
-        # Remove empty elements (but preserve structure)
+        # Remove empty elements
         for tag in soup.find_all(['p', 'div', 'span']):
-            # Only remove if truly empty (no children and no text)
             if not tag.get_text(strip=True) and not tag.find_all():
                 tag.decompose()
         

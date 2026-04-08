@@ -487,6 +487,8 @@ class JobScraper(BaseScraper):
         """
         Extract pixel-perfect job description from LinkedIn.
         Uses advanced JobDescriptionExtractor for perfect formatting.
+        
+        CRITICAL FIX: Increased timeout + better fallback for description extraction.
         """
         try:
             # Import the extractor
@@ -497,6 +499,12 @@ class JobScraper(BaseScraper):
             
             # Use the pixel-perfect extractor
             description = await extract_linkedin_description(self.page)
+            
+            # If extraction failed or returned empty, try fallback
+            if not description or len(description) < 100:
+                logger.warning("Advanced extractor returned empty/short description, trying fallback")
+                description = await self._get_description_fallback()
+            
             return description
             
         except Exception as e:
@@ -505,27 +513,82 @@ class JobScraper(BaseScraper):
             return await self._get_description_fallback()
     
     async def _get_description_fallback(self) -> Optional[str]:
-        """Fallback description extraction if advanced extractor fails."""
+        """
+        Fallback description extraction if advanced extractor fails.
+        
+        CRITICAL FIX: Multiple strategies to extract job description.
+        """
         try:
-            # Find "About the job" section
-            about_heading = self.page.locator('h2:has-text("About the job")').first
-            if await about_heading.count() > 0:
-                parent = about_heading.locator('xpath=ancestor::div[@class][2]')
-                if await parent.count() > 0:
-                    text = await parent.inner_text()
-                    if text and len(text) > 100:
+            # Strategy 1: Find "About the job" section (with longer timeout)
+            try:
+                await self.page.wait_for_selector('h2:has-text("About the job")', timeout=5000)
+                about_heading = self.page.locator('h2:has-text("About the job")').first
+                if await about_heading.count() > 0:
+                    # Try to get the next sibling div (description container)
+                    next_div = about_heading.locator('xpath=following-sibling::div[1]')
+                    if await next_div.count() > 0:
+                        html = await next_div.inner_html()
+                        if html and len(html) > 100:
+                            logger.info("Description extracted via 'About the job' heading")
+                            return html.strip()
+            except:
+                logger.debug("'About the job' heading not found, trying alternative methods")
+            
+            # Strategy 2: Look for description class patterns
+            description_selectors = [
+                'div[class*="description"]',
+                'div[class*="job-description"]',
+                'div[class*="jobDescription"]',
+                'div.show-more-less-html__markup',
+                'article[class*="job"]',
+            ]
+            
+            for selector in description_selectors:
+                try:
+                    elem = self.page.locator(selector).first
+                    if await elem.count() > 0:
+                        html = await elem.inner_html()
+                        if html and len(html) > 200:
+                            logger.info(f"Description extracted via selector: {selector}")
+                            return html.strip()
+                except:
+                    continue
+            
+            # Strategy 3: Get main content and extract description section
+            try:
+                main_content = self.page.locator('main').first
+                if await main_content.count() > 0:
+                    text = await main_content.inner_text()
+                    if 'About the job' in text:
+                        # Split and get content after "About the job"
+                        parts = text.split('About the job', 1)
+                        if len(parts) > 1:
+                            description = parts[1].strip()
+                            # Take content until next major section (if any)
+                            for section_marker in ['About the company', 'Similar jobs', 'People also viewed']:
+                                if section_marker in description:
+                                    description = description.split(section_marker)[0].strip()
+                            
+                            if len(description) > 100:
+                                logger.info("Description extracted from main content text")
+                                return description
+            except:
+                pass
+            
+            # Strategy 4: Last resort - get all text from main and hope for the best
+            try:
+                main_content = self.page.locator('main').first
+                if await main_content.count() > 0:
+                    text = await main_content.inner_text()
+                    if len(text) > 200:
+                        logger.warning("Using main content as description (last resort)")
                         return text.strip()
+            except:
+                pass
             
-            # Fallback: Get main content
-            main_content = self.page.locator('main').first
-            if await main_content.count() > 0:
-                text = await main_content.inner_text()
-                if 'About the job' in text:
-                    description = text.split('About the job')[1] if 'About the job' in text else text
-                    if description and len(description) > 100:
-                        return description.strip()
-            
+            logger.error("All description extraction strategies failed")
             return None
+            
         except Exception as e:
             logger.error(f"Fallback extraction error: {e}")
             return None

@@ -1,0 +1,134 @@
+═══════════════════════════════════════════════════════════════════
+  JOB DASHBOARD INTEGRATION - QUICK CHECKLIST
+═══════════════════════════════════════════════════════════════════
+
+📋 STEP 1: COPY CORE FILES
+═══════════════════════════════════════════════════════════════════
+□ scrape_hybrid_optimized.py
+□ sync_engine.py
+□ job_description_extractor.py
+□ security_manager.py
+□ requirements.txt
+□ .env.example (rename to .env and fill in)
+□ credentials.json (Google Sheets API)
+□ vercel.json
+
+📋 STEP 2: COPY PACKAGES (ENTIRE FOLDERS)
+═══════════════════════════════════════════════════════════════════
+□ linkedin_scraper/ (entire folder with all subfolders)
+□ jobspy/ (entire folder with all subfolders)
+□ api/ (entire folder)
+□ dashboard/ (entire folder)
+
+📋 STEP 3: COPY DOCUMENTATION (OPTIONAL BUT RECOMMENDED)
+═══════════════════════════════════════════════════════════════════
+□ JOB_DESCRIPTION_EXTRACTION_GUIDE.md
+□ INDEED_DESCRIPTION_FIX.md
+□ INDEED_FORMATTING_FIX.md
+□ MIGRATION_TO_MAIN_WEBSITE.md
+
+📋 STEP 4: CONFIGURE ENVIRONMENT
+═══════════════════════════════════════════════════════════════════
+□ Create .env file with:
+  □ NEXT_PUBLIC_SUPABASE_URL
+  □ NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+  □ GOOGLE_SHEET_ID
+  □ LINKEDIN_EMAIL (optional)
+  □ LINKEDIN_PASSWORD (optional)
+
+□ Add credentials.json for Google Sheets API
+
+📋 STEP 5: INSTALL DEPENDENCIES
+═══════════════════════════════════════════════════════════════════
+□ pip install -r requirements.txt
+□ playwright install chromium
+
+📋 STEP 6: TEST COMPONENTS
+═══════════════════════════════════════════════════════════════════
+□ Test scraper: python scrape_hybrid_optimized.py
+□ Test sync: python sync_engine.py
+□ Test dashboard: cd dashboard && python app.py
+□ Test API: Visit http://localhost:5000/api/jobs
+
+📋 STEP 7: DEPLOY
+═══════════════════════════════════════════════════════════════════
+□ Push to Git repository
+□ Deploy to Vercel: vercel deploy
+□ Verify production deployment
+
+═══════════════════════════════════════════════════════════════════
+  CRITICAL FILES (MUST HAVE)
+═══════════════════════════════════════════════════════════════════
+
+SCRAPING:
+✅ scrape_hybrid_optimized.py
+✅ linkedin_scraper/integrations/google_sheets.py
+✅ linkedin_scraper/integrations/multi_platform_scraper.py
+✅ linkedin_scraper/scrapers/job.py
+✅ linkedin_scraper/scrapers/job_search.py
+✅ job_description_extractor.py
+
+SYNC:
+✅ sync_engine.py
+✅ dashboard/data/sheets_fetcher.py
+
+API:
+✅ api/index.py
+✅ api/supabase_api.py
+
+FRONTEND:
+✅ dashboard/templates/index.html
+✅ dashboard/templates/job_detail.html
+✅ dashboard/static/css/style.css
+✅ dashboard/static/js/main.js
+✅ dashboard/static/js/utils.js
+
+═══════════════════════════════════════════════════════════════════
+  DO NOT COPY (EXCLUDE)
+═══════════════════════════════════════════════════════════════════
+
+❌ scrape_india_jobs_notion*.py (Notion scripts)
+❌ notion_added_jobs_cache.json
+❌ linkedin_scraper/integrations/notion.py
+❌ test_*.py (test files)
+❌ *.bat, *.ps1 (Windows automation)
+❌ __pycache__/, *.pyc (cache files)
+❌ logs/ (log files)
+❌ All *_FIXES_*.md, *_SUMMARY.md (documentation summaries)
+
+═══════════════════════════════════════════════════════════════════
+  WORKFLOW VERIFICATION
+═══════════════════════════════════════════════════════════════════
+
+1. Scraper runs → Jobs saved to Google Sheets ✓
+2. Sync engine runs → Jobs copied to Supabase ✓
+3. API fetches → Data from Supabase ✓
+4. Dashboard displays → Jobs from API ✓
+
+═══════════════════════════════════════════════════════════════════
+  FOLDER STRUCTURE IN MAIN WEBSITE
+═══════════════════════════════════════════════════════════════════
+
+your-website/
+├── api/                    # Vercel serverless
+├── dashboard/              # Frontend
+├── scrapers/               # Scraping scripts (NEW FOLDER)
+│   ├── scrape_hybrid_optimized.py
+│   ├── sync_engine.py
+│   ├── linkedin_scraper/
+│   └── jobspy/
+├── .env
+├── credentials.json
+├── requirements.txt
+└── vercel.json
+
+═══════════════════════════════════════════════════════════════════
+  ESTIMATED TOTALS
+═══════════════════════════════════════════════════════════════════
+
+Files to copy: ~50-60 files
+Folders: 8 main folders
+Setup time: 30-60 minutes
+Critical files: 15 files
+
+═══════════════════════════════════════════════════════════════════

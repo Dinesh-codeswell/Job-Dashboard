@@ -777,6 +777,7 @@ class UnifiedIndiaJobsScraper:
                         location=city,
                         results_wanted=limit_per_city,
                         hours_old=self.max_days * 24,
+                        description_format="html",  # CRITICAL: Request HTML, not markdown
                         verbose=0
                     )
 
@@ -931,6 +932,7 @@ class UnifiedIndiaJobsScraper:
                 location=task['city'],
                 results_wanted=task['limit'],
                 hours_old=self.max_days * 24,
+                description_format="html",  # CRITICAL: Request HTML, not markdown
                 verbose=0
             )
             
