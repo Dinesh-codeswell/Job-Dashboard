@@ -1,12 +1,12 @@
 @echo off
 REM ========================================================================
-REM Windows Task Scheduler Setup for Automated Job Scraper
-REM Runs every 15 minutes without manual intervention
+REM Windows Task Scheduler Setup for Automated Job Scraper + Sync
+REM Runs every 4 hours (industry standard for job boards)
 REM ========================================================================
 
 echo.
 echo ========================================================================
-echo   SETTING UP AUTOMATED JOB SCRAPER (Every 15 Minutes)
+echo   SETTING UP AUTOMATED JOB SCRAPER + SYNC (Every 4 Hours)
 echo ========================================================================
 echo.
 
@@ -26,7 +26,7 @@ echo.
 
 REM Get the current directory (where this script is located)
 set SCRIPT_DIR=%~dp0
-set PYTHON_SCRIPT=%SCRIPT_DIR%auto_scraper.py
+set PYTHON_SCRIPT=%SCRIPT_DIR%run_scraper_and_sync.py
 
 REM Find Python executable
 set PYTHON_PATH=C:\Users\katal\AppData\Local\Programs\Python\Python311\python.exe
@@ -50,7 +50,7 @@ echo   CONFIGURATION
 echo ========================================================================
 echo.
 echo Task Name: %TASK_NAME%
-echo Schedule: Every 15 minutes
+echo Schedule: Every 4 hours
 echo Script: %PYTHON_SCRIPT%
 echo Working Directory: %SCRIPT_DIR%
 echo.
@@ -63,28 +63,31 @@ if %errorLevel% equ 0 (
     echo.
 )
 
-REM Create the scheduled task
+REM Create the scheduled task (every 4 hours)
 echo [INFO] Creating scheduled task...
 echo.
 
 schtasks /create ^
     /tn "%TASK_NAME%" ^
     /tr "cmd.exe /c \"cd /d \"%SCRIPT_DIR%\" && %PYTHON_PATH% \"%PYTHON_SCRIPT%\"\"" ^
-    /sc minute ^
-    /mo 15 ^
+    /sc hourly ^
+    /mo 4 ^
     /ru SYSTEM ^
     /f
 
 if %errorLevel% equ 0 (
     echo.
     echo ========================================================================
-    echo   ✅ SUCCESS! Automated scraper is now scheduled
+    echo   ✅ SUCCESS! Automated scraper + sync is now scheduled
     echo ========================================================================
     echo.
-    echo The scraper will run automatically every 15 minutes.
+    echo The scraper will run automatically every 4 hours.
+    echo Each run will:
+    echo   1. Scrape fresh jobs from LinkedIn + Indeed
+    echo   2. Sync to Supabase (with 3-day cleanup)
     echo.
     echo 📊 View logs in: %SCRIPT_DIR%logs\
-    echo 📝 Log files are named: scraper_YYYY_MM_DD.log
+    echo 📝 Log files are named: automation_YYYY_MM_DD.log
     echo.
     echo To check task status:   automation_manager.bat status
     echo To stop automation:     automation_manager.bat stop
