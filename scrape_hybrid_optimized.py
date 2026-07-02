@@ -1232,8 +1232,21 @@ class HybridOptimizedScraper:
                                     logger.info(f"❌ Rejected: '{job.job_title}' at {job.company} | Reason: {reason}")
                                     continue
                                 
-                                # Process description
+                                # Process description with quality checks
                                 description = job.job_description or ""
+                                
+                                # CRITICAL: Validate extraction succeeded
+                                if not description or len(description.strip()) < 200:
+                                    self.stats["filtered_out"] += 1
+                                    logger.info(f"❌ Rejected: '{job.job_title}' - JD extraction failed or too short")
+                                    continue
+                                
+                                # Check for unpaid roles
+                                if any(keyword in description.lower() for keyword in ['unpaid', 'no compensation', 'no pay', 'volunteer']):
+                                    self.stats["filtered_out"] += 1
+                                    logger.info(f"❌ Rejected: '{job.job_title}' - Unpaid role detected")
+                                    continue
+                                
                                 if description:
                                     description = description.replace("… more", "").replace("... more", "")
                                     description = description.replace("Show less", "").replace("Show more", "")
@@ -1418,6 +1431,19 @@ class HybridOptimizedScraper:
                         # Only process description for valid jobs
                         raw_desc = str(row.get('description', ''))
                         formatted_desc = raw_desc
+                        
+                        # CRITICAL: Validate extraction succeeded
+                        if not raw_desc or len(raw_desc.strip()) < 200:
+                            self.stats["filtered_out"] += 1
+                            logger.info(f"❌ Rejected ({platform}): '{job_title}' - JD extraction failed or too short")
+                            continue
+                        
+                        # Check for unpaid roles
+                        if any(keyword in raw_desc.lower() for keyword in ['unpaid', 'no compensation', 'no pay', 'volunteer']):
+                            self.stats["filtered_out"] += 1
+                            logger.info(f"❌ Rejected ({platform}): '{job_title}' - Unpaid role detected")
+                            continue
+                        
                         if raw_desc:
                             try:
                                 from job_description_extractor import extract_indeed_description, extract_from_text

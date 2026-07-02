@@ -1,12 +1,12 @@
 @echo off
 REM ========================================================================
-REM Windows Task Scheduler Setup for Automated Job Scraper + Sync
-REM Runs every 2 hours (high-frequency job updates)
+REM WhatsApp Web Group Notifier - Automated Setup
+REM Runs every 30 minutes to send new jobs to WhatsApp group
 REM ========================================================================
 
 echo.
 echo ========================================================================
-echo   SETTING UP AUTOMATED JOB SCRAPER + SYNC (Every 2 Hours)
+echo   SETTING UP WHATSAPP WEB GROUP NOTIFIER (Every 30 Minutes)
 echo ========================================================================
 echo.
 
@@ -26,7 +26,7 @@ echo.
 
 REM Get the current directory (where this script is located)
 set SCRIPT_DIR=%~dp0
-set PYTHON_SCRIPT=%SCRIPT_DIR%run_scraper_and_sync.py
+set PYTHON_SCRIPT=%SCRIPT_DIR%whatsapp_web_notifier.py
 
 REM Find Python executable
 set PYTHON_PATH=C:\Users\katal\AppData\Local\Programs\Python\Python311\python.exe
@@ -42,15 +42,30 @@ if not exist "%PYTHON_PATH%" (
 echo [INFO] Python found...
 echo.
 
+REM Check if .env has group name configured
+findstr /C:"WHATSAPP_GROUP_NAME=" .env | findstr /V /C:"WHATSAPP_GROUP_NAME=$" >nul
+if %errorLevel% neq 0 (
+    echo [ERROR] WHATSAPP_GROUP_NAME not set in .env file!
+    echo.
+    echo Please edit .env and add your WhatsApp group name:
+    echo WHATSAPP_GROUP_NAME=Your Group Name Here
+    echo.
+    pause
+    exit /b 1
+)
+
+echo [INFO] WhatsApp group name configured...
+echo.
+
 REM Task name
-set TASK_NAME=LinkedInJobsScraper_Auto
+set TASK_NAME=WhatsAppWebGroupNotifier
 
 echo ========================================================================
 echo   CONFIGURATION
 echo ========================================================================
 echo.
 echo Task Name: %TASK_NAME%
-echo Schedule: Every 2 hours
+echo Schedule: Every 30 minutes
 echo Script: %PYTHON_SCRIPT%
 echo Working Directory: %SCRIPT_DIR%
 echo.
@@ -63,29 +78,39 @@ if %errorLevel% equ 0 (
     echo.
 )
 
-REM Create the scheduled task (every 2 hours)
+REM Create the scheduled task (every 30 minutes)
 echo [INFO] Creating scheduled task...
 echo.
 
-schtasks /create /tn "%TASK_NAME%" /tr "cmd.exe /c \"cd /d \"%SCRIPT_DIR%\" && \"%PYTHON_PATH%\" \"%PYTHON_SCRIPT%\"\"" /sc hourly /mo 2 /ru SYSTEM /f
+schtasks /create /tn "%TASK_NAME%" /tr "cmd.exe /c \"cd /d \"%SCRIPT_DIR%\" && \"%PYTHON_PATH%\" \"%PYTHON_SCRIPT%\"\"" /sc minute /mo 30 /ru SYSTEM /f
 
 if %errorLevel% equ 0 (
     echo.
     echo ========================================================================
-    echo   ✅ SUCCESS! Automated scraper + sync is now scheduled
+    echo   ✅ SUCCESS! WhatsApp Web automation is now scheduled
     echo ========================================================================
     echo.
-    echo The scraper will run automatically every 2 hours.
+    echo The notifier will run automatically every 30 minutes.
     echo Each run will:
-    echo   1. Scrape fresh jobs from LinkedIn + Indeed
-    echo   2. Sync to Supabase (with 3-day cleanup)
+    echo   1. Fetch new jobs from Google Sheets
+    echo   2. Filter for tier 1 and tier 2 companies only
+    echo   3. Send to your WhatsApp group (appears as YOU)
+    echo   4. Track sent jobs to avoid duplicates
     echo.
     echo 📊 View logs in: %SCRIPT_DIR%logs\
-    echo 📝 Log files are named: automation_YYYY_MM_DD.log
+    echo 📝 Log files are named: whatsapp_web_YYYY_MM_DD.log
     echo.
-    echo To check task status:   automation_manager.bat status
-    echo To stop automation:     automation_manager.bat stop
-    echo To start automation:    automation_manager.bat start
+    echo IMPORTANT - FIRST RUN:
+    echo   1. Run manually first: python whatsapp_web_notifier.py --test
+    echo   2. Scan QR code when browser opens
+    echo   3. Session will be saved for future runs
+    echo   4. Subsequent runs will NOT require QR scan
+    echo.
+    echo To manage automation:
+    echo   Check status:   whatsapp_web_manager.bat status
+    echo   Stop:           whatsapp_web_manager.bat stop
+    echo   Start:          whatsapp_web_manager.bat start
+    echo   Test:           whatsapp_web_manager.bat test
     echo.
     echo Next run times (approximate):
     schtasks /query /tn "%TASK_NAME%" /fo LIST | findstr "Next Run Time"

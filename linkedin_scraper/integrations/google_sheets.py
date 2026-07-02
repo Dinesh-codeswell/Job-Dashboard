@@ -241,3 +241,137 @@ class GoogleSheetsIntegration:
             return job_url in all_values
         except Exception:
             return False
+
+    def get_column_names(self) -> List[str]:
+        """
+        Get all column names from the header row.
+
+        Returns:
+            List of column header strings
+        """
+        if not self.worksheet:
+            return []
+        try:
+            return self.worksheet.row_values(1)
+        except Exception as e:
+            logger.error(f"Failed to get column names: {e}")
+            return []
+
+    def ensure_columns(self, column_names: List[str]) -> Dict[str, int]:
+        """
+        Ensure specified columns exist in the worksheet.
+        Adds any missing columns to the right.
+
+        Args:
+            column_names: List of column header names to ensure exist
+
+        Returns:
+            Dict mapping each column name to its 1-based column index
+        """
+        if not self.worksheet:
+            logger.error("Not connected to Google Sheets")
+            return {}
+
+        try:
+            current_headers = self.worksheet.row_values(1)
+            result = {}
+            next_col = len(current_headers) + 1
+
+            for name in column_names:
+                if name in current_headers:
+                    # Column already exists - find its index
+                    col_idx = current_headers.index(name) + 1
+                else:
+                    # Add new column
+                    col_letter = self._col_index_to_letter(next_col)
+                    self.worksheet.update_cell(1, next_col, name)
+                    # Bold the header
+                    self.worksheet.format(f'{col_letter}1', {'textFormat': {'bold': True}})
+                    col_idx = next_col
+                    next_col += 1
+                    current_headers.append(name)
+
+                result[name] = col_idx
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to ensure columns: {e}")
+            return {}
+
+    def update_row_cells(self, row_index: int, column_map: Dict[str, Any]) -> bool:
+        """
+        Update specific cells in a row by column name.
+
+        Args:
+            row_index: The 1-based row number to update
+            column_map: Dict mapping column header name -> value to write
+
+        Returns:
+            True if update successful
+        """
+        if not self.worksheet:
+            logger.error("Not connected to Google Sheets")
+            return False
+
+        try:
+            # Get current column headers to find column indices
+            headers = self.worksheet.row_values(1)
+
+            for col_name, value in column_map.items():
+                if col_name in headers:
+                    col_idx = headers.index(col_name) + 1
+                    self.worksheet.update_cell(row_index, col_idx, str(value))
+                else:
+                    logger.warning(f"Column '{col_name}' not found in sheet headers")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to update row cells: {e}")
+            return False
+
+    @staticmethod
+    def _col_index_to_letter(col_index: int) -> str:
+        """Convert a 1-based column index to a letter (e.g., 1 -> A, 27 -> AA)."""
+        result = ""
+        while col_index > 0:
+            col_index -= 1
+            result = chr(ord('A') + col_index % 26) + result
+            col_index //= 26
+        return result
+
+    def get_records_with_rows(self) -> List[Dict[str, Any]]:
+        """
+        Get all records from the worksheet INCLUDING their row numbers.
+        Each record dict will have an extra key: '_row' with the 1-based row number.
+
+        Returns:
+            List of dicts, each with data + '_row' key for the sheet row number
+        """
+        if not self.worksheet:
+            logger.error("Not connected to Google Sheets")
+            return []
+
+        try:
+            all_values = self.worksheet.get_all_values()
+            if len(all_values) < 2:
+                return []
+
+            headers = all_values[0]
+            records = []
+
+            for i, row_values in enumerate(all_values[1:], start=2):  # Row 2 is first data row
+                record = {'_row': i}
+                for j, header in enumerate(headers):
+                    if j < len(row_values):
+                        record[header] = row_values[j]
+                    else:
+                        record[header] = ''
+                records.append(record)
+
+            return records
+
+        except Exception as e:
+            logger.error(f"Failed to get records with rows: {e}")
+            return []
