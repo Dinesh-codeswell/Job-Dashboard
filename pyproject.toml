@@ -45,6 +45,8 @@ dependencies = [
     "regex>=2023.0.0",
     "numpy>=1.24.0",
     "supabase>=2.29.0",
+    "flask>=3.0",
+    "flask-cors>=4.0",
 ]
 
 [project.optional-dependencies]
