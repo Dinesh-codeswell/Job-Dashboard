@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder — RoleBoard</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- CodeMirror 6 CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/lib/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldgutter.min.css">
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="resume-body">
+    <!-- ============================================================
+         NAV BAR (same style as main dashboard)
+         ============================================================ -->
+    <nav class="nav-bar resume-nav">
+        <div class="nav-inner">
+            <div class="nav-logo">
+                <div class="logo-mark">
+                    <span class="logo-monogram">rb</span>
+                </div>
+                <span class="logo-text">RoleBoard</span>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Jobs</a>
+                <a href="/resume" class="nav-link active">Resume</a>
+                <a href="#" class="nav-link">About</a>
+            </div>
+            <div class="nav-actions">
+                <button class="btn-outline-nav" id="aiGenerateBtn" title="Generate with AI">
+                    <span class="material-symbols-outlined">auto_awesome</span>
+                    <span class="btn-label">AI Generate</span>
+                </button>
+                <button class="btn-outline-nav" id="downloadBtn" title="Download PDF" disabled>
+                    <span class="material-symbols-outlined">download</span>
+                    <span class="btn-label">Download</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+         RESUME EDITOR - SPLIT PANE
+         ============================================================ -->
+    <main class="resume-editor">
+        <!-- Compilation status overlay -->
+        <div id="compileStatus" class="compile-status">
+            <span class="status-dot idle"></span>
+            <span class="status-text" id="statusText">Ready</span>
+        </div>
+
+        <!-- Left Pane: Editor -->
+        <section class="editor-pane">
+            <div class="pane-header">
+                <div class="pane-title">
+                    <span class="material-symbols-outlined pane-icon">code</span>
+                    <span>LaTeX Source</span>
+                </div>
+                <div class="pane-actions">
+                    <button class="pane-btn" id="resetBtn" title="Reset to default template">
+                        <span class="material-symbols-outlined">restart_alt</span>
+                    </button>
+                    <button class="pane-btn" id="compileBtn" title="Manually compile">
+                        <span class="material-symbols-outlined">play_arrow</span>
+                    </button>
+                    <label class="pane-btn" title="Toggle word wrap">
+                        <input type="checkbox" id="wrapToggle" checked>
+                        <span class="material-symbols-outlined">wrap_text</span>
+                    </label>
+                </div>
+            </div>
+            <div class="editor-container" id="editorContainer">
+                <textarea id="latexEditor"></textarea>
+            </div>
+        </section>
+
+        <!-- Resize Handle -->
+        <div class="resize-handle" id="resizeHandle">
+            <div class="resize-line"></div>
+        </div>
+
+        <!-- Right Pane: Preview -->
+        <section class="preview-pane">
+            <div class="pane-header">
+                <div class="pane-title">
+                    <span class="material-symbols-outlined pane-icon">picture_as_pdf</span>
+                    <span>PDF Preview</span>
+                </div>
+                <div class="pane-actions">
+                    <span class="page-indicator" id="pageIndicator">—</span>
+                    <button class="pane-btn" id="zoomOutBtn" title="Zoom out">
+                        <span class="material-symbols-outlined">zoom_out</span>
+                    </button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button class="pane-btn" id="zoomInBtn" title="Zoom in">
+                        <span class="material-symbols-outlined">zoom_in</span>
+                    </button>
+                </div>
+            </div>
+            <div class="preview-container" id="previewContainer">
+                <!-- Loading state -->
+                <div class="preview-placeholder" id="previewPlaceholder">
+                    <div class="placeholder-icon">
+                        <span class="material-symbols-outlined" style="font-size: 64px;">picture_as_pdf</span>
+                    </div>
+                    <h3 class="placeholder-title">PDF Preview</h3>
+                    <p class="placeholder-text">Edit the LaTeX source on the left and it will auto-compile.</p>
+                    <p class="placeholder-hint">Press <kbd>Ctrl+S</kbd> to compile manually</p>
+                </div>
+                <!-- PDF Render Target -->
+                <div class="pdf-render-area" id="pdfRenderArea" style="display: none;">
+                    <canvas id="pdfCanvas"></canvas>
+                    <div class="pdf-nav" id="pdfNav">
+                        <button class="pdf-nav-btn" id="prevPageBtn" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <span id="pageInfo">1 / 1</span>
+                        <button class="pdf-nav-btn" id="nextPageBtn" disabled>
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Error display -->
+                <div class="preview-error" id="previewError" style="display: none;">
+                    <div class="error-icon">
+                        <span class="material-symbols-outlined" style="font-size: 48px; color: #cb5521;">error_outline</span>
+                    </div>
+                    <h3 class="error-title">Compilation Error</h3>
+                    <pre class="error-message" id="errorMessage">No errors</pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================================
+         AI GENERATE MODAL
+         ============================================================ -->
+    <div class="ai-modal-overlay" id="aiModalOverlay" style="display: none;">
+        <div class="ai-modal">
+            <div class="ai-modal-header">
+                <div class="ai-modal-title">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-highlighter-yellow);">auto_awesome</span>
+                    <span>AI Resume Generator</span>
+                </div>
+                <button class="ai-modal-close" id="aiModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="ai-modal-body">
+                <p class="ai-modal-description">
+                    Paste your existing resume content below and the AI will format it into a professional LaTeX resume using the Jake's Resume template.
+                </p>
+                <textarea
+                    class="ai-textarea"
+                    id="aiResumeInput"
+                    placeholder="Paste your resume content here...
+
+Example:
+John Doe
+john@example.com | +1-123-456-7890
+linkedin.com/in/johndoe | github.com/johndoe
+
+EDUCATION
+University of Example, City, State
+B.S. in Computer Science, 2018-2022
+
+EXPERIENCE
+Tech Company, San Francisco, CA
+Software Engineer, June 2022 - Present
+- Developed REST APIs using Python and Flask
+- Built dashboards with React
+
+SKILLS
+Languages: Python, JavaScript, Java
+Frameworks: React, Flask, Node.js"
+                    rows="12"
+                ></textarea>
+                <div class="ai-modal-actions">
+                    <button class="ai-btn-secondary" id="aiModalCancel">Cancel</button>
+                    <button class="ai-btn-primary" id="aiModalGenerate">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
+                        Generate Resume
+                    </button>
+                </div>
+                <div class="ai-status" id="aiStatus" style="display: none;">
+                    <div class="ai-status-spinner"></div>
+                    <span id="aiStatusText">Generating...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         JAVASCRIPT
+         ============================================================ -->
+    <!-- CodeMirror -->
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/lib/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/mode/stex/stex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/brace-fold.min.js"></script>
+
+    <!-- Resume App -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/resume.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            ResumeApp.init();
+        });
+    </script>
+</body>
+</html>

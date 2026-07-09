@@ -5,15 +5,29 @@ with the SayBriefly design system.
 """
 import os
 import sys
+import re
+import json
+import uuid
+import tempfile
 import logging
+import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Try to import requests for online LaTeX compilation fallback
+try:
+    import requests as requests_lib
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
+# Load environment variables - look in project root AND current directory
+# The .env file with API keys is at the project root level
+load_dotenv(dotenv_path=Path(__file__).parent.parent / '.env')
+load_dotenv()  # Also check CWD as fallback
 
 # Create Flask app
 app = Flask(__name__)
@@ -22,6 +36,8 @@ CORS(app)
 # Configuration
 NOTION_API_KEY = os.getenv("NOTION_API_KEY")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
 
 # Cache for jobs (to avoid hitting Notion API on every request)
 _jobs_cache = []
@@ -94,17 +110,17 @@ def categorize_role(role_title: str) -> str:
 def _notion_request(method, endpoint, body=None):
     """Make a direct HTTP request to the Notion API (bypasses library version issues)."""
     import urllib.request, urllib.error, json
-    
+
     url = f"https://api.notion.com/v1/{endpoint}"
     headers = {
         "Authorization": f"Bearer {NOTION_API_KEY}",
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28"
     }
-    
+
     data = json.dumps(body).encode("utf-8") if body else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    
+
     try:
         with urllib.request.urlopen(req) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -229,7 +245,6 @@ def get_jobs(force_refresh: bool = False) -> list:
 def index():
     """Main dashboard page."""
     return render_template('index.html')
-
 
 # ============================================================================
 # API ENDPOINTS
@@ -368,12 +383,12 @@ def api_debug():
             result["notion_connection"] = True
             result["database_title"] = db_title
             result["database_properties"] = list(props.keys())
-            
+
             # Try a query
             test_query = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", {"page_size": 5})
             result["sample_count"] = len(test_query.get("results", []))
             result["has_more"] = test_query.get("has_more", False)
-            
+
         except ImportError as e:
             result["notion_error"] = f"notion_client not installed: {e}"
         except Exception as e:
@@ -382,6 +397,575 @@ def api_debug():
         result["notion_error"] = "Missing environment variables"
 
     return jsonify(result)
+
+
+# ============================================================================
+# RESUME - LaTeX Editor
+# ============================================================================
+
+# Default LaTeX source (Jake's Resume template with placeholder text)
+DEFAULT_LATEX_SOURCE = Path(__file__).parent.parent / "Latex resume" / "resume-jake" / "resume.tex"
+if DEFAULT_LATEX_SOURCE.exists():
+    with open(DEFAULT_LATEX_SOURCE, "r") as f:
+        _default_resume_source = f.read()
+else:
+    _default_resume_source = r"""\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+\begin{document}
+
+\begin{center}
+    \textbf{\Huge \scshape Your Name} \\ \vspace{1pt}
+    \small 123-456-7890 $|$ \href{mailto:x@x.com}{\underline{email@example.com}} $|$
+    \href{https://linkedin.com/in/...}{\underline{linkedin.com/in/yourprofile}} $|$
+    \href{https://github.com/...}{\underline{github.com/yourprofile}}
+\end{center}
+
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University Name}{City, State}
+      {Degree in Field, Minor in Subject}{Aug. 2018 -- May 2021}
+  \resumeSubHeadingListEnd
+
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Company Name}{June 2020 -- Present}
+      {Job Title}{City, State}
+      \resumeItemListStart
+        \resumeItem{Accomplishment or responsibility at this position}
+        \resumeItem{Another accomplishment with measurable results}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+\section{Projects}
+    \resumeSubHeadingListStart
+      \resumeProjectHeading
+          {\textbf{Project Name} $|$ \emph{Tech Stack}}{Date}
+          \resumeItemListStart
+            \resumeItem{Description of the project and your contribution}
+          \resumeItemListEnd
+    \resumeSubHeadingListEnd
+
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Languages}{: Python, Java, JavaScript} \\
+     \textbf{Frameworks}{: React, Flask, Node.js} \\
+     \textbf{Tools}{: Git, Docker, VS Code}
+    }}
+ \end{itemize}
+
+\end{document}"""
+
+
+def _find_pdflatex():
+    """Try to find pdflatex executable in PATH or common locations."""
+    # Check PATH first
+    try:
+        result = subprocess.run(["pdflatex", "--version"], capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            return "pdflatex"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Common Windows install locations
+    common_paths = [
+        "C:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\pdflatex.exe",
+        "C:\\Program Files (x86)\\MiKTeX\\miktex\\bin\\pdflatex.exe",
+        "C:\\Program Files\\MiKTeX\\texmfs\\install\\miktex\\bin\\x64\\pdflatex.exe",
+        os.path.expanduser("~\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\pdflatex.exe"),
+    ]
+    for path in common_paths:
+        if os.path.isfile(path):
+            return path
+
+    return None
+
+
+def _configure_miktex():
+    """Configure MiKTeX to auto-install missing packages."""
+    pdflatex_path = _find_pdflatex()
+    if not pdflatex_path:
+        return
+
+    miktex_dir = os.path.dirname(pdflatex_path)
+    initexmf = os.path.join(miktex_dir, "initexmf.exe")
+    if os.path.isfile(initexmf):
+        try:
+            subprocess.run(
+                [initexmf, "--set-config-value", "[MPM]AutoInstall=1"],
+                capture_output=True, timeout=30
+            )
+        except Exception:
+            pass
+
+
+# Run MiKTeX configuration once at import time
+_configure_miktex()
+
+
+def _compile_latex_local(latex_source, output_dir):
+    """Compile LaTeX locally using pdflatex."""
+    pdflatex_path = _find_pdflatex()
+    if not pdflatex_path:
+        return None, "pdflatex not found. Install MiKTeX or restart after installation."
+
+    tex_path = os.path.join(output_dir, "resume.tex")
+    with open(tex_path, "w", encoding="utf-8") as f:
+        f.write(latex_source)
+
+    try:
+        _is_miktex = "miktex" in pdflatex_path.lower() if pdflatex_path else False
+
+        base_cmd = [
+            pdflatex_path,
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-output-directory", output_dir,
+            tex_path
+        ]
+
+        if _is_miktex:
+            base_cmd.insert(-1, "--enable-installer")
+
+        for i in range(2):
+            timeout = 300 if i == 0 else 120
+            try:
+                subprocess.run(
+                    base_cmd, capture_output=True, text=True, timeout=timeout, cwd=output_dir
+                )
+                pdf_path = os.path.join(output_dir, "resume.pdf")
+                if os.path.isfile(pdf_path) and os.path.getsize(pdf_path) > 100:
+                    return pdf_path, None
+            except subprocess.TimeoutExpired:
+                if i == 0:
+                    continue
+                return None, "LaTeX compilation timed out."
+
+        pdf_path = os.path.join(output_dir, "resume.pdf")
+        if os.path.isfile(pdf_path) and os.path.getsize(pdf_path) > 100:
+            return pdf_path, None
+
+        log_path = os.path.join(output_dir, "resume.log")
+        error_msg = "LaTeX compilation failed. Check your syntax."
+        if os.path.isfile(log_path):
+            with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+                log_content = f.read()
+                errors = re.findall(r"! (.*?)\n", log_content, re.MULTILINE)
+                if errors:
+                    error_msg = "LaTeX error: " + errors[0][:300]
+        return None, error_msg
+
+    except Exception as e:
+        return None, f"Compilation error: {str(e)}"
+
+
+def _compile_latex_online(latex_source):
+    """Compile LaTeX using latexonline.cc API."""
+    if not REQUESTS_AVAILABLE:
+        return None, "'requests' library not available."
+
+    try:
+        response = requests_lib.post(
+            "https://latexonline.cc/compile",
+            data={"text": latex_source, "command": "pdflatex"},
+            timeout=120
+        )
+
+        if response.status_code == 200 and len(response.content) > 500:
+            if response.content[:4] == b"%PDF":
+                pdf_path = os.path.join(tempfile.gettempdir(), f"resume_{uuid.uuid4().hex}.pdf")
+                with open(pdf_path, "wb") as f:
+                    f.write(response.content)
+                return pdf_path, None
+
+        content_type = response.headers.get("content-type", "")
+        if "html" in content_type.lower():
+            return None, "Online compilation failed. Check your LaTeX syntax."
+        return None, f"Online compilation failed: {response.text[:300]}"
+
+    except requests_lib.exceptions.Timeout:
+        return None, "Online compilation timed out."
+    except requests_lib.exceptions.ConnectionError:
+        return None, "Could not reach the online compiler."
+    except Exception as e:
+        return None, f"Online compilation error: {str(e)}"
+
+
+@app.route('/resume')
+def resume_editor():
+    """Resume LaTeX editor page."""
+    return render_template('resume.html')
+
+
+@app.route('/api/resume/compile', methods=['POST'])
+def api_resume_compile():
+    """Compile LaTeX source to PDF and return it."""
+    try:
+        data = request.get_json(force=True)
+        latex_source = data.get("latex_source", "")
+
+        if not latex_source or len(latex_source.strip()) < 10:
+            return jsonify({"success": False, "error": "LaTeX source is too short or empty"}), 400
+
+        output_dir = tempfile.mkdtemp(prefix="resume_compile_")
+
+        pdf_path, error = _compile_latex_local(latex_source, output_dir)
+
+        if pdf_path is None:
+            pdf_path, error = _compile_latex_online(latex_source)
+
+        if pdf_path is None:
+            return jsonify({"success": False, "error": error}), 400
+
+        with open(pdf_path, "rb") as f:
+            pdf_data = f.read()
+
+        try:
+            import shutil
+            shutil.rmtree(output_dir, ignore_errors=True)
+            if pdf_path.startswith(tempfile.gettempdir()):
+                os.unlink(pdf_path)
+        except Exception:
+            pass
+
+        return Response(
+            pdf_data,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": "inline; filename=resume.pdf",
+                "Content-Length": str(len(pdf_data)),
+                "Cache-Control": "no-cache"
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/resume/default', methods=['GET'])
+def api_resume_default():
+    """Get the default LaTeX source."""
+    return jsonify({
+        "success": True,
+        "latex_source": _default_resume_source
+    })
+
+
+@app.route('/api/resume/status', methods=['GET'])
+def api_resume_status():
+    """Check if pdflatex is available locally."""
+    pdflatex_path = _find_pdflatex()
+    return jsonify({
+        "local_available": pdflatex_path is not None,
+        "online_available": REQUESTS_AVAILABLE,
+        "pdflatex_path": pdflatex_path
+    })
+
+
+# ============================================================================
+# RESUME - AI Generation via OpenRouter
+# ============================================================================
+
+# Load the Jake's template for the AI prompt
+_RESUME_TEMPLATE_PATH = Path(__file__).parent.parent / "Latex resume" / "resume-jake" / "resume.tex"
+if _RESUME_TEMPLATE_PATH.exists():
+    with open(_RESUME_TEMPLATE_PATH, "r") as f:
+        _latex_template_reference = f.read()
+else:
+    _latex_template_reference = _default_resume_source
+
+# The system prompt for the AI - tells it how to convert plain text to LaTeX
+_AI_RESUME_SYSTEM_PROMPT = """You are an expert LaTeX resume generator. Your task is to convert plain text resume content into a properly formatted LaTeX document using the Jake's Resume template.
+
+## TEMPLATE STRUCTURE (use these exact LaTeX commands):
+The template uses these custom commands - you MUST use them:
+
+1. HEADER: \\\\begin{{center}} block with name, phone, email, LinkedIn, GitHub
+2. EDUCATION: \\\\section{{Education}} with \\\\resumeSubheading{{School}}{{Location}}{{Degree}}{{Dates}}
+3. EXPERIENCE: \\\\section{{Experience}} with \\\\resumeSubheading{{JobTitle}}{{Dates}}{{Company}}{{Location}} then \\\\resumeItemListStart and \\\\resumeItem{{text}} for each bullet
+4. PROJECTS: \\\\section{{Projects}} with \\\\resumeProjectHeading{{Name $|$ TechStack}}{{Dates}} then \\\\resumeItemListStart / \\\\resumeItem
+5. TECHNICAL SKILLS: \\\\section{{Technical Skills}} with \\\\begin{{itemize}} using \\\\textbf{{Category}}{{: items}}
+
+## RULES (strict - follow every one):
+1. KEEP the EXACT preamble (everything before \\\\begin{{document}}) - do NOT modify or remove any packages or macros
+2. ONLY modify the content between \\\\begin{{document}} and \\\\end{{document}}
+3. Parse the user's plain text resume and extract these fields:
+   - Name and Contact Info (phone, email, LinkedIn URL, GitHub URL)
+   - Education entries (school, degree, dates, location)
+   - Experience entries (company, job title, dates, location, bullet points)
+   - Projects (name, tech stack, dates, description)
+   - Technical Skills (languages, frameworks, tools, libraries)
+4. Use \\\\href{{url}}{{text}} for all links (email, LinkedIn, GitHub)
+5. Use \\\\textbf for job titles and company names in the Experience section
+6. Use \\\\emph for tech stacks and degree names
+7. For the Technical Skills section, use \\\\textbf{{Category}}{{: items}} format with \\\\\\\\ for line breaks between categories
+8. If a section has no content, OMIT it entirely (don't include empty sections)
+9. If the user's text doesn't specify a date, use a reasonable placeholder like "Date"
+10. Output ONLY the complete LaTeX code wrapped in ```latex ... ``` code block
+11. Do NOT include any explanations, notes, or commentary outside the code block
+12. Ensure the output will compile WITHOUT errors - use proper escaping for special characters (&, %, $, #, _, {{, }}, ~, ^)
+
+## EXAMPLE FORMAT (content section only):
+\\\\begin{{document}}
+
+\\\\begin{{center}}
+    \\\\textbf{{\\\\Huge \\\\scshape John Doe}} \\\\\\\\ \\\\vspace{{1pt}}
+    \\\\small +1-123-456-7890 $|$ \\\\href{{mailto:john@example.com}}{{\\\\underline{{john@example.com}}}} $|$
+    \\\\href{{https://linkedin.com/in/johndoe}}{{\\\\underline{{linkedin.com/in/johndoe}}}} $|$
+    \\\\href{{https://github.com/johndoe}}{{\\\\underline{{github.com/johndoe}}}}
+\\\\end{{center}}
+
+\\\\section{{Education}}
+  \\\\resumeSubHeadingListStart
+    \\\\resumeSubheading
+      {{University of Example}}{{City, State}}
+      {{Bachelor of Science in Computer Science, Minor in Math}}{{Aug. 2018 -- May 2022}}
+  \\\\resumeSubHeadingListEnd
+
+\\\\section{{Experience}}
+  \\\\resumeSubHeadingListStart
+    \\\\resumeSubheading
+      {{Software Engineer}}{{June 2022 -- Present}}
+      {{Tech Company Inc.}}{{San Francisco, CA}}
+      \\\\resumeItemListStart
+        \\\\resumeItem{{Developed REST APIs using Python and Flask serving 10K+ requests/day}}
+        \\\\resumeItem{{Built real-time dashboards with React and D3.js for data visualization}}
+      \\\\resumeItemListEnd
+  \\\\resumeSubHeadingListEnd
+
+\\\\end{{document}}
+
+Now, convert the user's plain text resume below into a properly formatted LaTeX document following ALL of the above rules.
+"""
+
+
+def _call_openrouter(system_prompt, user_content):
+    """Call OpenRouter API to generate LaTeX from plain text resume."""
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://roleboard.app",
+        "X-OpenRouter-Title": "RoleBoard Resume Generator",
+    }
+
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 4096,
+    }
+
+    try:
+        response = requests_lib.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+    except requests_lib.exceptions.Timeout:
+        raise Exception("OpenRouter API request timed out. Check your internet connection and try again.")
+    except requests_lib.exceptions.ConnectionError:
+        raise Exception("Could not reach OpenRouter API. Check your internet connection.")
+
+    if response.status_code != 200:
+        error_detail = response.text[:500]
+        raise Exception(f"OpenRouter API error ({response.status}): {error_detail}")
+
+    try:
+        result = response.json()
+    except Exception:
+        raise Exception(f"Invalid JSON response from OpenRouter: {response.text[:300]}")
+
+    choices = result.get("choices")
+    if not choices or not isinstance(choices, list) or len(choices) == 0:
+        error_info = result.get("error", {})
+        error_msg = error_info.get("message", "No choices returned") if isinstance(error_info, dict) else str(result)[:300]
+        raise Exception(f"AI model returned no response: {error_msg}")
+
+    choice = choices[0]
+    if not isinstance(choice, dict):
+        raise Exception(f"Unexpected response format from AI model")
+
+    message = choice.get("message", {})
+    if not isinstance(message, dict):
+        raise Exception(f"Unexpected message format from AI model")
+
+    content = message.get("content", "")
+    if not content or not isinstance(content, str):
+        raise Exception("AI model returned empty response")
+
+    return content
+
+
+def _clean_latex_output(raw_output):
+    """Extract LaTeX code from AI output, handling various response formats."""
+    if not raw_output or not isinstance(raw_output, str):
+        raise Exception("AI returned empty output")
+
+    # Strategy 1: Extract from ```latex ... ``` block
+    latex_block = re.search(r"```latex\s*\n?(.*?)```", raw_output, re.DOTALL)
+    if latex_block:
+        result = latex_block.group(1).strip()
+        if "\\begin{document}" in result:
+            return result
+
+    # Strategy 2: Extract from ``` ... ``` block (any language)
+    code_block = re.search(r"```\s*\n?(.*?)```", raw_output, re.DOTALL)
+    if code_block:
+        result = code_block.group(1).strip()
+        if result.startswith("\\documentclass") or "\\begin{document}" in result:
+            return result
+
+    # Strategy 3: Entire output starts with \documentclass
+    stripped = raw_output.strip()
+    if stripped.startswith("\\documentclass"):
+        return stripped
+
+    # Strategy 4: Find \documentclass anywhere in the output and extract
+    docclass_match = re.search(r"(\\documentclass.*?\\end\{document\})", stripped, re.DOTALL)
+    if docclass_match:
+        return docclass_match.group(1).strip()
+
+    # Strategy 5: Find \begin{document} to \end{document} block
+    begin_end_match = re.search(r"(\\begin\{document\}.*?\\end\{document\})", stripped, re.DOTALL)
+    if begin_end_match:
+        # Reconstruct with a minimal preamble
+        preamble = "\\documentclass[letterpaper,11pt]{article}\\n\\usepackage[empty]{fullpage}\\n\\usepackage{titlesec}\\n\\usepackage{hyperref}\\n\\usepackage{enumitem}\\n\\pagestyle{fancy}\\n\\fancyhf{}\\n\\fancyfoot{}\\n\\renewcommand{\\headrulewidth}{0pt}\\n\\renewcommand{\\footrulewidth}{0pt}\\n\\titleformat{\\section}{\\vspace{-4pt}\\scshape\\raggedright\\large}{}{0em}{}[\\color{black}\\titlerule \\vspace{-5pt}]"
+        return preamble + "\n\n" + begin_end_match.group(1).strip()
+
+    # Strategy 6: The output might be a simple error or message - return it as-is if it looks like reasonable text
+    if len(stripped) > 100 and not stripped.startswith("<!DOCTYPE") and not stripped.startswith("{"):
+        # Could be plain text with LaTeX commands - try wrapping it
+        if "\\section" in stripped or "\\textbf" in stripped:
+            preamble = "\\documentclass[letterpaper,11pt]{article}\\n\\usepackage[empty]{fullpage}\\n\\usepackage{titlesec}\\n\\usepackage{hyperref}\\n\\usepackage{enumitem}\\n\\pagestyle{fancy}\\n\\fancyhf{}\\n\\fancyfoot{}\\n\\renewcommand{\\headrulewidth}{0pt}\\n\\renewcommand{\\footrulewidth}{0pt}\\n\\begin{document}"
+            return preamble + "\n\n" + stripped + "\n\n\\end{document}"
+
+    raise Exception("Could not extract valid LaTeX from AI output. The model may have returned an unexpected format. Try again.")
+
+
+@app.route('/api/resume/generate', methods=['POST'])
+def api_resume_generate():
+    """Use AI (OpenRouter) to convert plain text resume into LaTeX using Jake's template."""
+    if not OPENROUTER_API_KEY:
+        return jsonify({"success": False, "error": "OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env"}), 400
+
+    if not REQUESTS_AVAILABLE:
+        return jsonify({"success": False, "error": "'requests' library required for AI generation"}), 400
+
+    try:
+        data = request.get_json(force=True)
+        user_content = data.get("resume_content", "").strip()
+
+        if not user_content or len(user_content) < 20:
+            return jsonify({"success": False, "error": "Please paste your full resume content (at least 20 characters)"}), 400
+
+        if len(user_content) > 15000:
+            return jsonify({"success": False, "error": "Resume content is too long (max 15,000 characters)"}), 400
+
+        # Extract the preamble from Jake's template to include in the AI prompt
+        preamble_match = re.search(r"(.*?)\\begin\{document\}", _latex_template_reference, re.DOTALL)
+        preamble = preamble_match.group(1) if preamble_match else _latex_template_reference
+
+        # Build the full system prompt with the template preamble included
+        system_prompt_with_template = (
+            _AI_RESUME_SYSTEM_PROMPT
+            + "\n\n## REFERENCE LATEX PREAMBLE (copy this EXACTLY into your output):\n```latex\n"
+            + preamble
+            + "\n```"
+        )
+
+        # Call OpenRouter with the enhanced system prompt that includes the template
+        raw_output = _call_openrouter(system_prompt_with_template, user_content)
+
+        # Clean and validate the output
+        latex_source = _clean_latex_output(raw_output)
+
+        # Basic validation
+        if "\\begin{document}" not in latex_source:
+            raise Exception("Generated LaTeX is missing \\\\begin{document}")
+
+        if "\\end{document}" not in latex_source:
+            raise Exception("Generated LaTeX is missing \\\\end{document}")
+
+        return jsonify({
+            "success": True,
+            "latex_source": latex_source,
+            "model": OPENROUTER_MODEL,
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ============================================================================
