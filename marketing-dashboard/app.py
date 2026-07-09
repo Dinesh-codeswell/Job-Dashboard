@@ -768,14 +768,58 @@ _sourabh_resume_source = r"""\documentclass[letterpaper,11pt]{article}
           {Apache Beam is a unified model for defining both batch and streaming data-parallel processing pipelines, as well as a set of language-specific SDKs for constructing pipelines and runners.}
       \resumeItemListEnd
       
+% --------Multiple Positions Heading------------
+  %  \resumeSubSubheading
+  %   {Software Engineer I}{Oct 2014 -- Sep 2016}
+  %   \resumeItemListStart
+  %      \resumeItem{Apache Beam}
+  %        {Apache Beam is a unified model for defining both batch and streaming data-parallel processing pipelines}
+  %   \resumeItemListEnd
+
+%-------------------------------------------
+
     \resumeSubheading
       {Coursera}{Mountain View, CA}
       {Senior Software Engineer}{Jan 2014 -- Oct 2016}
       \resumeItemListStart
         \resumeItem{Notifications}
           {Service for sending email, push and in-app notifications. Involved in features such as delivery time optimization, tracking, queuing and A/B testing. Built an internal app to run batch campaigns for marketing, etc.}
+        \resumeItem{Nostos}
+          {Bulk data processing and injection service from Hadoop to Cassandra and provides a thin REST layer on top for serving offline computed data online.}
+        \resumeItem{Workflows}
+          {Dataduct an open source workflow framework to create and manage data pipelines leveraging reusable patterns to expedite developer productivity.}
+        \resumeItem{Data Collection}
+          {Designed the internal survey and crowdsourcing platform which allowed for creating various tasks for crowdsourcing or embedding surveys across the Coursera platform.}
+        \resumeItem{Dev Environment}
+          {Analytics environment based on Docker and AWS, standardized the Python and R dependencies. Wrote the core libraries that are shared by all data scientists.}
+        \resumeItem{Data Warehousing}
+          {Setup, schema design and management of Amazon Redshift. Built an internal app for access to the data using a web interface. Dataduct integration for daily ETL injection into Redshift.}
         \resumeItem{Recommendations}
           {Core service for all recommendation systems at Coursera, currently used on the homepage and throughout the content discovery process. Worked on both offline training and online serving.}
+        \resumeItem{Content Discovery}
+          {Improved content discovery by building a new onboarding experience on Coursera. Used this to personalize the search and browse experience. Also worked on ranking and indexing improvements.}
+        \resumeItem{Course Dashboards}
+          {Instructor dashboards and learner surveying tools, which helped instructors run their class better by providing data on Assignments and Learner Activity.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Lucena Research}{Atlanta, GA}
+      {Data Scientist}{Summer 2012 and 2013}
+      \resumeItemListStart
+        \resumeItem{Portfolio Management}
+          {Created models for portfolio hedging, portfolio optimization and price forecasting. Also created a strategy backtesting engine used for simulating and backtesting strategies.}
+        \resumeItem{QuantDesk}
+          {Python backend for a web application used by hedge fund managers for portfolio management.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Georgia Institute of Technology}{Atlanta, GA}
+      {Research and Teaching Assistant}{Jan 2012 -- Dec 2013}
+      \resumeItemListStart
+        \resumeItem{Research Assistant -- Machine Learning}
+          {Research on machine learning for portfolio hedging and replication algorithms. Modeling low-risk \& continuous-return strategies. Developed the Python library QSTK.}
+        \resumeItem{Teaching Assistant -- Computational Investing}
+          {The online course on Coursera, had more than 100,000 students enrolled. It was featured on the 11 Alive News and the Atlanta Journal Constitution. Involved in creating assignments, exams and conducting recitation sessions. Also taught the on-campus version of the course.}
       \resumeItemListEnd
 
   \resumeSubHeadingListEnd
@@ -788,18 +832,22 @@ _sourabh_resume_source = r"""\documentclass[letterpaper,11pt]{article}
       {Open source Python library for financial data analysis and machine learning for finance.}
     \resumeSubItem{GitHub Visualization}
       {Data visualization of Git log data using D3 to analyze project trends over time.}
+    \resumeSubItem{Recommendation System}
+      {Music and movie recommender systems using collaborative filtering on public datasets.}
+    \resumeSubItem{Mac Setup}
+      {Book that gives step-by-step instructions on setting up developer environment on macOS.}
   \resumeSubHeadingListEnd
 
 %
 %--------SKILLS------------
-\section{Skills}
-  \resumeSubHeadingListStart
-    \item{
-      \textbf{Languages}{: Scala, Python, JavaScript, C++, SQL, Java}
-      \hfill
-      \textbf{Technologies}{: AWS, Play, React, Kafka, GCE}
-    }
-  \resumeSubHeadingListEnd
+%\section{Skills}
+%  \resumeSubHeadingListStart
+%    \item{
+%      \textbf{Languages}{: Scala, Python, JavaScript, C++, SQL, Java}
+%      \hfill
+%      \textbf{Technologies}{: AWS, Play, React, Kafka, GCE}
+%    }
+%  \resumeSubHeadingListEnd
 
 
 %-------------------------------------------
@@ -908,26 +956,33 @@ _pratul_resume_source = r"""\documentclass[a4paper,20pt]{article}
   \href{https://github.com/pratulmuthuraja}{Github: ~~github.com/pratulmuthuraja} \\
 \end{tabular*}
 
+%-----------EDUCATION-----------------
+% \section{Summary}
+% {
+% Full-stack developer with expertise in React, Node.js, Python, Docker, and Kubernetes to automate infrastructure and create scalable, high-performance web apps and a proven track record of producing clean, maintainable solutions across tech stacks, emphasizing  reliability and observability. Looking for Full-stack Developer and Software Engineer  positions.}
 
 %-----------EDUCATION-----------------
 \section{Education}
   \resumeSubHeadingListStart
     \resumeSubheading
-      {Illinois Institute of Technology}{Chicago, USA}
+      {Illinois Insitute of Technology}{Chicago, USA}
       {Master of Computer Science}{January 2021 - May 2023}
+      % {\scriptsize \textit{ \footnotesize{\newline{}\textbf{Courses:} Big Data, Cloud Computing, Software Engineering, Virtual Machines}}}
     \vspace{-5pt}
     \resumeSubheading
       {Anna University}{Chennai, India}
       {Bachelor of Engineering in Computer Science}{June 2014 - May 2018}
+      % {\scriptsize \textit{ \footnotesize{\newline{}\textbf{Courses:} Operating Systems, Data Structures, Analysis Of Algorithms, Networking, Databases}}}
     \resumeSubHeadingListEnd
 \vspace{-12pt}
-
 \section{Skills}
     \resumeSkillsListStart
-	\resumeSubItem{Languages}{Python, Go, JavaScript, Java, SQL, Bash, HTML/CSS}
-	\resumeSubItem{Frameworks}{Django, Flask, ReactJS, NodeJS}
-	\resumeSubItem{Tools}{Kubernetes, Docker, GIT, PostgreSQL, MySQL}
-	\resumeSubItem{Platforms}{Linux, Web, AWS, GCP}
+	\resumeSubItem{Languages}{Python, Go, JavaScript, Java, SQL, Bash, HTML/CSS, Markdown}
+	\resumeSubItem{Frameworks}{Django, Flask, ReactJS, NodeJS, LAMP}
+	\resumeSubItem{Tools}{Kubernetes, Docker, GIT, PostgreSQL, MySQL, SQLite, MongoDB, NGINX, Helm, Gatsby, Hugo, Jenkins, ChatGPT, ElasticSearch, Grafana, Loki, Ceph, Prometheus, Ansible}
+	\resumeSubItem{Platforms}{Linux, Web, Mac, AWS, GCP}
+	\resumeSubItem{Soft Skills}{Leadership, Event Management, Writing, Public Speaking, Time Management}
+
 \resumeSkillsListEnd
 
 \vspace{-5pt}
@@ -936,17 +991,51 @@ _pratul_resume_source = r"""\documentclass[a4paper,20pt]{article}
     \resumeSubheading{Eastri (Khwaaish AI)}{Mumbai, Remote}
     {System Engineer}{October 2025 - January 2026}
     \resumeItemListStart
-        \resumeItem{Architected a scalable AWS infrastructure supporting 100K+ users using EC2, EKS, S3, and CloudFront.}
-        \resumeItem{Designed high-level system architecture and workflow diagrams to define service interactions.}
+        \resumeItem{}
+          {Architected a scalable AWS infrastructure supporting 100K+ users using EC2, EKS, S3, and CloudFront to ensure high availability and low-latency content delivery.}
+        \resumeItem{}
+          {Design high-level system architecture and workflow diagrams to define service interactions, data flow, and deployment topology.}
+        \resumeItem{Performed AWS cost estimation and capacity planning, forecasting infrastructure spend and optimizing resource allocation.}
       \resumeItemListEnd
-      
     \resumeSubheading{Armour Chapter of Triangle}{Chicago, USA}
     {Full-Stack Developer}{November 2023 - November 2024}
     \resumeSubSubheading{Organization Website}
     \resumeItemListStart
-        \resumeItem{Built a full-stack web application to securely manage social and event data.}
-        \resumeItem{Overhauled backend architecture, optimizing database queries to bring API response times under 100ms.}
+        \resumeItem{\textbf{Tech Stack:} React.js, Nodejs, Javascript, TailwindCSS, PostgreSQL.}
+        \resumeItem{}
+          {Built a full-stack web application to securely manage social and event data for over 200K members.}
+        \resumeItem{}
+          {Overhauled backend architecture, optimizing database queries and caching strategies to bring API response times under 100ms and reducing latency by 80\% while cutting operational costs by 60\%.}
+        \resumeItem{}
+          {Design and implement event-driven batch jobs for real-time notifications and automated task scheduling, improving engagement and workflow efficiency by 25\%.}
+        \resumeItem{}
+          {Led UI/UX development, working closely with stakeholders to create Figma wireframes and translating them into a highly responsive React frontend improving load speeds by up to 40\%.}
+        \resumeItem{}
+          {Improved system reliability to 99.99\% uptime by setting up load balancing, auto-scaling, failover mechanisms, and database replication, minimizing downtime and ensuring high availability.}
       \resumeItemListEnd
+    \resumeSubSubheading{Private Cloud Infrastructure for Scalable EdTech Delivery}
+    \resumeItemListStart
+        \resumeItem{\textbf{Tech Stack:} Proxmox VE, Ceph, Kubernetes (k3s), Terraform, Ansible, ArgoCD, Helm, Prometheus, Grafana, Loki, Alertmanager, OpenTelemetry, Vault, WireGuard, Cosign, Trivy}
+        \resumeItem{}{Set up a 3-node Proxmox VE cluster with Ceph storage to run a containerized EdTech platform supporting video lessons and interactive training modules supporting 2K+ concurrent users streaming over 8TB monthly.}
+        \resumeItem{}{Built a CI/CD pipeline using Terraform, Ansible, ArgoCD, Helm, and k3s to streamline deployments of new course content and platform features reducing deployment time by 70\%.}
+        \resumeItem{}{Rolled out a full observability stack with Prometheus, Grafana, Loki, and OpenTelemetry to keep tabs on system health for over 200 services and handle high traffic during academic peaks.}
+        \resumeItem{}{Locked down access for instructors and developers with Vault for secrets management and WireGuard for secure, remote connectivity decreasing incidents by 100\%.}
+        \resumeItem{}{Brought hosting costs down by 60\% while maintaining 99.99\% uptime, freeing up budget for content and engagement initiatives.}
+      \resumeItemListEnd
+    \resumeSubSubheading{Internal Student Grievance \& Feedback Portal}
+    \resumeItemListStart
+        \resumeItem{\textbf{Tech Stack:} React.js, Node.js, PostgreSQL, TailwindCSS, Framer Motion, Jest.}
+        \resumeItem{}{Led end-to-end development of a secure feedback and grievance portal for university students, enabling real-time issue tracking and reducing resolution time by 40\% through streamlined departmental workflows.}
+        \resumeItem{}{Designed and deployed a role-based web platform using React.js, Node.js, and PostgreSQL, with full support for anonymity, notifications, and searchable case history for admins and faculty improving response rate by 35\% and consequently increase engagement by 25\%.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+		{Illinois Institute of Technology}{Chicago, USA}
+		{Graduate Student Ambassador}{August 2021 -  December 2022}\vspace{-5pt}
+		\resumeItemListStart
+        \resumeItem{Managed databases and generated reports on Salesforce; Analyzed prospective student data to improve response to Graduate Discover Day event resulting in 19\% growth of incoming graduate students compared to 2020.}
+        \resumeItem{Strong leadership and collaboration skills evidenced by organizing recruitment activities through campus tours, student panel, and events for the Graduate Admissions Office showing 37\% better response rate.}
+		\resumeItemListEnd
 
 \resumeSubHeadingListEnd
 
@@ -1446,9 +1535,9 @@ The template uses these custom commands - you MUST use them:
 
 1. HEADER: tabular* block with name, email, website link, and mobile number.
 2. EDUCATION: \\section{Education} with \\resumeSubheading{School}{Location}{Degree}{Dates}
-3. EXPERIENCE: \\section{Experience} with \\resumeSubheading{Company}{Location}{JobTitle}{Dates} then \\resumeItemListStart and \\resumeItem{Category}{Description} (e.g. \\resumeItem{Category}{Description})
+3. EXPERIENCE: \\section{Experience} with \\resumeSubheading{Company}{Location}{JobTitle}{Dates} then \\resumeItemListStart and \\resumeItem{Category}{Description} (e.g. \\resumeItem{TensorFlow}{TensorFlow is...}) or plain bullets using \\resumeItemPlain{bullet text}
 4. PROJECTS: \\section{Projects} with \\resumeSubItem{ProjectName}{Description}
-5. SKILLS: \\section{Skills} using \\resumeSubItem{Category}{items}"""
+5. SKILLS: \\section{Skills} using \\resumeSubItem{Category}{items} or tabular."""
         elif template == "pratul":
             ref_template = _pratul_resume_source
             template_name = "Pratul Muthuraja's Resume"
@@ -1490,6 +1579,9 @@ The template uses these custom commands - you MUST use them:
 7. Output ONLY the complete LaTeX code wrapped in ```latex ... ``` code block
 8. Do NOT include any explanations, notes, or commentary outside the code block
 9. Ensure the output will compile WITHOUT errors - use proper escaping for special characters (&, %, $, #, _, {{, }}, ~, ^)
+10. CONTENT RETENTION: You MUST include EVERY SINGLE piece of information from the user's plain text resume. DO NOT summarize, truncate, shorten, or omit any details. Every single bullet point, project entry, and work experience must be fully converted.
+11. EXTRA SECTIONS: If the user's plain text contains sections that do not map directly to the reference template's predefined headers (such as "Achievements", "Extracurricular Activities", "Positions of Responsibility", "Publications", etc.), you MUST NOT omit them. Instead, create a new section using \\\\section{{Section Name}} and format the content using standard subheading and bullet list structures appropriate for the template.
+12. NO PLACEHOLDERS: Do not use template placeholders (like "Company Name" or "Job Title") in the output. If the information is in the user's plain text resume, output that actual information.
 """
 
         # Build the full system prompt with the template preamble included
