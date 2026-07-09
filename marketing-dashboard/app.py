@@ -91,29 +91,45 @@ def categorize_role(role_title: str) -> str:
 # NOTION API READER
 # ============================================================================
 
+def _notion_request(method, endpoint, body=None):
+    """Make a direct HTTP request to the Notion API (bypasses library version issues)."""
+    import urllib.request, urllib.error, json
+    
+    url = f"https://api.notion.com/v1/{endpoint}"
+    headers = {
+        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
+    
+    data = json.dumps(body).encode("utf-8") if body else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        raise Exception(f"Notion API HTTP {e.code}: {error_body}")
+
+
 def fetch_jobs_from_notion() -> list:
-    """Fetch all jobs from the Notion database."""
+    """Fetch all jobs from the Notion database using direct HTTP requests."""
     if not NOTION_API_KEY or not NOTION_DATABASE_ID:
-        print("⚠️  Notion API key or database ID not configured")
+        print("Notion API key or database ID not configured")
         return []
 
     try:
-        from notion_client import Client
-        from notion_client.errors import APIResponseError
-
-        client = Client(auth=NOTION_API_KEY)
-
         all_jobs = []
         has_more = True
         start_cursor = None
 
         while has_more:
-            query_params = {"database_id": NOTION_DATABASE_ID}
+            query_body = {"page_size": 100}
             if start_cursor:
-                query_params["start_cursor"] = start_cursor
-            query_params["page_size"] = 100
+                query_body["start_cursor"] = start_cursor
 
-            response = client.databases.query(**query_params)
+            response = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", query_body)
             has_more = response.get("has_more", False)
             start_cursor = response.get("next_cursor")
 
@@ -176,13 +192,9 @@ def fetch_jobs_from_notion() -> list:
         return all_jobs
 
     except ImportError:
-        print("❌ notion_client not installed. Run: pip install notion-client")
-        return []
-    except APIResponseError as e:
-        print(f"❌ Notion API error: {e}")
         return []
     except Exception as e:
-        print(f"❌ Error fetching from Notion: {e}")
+        print(f"Error fetching from Notion: {e}")
         return []
 
 
@@ -348,11 +360,8 @@ def api_debug():
 
     if NOTION_API_KEY and NOTION_DATABASE_ID:
         try:
-            from notion_client import Client
-            client = Client(auth=NOTION_API_KEY)
-            
             # Try to retrieve database info
-            db_info = client.databases.retrieve(NOTION_DATABASE_ID)
+            db_info = _notion_request("GET", f"databases/{NOTION_DATABASE_ID}")
             title = db_info.get("title", [{}])
             db_title = title[0].get("plain_text", "Untitled") if title else "Untitled"
             props = db_info.get("properties", {})
@@ -361,7 +370,7 @@ def api_debug():
             result["database_properties"] = list(props.keys())
             
             # Try a query
-            test_query = client.databases.query(database_id=NOTION_DATABASE_ID, page_size=5)
+            test_query = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", {"page_size": 5})
             result["sample_count"] = len(test_query.get("results", []))
             result["has_more"] = test_query.get("has_more", False)
             
