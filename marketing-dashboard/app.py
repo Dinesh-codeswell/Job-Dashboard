@@ -332,6 +332,49 @@ def api_refresh():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/debug', methods=['GET'])
+def api_debug():
+    """Diagnostic endpoint to check Notion configuration."""
+    result = {
+        "env_vars_set": {
+            "NOTION_API_KEY": bool(NOTION_API_KEY),
+            "NOTION_DATABASE_ID": bool(NOTION_DATABASE_ID),
+        },
+        "api_key_prefix": NOTION_API_KEY[:10] + "..." if NOTION_API_KEY else "NOT SET",
+        "database_id": NOTION_DATABASE_ID or "NOT SET",
+        "notion_connection": False,
+        "notion_error": None,
+    }
+
+    if NOTION_API_KEY and NOTION_DATABASE_ID:
+        try:
+            from notion_client import Client
+            client = Client(auth=NOTION_API_KEY)
+            
+            # Try to retrieve database info
+            db_info = client.databases.retrieve(NOTION_DATABASE_ID)
+            title = db_info.get("title", [{}])
+            db_title = title[0].get("plain_text", "Untitled") if title else "Untitled"
+            props = db_info.get("properties", {})
+            result["notion_connection"] = True
+            result["database_title"] = db_title
+            result["database_properties"] = list(props.keys())
+            
+            # Try a query
+            test_query = client.databases.query(database_id=NOTION_DATABASE_ID, page_size=5)
+            result["sample_count"] = len(test_query.get("results", []))
+            result["has_more"] = test_query.get("has_more", False)
+            
+        except ImportError as e:
+            result["notion_error"] = f"notion_client not installed: {e}"
+        except Exception as e:
+            result["notion_error"] = str(e)[:200]
+    else:
+        result["notion_error"] = "Missing environment variables"
+
+    return jsonify(result)
+
+
 # ============================================================================
 # MAIN
 # ============================================================================
