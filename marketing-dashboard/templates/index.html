@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoleBoard — Non-Tech Jobs Dashboard</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- ============================================================
+         SPARKLES BACKGROUND
+         ============================================================ -->
+    <div id="sparkles-bg" class="sparkles-container"></div>
+
+    <!-- ============================================================
+         FLOATING NAV BAR
+         ============================================================ -->
+    <nav class="nav-bar">
+        <div class="nav-inner">
+            <!-- Logo -->
+            <div class="nav-logo">
+                <div class="logo-mark">
+                    <span class="logo-monogram">rb</span>
+                </div>
+                <span class="logo-text">RoleBoard</span>
+            </div>
+
+            <!-- Nav Links -->
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Jobs</a>
+                <a href="#" class="nav-link">About</a>
+            </div>
+
+            <!-- Nav Actions -->
+            <div class="nav-actions">
+                <button class="btn-outline-nav" id="refreshBtn" title="Refresh jobs">
+                    <span class="material-symbols-outlined">refresh</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+         PAGE WRAPPER
+         ============================================================ -->
+    <main class="page-wrapper">
+
+        <!-- ============================================================
+             HERO
+             ============================================================ -->
+        <header class="hero">
+            <!-- Tagline Badge -->
+            <div class="tagline-badge">
+                <span class="material-symbols-outlined tagline-icon">lightbulb</span>
+                <span>Non-Tech Roles · Live Updates</span>
+            </div>
+
+            <!-- Display Headline -->
+            <h1 class="hero-headline">
+                Find your next
+                <span class="highlight-word">marketing</span>
+                or
+                <span class="highlight-word">design</span>
+                role.
+            </h1>
+
+            <!-- Subhead -->
+            <p class="hero-subhead">
+                Curated opportunities in Marketing, Account Management, UI/UX Design,
+                and Startup Leadership — updated every 24 hours.
+            </p>
+
+            <!-- Stats Strip -->
+            <div class="stats-strip">
+                <div class="stat-chip">
+                    <span class="stat-value" id="totalJobs">—</span>
+                    <span class="stat-label">Open Roles</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-chip">
+                    <span class="stat-value" id="totalDomains">—</span>
+                    <span class="stat-label">Domains</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-chip">
+                    <span class="stat-value" id="totalCompanies">—</span>
+                    <span class="stat-label">Companies</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ============================================================
+             FILTERS
+             ============================================================ -->
+        <section class="filters-section">
+            <div class="filter-chips" id="filterChips">
+                <button class="filter-chip active" data-domain="All">All</button>
+                <button class="filter-chip" data-domain="Marketing">
+                    <span class="filter-dot" style="background: #ffe95c;"></span>
+                    Marketing
+                </button>
+                <button class="filter-chip" data-domain="Accounts">
+                    <span class="filter-dot" style="background: #a8e5e5;"></span>
+                    Accounts
+                </button>
+                <button class="filter-chip" data-domain="UI/UX">
+                    <span class="filter-dot" style="background: #d5f5c2;"></span>
+                    UI/UX
+                </button>
+                <button class="filter-chip" data-domain="Founders Office">
+                    <span class="filter-dot" style="background: #f6d0ff;"></span>
+                    Founders Office
+                </button>
+            </div>
+
+            <div class="filter-search">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="search-input"
+                    placeholder="Search roles, companies..."
+                />
+            </div>
+        </section>
+
+        <!-- ============================================================
+             RESULTS HEADER
+             ============================================================ -->
+        <div class="results-header">
+            <p class="results-count" id="resultsCount">Loading...</p>
+            <p class="results-hint">Press <kbd>/</kbd> to search · <kbd>r</kbd> to refresh</p>
+        </div>
+
+        <!-- ============================================================
+             JOBS GRID
+             ============================================================ -->
+        <div id="jobsGrid" class="jobs-grid">
+            <!-- Skeleton loading cards -->
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+
+        <!-- ============================================================
+             PAGINATION
+             ============================================================ -->
+        <div id="pagination" class="pagination-section"></div>
+
+        <!-- ============================================================
+             FOOTER
+             ============================================================ -->
+        <footer class="page-footer">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <div class="logo-mark small">
+                        <span class="logo-monogram">rb</span>
+                    </div>
+                    <span class="footer-brand-name">RoleBoard</span>
+                </div>
+                <p class="footer-copy">Curated non-tech opportunities · Updated daily from LinkedIn</p>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">About</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+    <!-- ============================================================
+         JAVASCRIPT
+         ============================================================ -->
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Sparkles
+            try {
+                new Sparkles('sparkles-bg', {
+                    minSize: 0.6,
+                    maxSize: 1.4,
+                    speed: 0.8,
+                    particleColor: '#1a3300',
+                    particleDensity: 60,
+                    background: 'transparent'
+                });
+            } catch (error) {
+                console.error('Sparkles init failed:', error);
+            }
+
+            // Initialize dashboard
+            RoleBoard.init();
+        });
+    </script>
+</body>
+</html>
