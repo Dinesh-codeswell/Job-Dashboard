@@ -425,12 +425,7 @@ def api_debug():
 # RESUME - LaTeX Editor
 # ============================================================================
 
-# Default LaTeX source (Jake's Resume template with placeholder text)
-DEFAULT_LATEX_SOURCE = Path(__file__).parent.parent / "Latex resume" / "resume-jake" / "resume.tex"
-if DEFAULT_LATEX_SOURCE.exists():
-    with open(DEFAULT_LATEX_SOURCE, "r") as f:
-        _default_resume_source = f.read()
-    _default_resume_source = r"""\documentclass[letterpaper,11pt]{article}
+_default_resume_source = r"""\documentclass[letterpaper,11pt]{article}
 
 \usepackage{latexsym}
 \usepackage[empty]{fullpage}
@@ -641,6 +636,15 @@ if DEFAULT_LATEX_SOURCE.exists():
 
 %-------------------------------------------
 \end{document}"""
+
+DEFAULT_LATEX_SOURCE = Path(__file__).parent.parent / "Latex resume" / "resume-jake" / "resume.tex"
+if DEFAULT_LATEX_SOURCE.exists():
+    try:
+        with open(DEFAULT_LATEX_SOURCE, "r", encoding="utf-8") as f:
+            _default_resume_source = f.read()
+    except Exception:
+        pass
+
 
 
 def _find_pdflatex():
