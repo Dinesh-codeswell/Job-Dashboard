@@ -1049,6 +1049,270 @@ if DEFAULT_PRATUL_SOURCE.exists():
     except Exception:
         pass
 
+_faang_resume_source = r"""\documentclass{resume} % Use the custom resume.cls style
+
+\usepackage[left=0.4 in,top=0.4in,right=0.4 in,bottom=0.4in]{geometry} % Document margins
+\newcommand{\tab}[1]{\hspace{.2667\textwidth}\rlap{#1}} 
+\newcommand{\itab}[1]{\hspace{0em}\rlap{#1}}
+\name{Firstname Lastname} % Your name
+% You can merge both of these into a single line, if you do not have a website.
+\address{+1(123) 456-7890 \\ San Francisco, CA} 
+\address{\href{mailto:contact@faangpath.com}{contact@faangpath.com} \\ \href{https://linkedin.com/company/faangpath}{linkedin.com/company/faangpath} \\ \href{www.faangpath.com}{www.faangpath.com}}  %
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	OBJECTIVE
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{OBJECTIVE}
+
+{Software Engineer with 2+ years of experience in XXX, seeking full-time XXX roles.}
+
+
+\end{rSection}
+%----------------------------------------------------------------------------------------
+%	EDUCATION SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{Education}
+
+{\bf Master of Computer Science}, Stanford University \hfill {Expected 2020}\\
+Relevant Coursework: A, B, C, and D.
+
+{\bf Bachelor of Computer Science}, Stanford University \hfill {2014 - 2017}
+%Minor in Linguistics \smallskip \\
+%Member of Eta Kappa Nu \\
+%Member of Upsilon Pi Epsilon \\
+
+
+\end{rSection}
+
+%----------------------------------------------------------------------------------------
+% TECHINICAL STRENGTHS	
+%----------------------------------------------------------------------------------------
+\begin{rSection}{SKILLS}
+
+\begin{tabular}{ @{} >{\bfseries}l @{\hspace{6ex}} l }
+Technical Skills & A, B, C, D
+\\
+Soft Skills & A, B, C, D\\
+XYZ & A, B, C, D\\
+\end{tabular}\\
+\end{rSection}
+
+\begin{rSection}{EXPERIENCE}
+
+\textbf{Role Name} \hfill Jan 2017 - Jan 2019\\
+Company Name \hfill \textit{San Francisco, CA}
+ \begin{itemize}
+    \itemsep -3pt {} 
+     \item Achieved X\% growth for XYZ using A, B, and C skills.
+     \item Led XYZ which led to X\% of improvement in ABC
+    \item Developed XYZ that did A, B, and C using X, Y, and Z. 
+ \end{itemize}
+ 
+\textbf{Role Name} \hfill Jan 2017 - Jan 2019\\
+Company Name \hfill \textit{San Francisco, CA}
+ \begin{itemize}
+    \itemsep -3pt {} 
+     \item Achieved X\% growth for XYZ using A, B, and C skills.
+     \item Led XYZ which led to X\% of improvement in ABC
+    \item Developed XYZ that did A, B, and C using X, Y, and Z. 
+ \end{itemize}
+
+\end{rSection} 
+
+%----------------------------------------------------------------------------------------
+%	WORK EXPERIENCE SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{PROJECTS}
+\vspace{-1.25em}
+\item \textbf{Hiring Search Tool.} {Built a tool to search for Hiring Managers and Recruiters by using ReactJS, NodeJS, Firebase and boolean queries. Over 25000 people have used it so far, with 5000+ queries being saved and shared, and search results even better than LinkedIn! \href{https://hiring-search.careerflow.ai/}{(Try it here)}}
+\item \textbf{Short Project Title.} {Build a project that does something and had quantified success using A, B, and C. This project's description spans two lines and also won an award.}
+\item \textbf{Short Project Title.} {Build a project that does something and had quantified success using A, B, and C. This project's description spans two lines and also won an award.}
+\end{rSection} 
+
+%----------------------------------------------------------------------------------------
+\begin{rSection}{Extra-Curricular Activities} 
+\begin{itemize}
+    \item 	Actively write \href{https://www.faangpath.com/blog/}{blog posts} and social media posts (\href{https://www.tiktok.com/@faangpath}{TikTok}, \href{https://www.instagram.com/faangpath/?hl=en}{Instagram}) viewed by over 20K+ job seekers per week to help people with best practices to land their dream jobs. 
+    \item	Sample bullet point.
+\end{itemize}
+
+
+\end{rSection}
+
+%----------------------------------------------------------------------------------------
+\begin{rSection}{Leadership} 
+\begin{itemize}
+    \item Admin for the \href{https://discord.com/invite/WWbjEaZ}{FAANGPath Discord community} with over 6000+ job seekers and industry mentors. Actively involved in facilitating online events, career conversations, and more alongside other admins and a team of volunteer moderators! 
+\end{itemize}
+
+
+\end{rSection}
+
+
+\end{document}"""
+
+DEFAULT_FAANG_SOURCE = Path(__file__).parent.parent / "Latex resume" / "latex-resume-template-main" / "latex-resume-template-main" / "source.tex"
+if DEFAULT_FAANG_SOURCE.exists():
+    try:
+        with open(DEFAULT_FAANG_SOURCE, "r", encoding="utf-8") as f:
+            _faang_resume_source = f.read()
+    except Exception:
+        pass
+
+_resume_cls_source = r"""%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Medium Length Professional CV - RESUME CLASS FILE
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% This class file defines the structure and design of the template. 
+%
+% Original header:
+% Copyright (C) 2010 by Trey Hunner
+%
+% Copying and distribution of this file, with or without modification,
+% are permitted in any medium without royalty provided the copyright
+% notice and this notice are preserved. This file is offered as-is,
+% without any warranty.
+%
+% Created by Trey Hunner and modified by www.LaTeXTemplates.com
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ProvidesClass{resume}[2010/07/10 v0.9 Resume class]
+
+\LoadClass[11pt,letterpaper]{article} % Font size and paper type
+
+\usepackage[parfill]{parskip} % Remove paragraph indentation
+\usepackage{array} % Required for boldface (\bf and \bfseries) tabular columns
+\usepackage{ifthen} % Required for ifthenelse statements
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+
+\pagestyle{empty} % Suppress page numbers
+
+%----------------------------------------------------------------------------------------
+%	HEADINGS COMMANDS: Commands for printing name and address
+%----------------------------------------------------------------------------------------
+
+\def \name#1{\def\@name{#1}} % Defines the \name command to set name
+\def \@name {} % Sets \@name to empty by default
+
+\def \addressSep {$\diamond$} % Set default address separator to a diamond
+
+% One, two or three address lines can be specified 
+\let \@addressone \relax
+\let \@addresstwo \relax
+\let \@addressthree \relax
+
+% \address command can be used to set the first, second, and third address (last 2 optional)
+\def \address #1{
+  \@ifundefined{@addresstwo}{
+    \def \@addresstwo {#1}
+  }{
+  \@ifundefined{@addressthree}{
+  \def \@addressthree {#1}
+  }{
+     \def \@addressone {#1}
+  }}
+}
+
+% \printaddress is used to style an address line (given as input)
+\def \printaddress #1{
+  \begingroup
+    \def \\ {\addressSep\ }
+    \centerline{#1}
+  \endgroup
+  \par
+  \addressskip
+}
+
+% \printname is used to print the name as a page header
+\def \printname {
+  \begingroup
+    \hfil{\MakeUppercase{\namesize\bf \@name}}\hfil
+    \nameskip\break
+  \endgroup
+}
+
+%----------------------------------------------------------------------------------------
+%	PRINT THE HEADING LINES
+%----------------------------------------------------------------------------------------
+
+\let\ori@document=\document
+\renewcommand{\document}{
+  \ori@document  % Begin document
+  \printname % Print the name specified with \name
+  \@ifundefined{@addressone}{}{ % Print the first address if specified
+    \printaddress{\@addressone}}
+  \@ifundefined{@addresstwo}{}{ % Print the second address if specified
+    \printaddress{\@addresstwo}}
+     \@ifundefined{@addressthree}{}{ % Print the third address if specified
+    \printaddress{\@addressthree}}
+}
+
+%----------------------------------------------------------------------------------------
+%	SECTION FORMATTING
+%----------------------------------------------------------------------------------------
+
+% Defines the rSection environment for the large sections within the CV
+\newenvironment{rSection}[1]{ % 1 input argument - section name
+  \sectionskip
+  \MakeUppercase{{\bf #1}} % Section title
+  \sectionlineskip
+  \hrule % Horizontal line
+  \begin{list}{}{ % List for each individual item in the section
+    \setlength{\leftmargin}{0em} % Margin within the section
+  }
+  \item[]
+}{
+  \end{list}
+}
+
+%----------------------------------------------------------------------------------------
+%	WORK EXPERIENCE FORMATTING
+%----------------------------------------------------------------------------------------
+
+\newenvironment{rSubsection}[4]{ % 4 input arguments - company name, year(s) employed, job title and location
+ {\bf #1} \hfill {#2} % Bold company name and date on the right
+ \ifthenelse{\equal{#3}{}}{}{ % If the third argument is not specified, don't print the job title and location line
+  \\
+  {\em #3} \hfill {\em #4} % Italic job title and location
+  }\smallskip
+  \begin{list}{$\cdot$}{\leftmargin=0em} % \cdot used for bullets, no indentation
+   \itemsep -0.5em \vspace{-0.5em} % Compress items in list together for aesthetics
+  }{
+  \end{list}
+  \vspace{0.5em} % Some space after the list of bullet points
+}
+
+% The below commands define the whitespace after certain things in the document - they can be \smallskip, \medskip or \bigskip
+\def\namesize{\LARGE} % Size of the name at the top of the document
+\def\addressskip{\smallskip} % The space between the two address (or phone/email) lines
+\def\sectionlineskip{\medskip} % The space above the horizontal line for each section 
+\def\nameskip{\medskip} % The space after your name at the top
+\def\sectionskip{\medskip} % The space after the heading section
+"""
+
+DEFAULT_RESUME_CLS = Path(__file__).parent.parent / "Latex resume" / "latex-resume-template-main" / "latex-resume-template-main" / "resume.cls"
+if DEFAULT_RESUME_CLS.exists():
+    try:
+        with open(DEFAULT_RESUME_CLS, "r", encoding="utf-8") as f:
+            _resume_cls_source = f.read()
+    except Exception:
+        pass
+
 
 
 
@@ -1108,6 +1372,11 @@ def _compile_latex_local(latex_source, output_dir):
     with open(tex_path, "w", encoding="utf-8") as f:
         f.write(latex_source)
 
+    if "documentclass{resume}" in latex_source.replace(" ", "") or "documentclass[11pt]{resume}" in latex_source.replace(" ", "") or "documentclass[10pt]{resume}" in latex_source.replace(" ", "") or "documentclass[12pt]{resume}" in latex_source.replace(" ", ""):
+        cls_path = os.path.join(output_dir, "resume.cls")
+        with open(cls_path, "w", encoding="utf-8") as f:
+            f.write(_resume_cls_source)
+
     try:
         _is_miktex = "miktex" in pdflatex_path.lower() if pdflatex_path else False
 
@@ -1164,6 +1433,11 @@ def _compile_latex_online(latex_source):
             ('filecontents[]', ('document.tex', latex_source, 'text/plain')),
             ('filename[]', (None, 'document.tex')),
         ]
+        if "documentclass{resume}" in latex_source.replace(" ", "") or "documentclass[11pt]{resume}" in latex_source.replace(" ", "") or "documentclass[10pt]{resume}" in latex_source.replace(" ", "") or "documentclass[12pt]{resume}" in latex_source.replace(" ", ""):
+            files.extend([
+                ('filecontents[]', ('resume.cls', _resume_cls_source, 'text/plain')),
+                ('filename[]', (None, 'resume.cls')),
+            ])
         data = {
             'engine': 'pdflatex',
             'return': 'pdf'
@@ -1257,6 +1531,8 @@ def api_resume_default():
         source = _sourabh_resume_source
     elif template == 'pratul':
         source = _pratul_resume_source
+    elif template == 'faang':
+        source = _faang_resume_source
     else:
         source = _default_resume_source  # Jake's template
 
@@ -1548,6 +1824,25 @@ The template uses these custom commands - you MUST use them:
 2. EDUCATION: \\section{Education} with \\resumeSubheading{School}{Location}{Degree}{Dates}
 3. SKILLS: \\section{Skills} with \\resumeSubItem{Category}{items}
 4. EXPERIENCE: \\section{Experience} with \\resumeSubheading{Company}{Location}{Role}{Dates} followed by optional \\resumeSubSubheading{ProjectName} and \\resumeItemListStart/\\resumeItem{bullet}"""
+        elif template == "faang":
+            ref_template = _faang_resume_source
+            template_name = "FAANG Simple Resume"
+            custom_instructions = """## TEMPLATE STRUCTURE (use these exact LaTeX commands):
+The template uses these custom commands - you MUST use them:
+
+1. HEADER: Use \\name{Firstname Lastname} and \\address{...} blocks.
+2. SECTIONS: Use \\begin{rSection}{Section Name} ... \\end{rSection}
+3. EXPERIENCE: Inside rSection, format job title and company using:
+\\textbf{Role Name} \\hfill Dates\\\\
+Company Name \\hfill \\textit{Location}
+followed by an itemize environment for bullet points.
+4. PROJECTS: Inside rSection, use list items like:
+\\item \\textbf{Project Title.} {Project description...}
+5. SKILLS: Inside rSection, use tabular formatting:
+\\begin{tabular}{ @{} >{\\bfseries}l @{\\hspace{6ex}} l }
+Technical Skills & details \\\\
+Soft Skills & details
+\\end{tabular}"""
         else:
             ref_template = _default_resume_source
             template_name = "Jake's Resume"
