@@ -1,0 +1,10 @@
+[project]
+name = "roleboard-dashboard"
+version = "1.0.0"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0",
+    "flask-cors>=4.0",
+    "notion-client>=3.0.0",
+    "python-dotenv>=1.0",
+]
