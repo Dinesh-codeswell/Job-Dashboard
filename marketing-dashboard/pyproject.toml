@@ -7,4 +7,6 @@ dependencies = [
     "flask-cors>=4.0",
     "notion-client>=3.0.0",
     "python-dotenv>=1.0",
+    "requests>=2.31.0",
 ]
+

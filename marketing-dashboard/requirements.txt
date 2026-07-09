@@ -1,0 +1,19 @@
+# RoleBoard - Non-Tech Jobs Dashboard Dependencies
+# For local development & Vercel deployment
+
+# Web framework
+flask>=3.0
+flask-cors>=4.0
+
+# Notion API (v3+ required for databases.query support)
+notion-client>=3.0.0
+
+# Environment
+python-dotenv>=1.0
+
+# WSGI server for local dev
+waitress>=2.1
+
+# HTTP requests for online latex compile & openrouter AI
+requests>=2.31.0
+
