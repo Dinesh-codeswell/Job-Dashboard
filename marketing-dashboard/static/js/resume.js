@@ -11,6 +11,7 @@ const ResumeApp = {
     compileTimer: null,
     isCompiling: false,
     latestPdfUrl: null,
+    activeTemplate: 'jake',
 
     // Constants
     COMPILE_DELAY: 2000, // 2 seconds after user stops typing
@@ -26,8 +27,10 @@ const ResumeApp = {
             // Start with status bar hidden
             this.hideStatus();
 
+            this.activeTemplate = 'jake';
+
             // Load the default LaTeX source
-            const defaultSource = await this.loadDefaultSource();
+            const defaultSource = await this.loadDefaultSource(this.activeTemplate);
 
             // Initialize CodeMirror
             this.initEditor(defaultSource);
@@ -52,9 +55,9 @@ const ResumeApp = {
     // DATA LOADING
     // ========================================================================
 
-    async loadDefaultSource() {
+    async loadDefaultSource(template = 'jake') {
         try {
-            const response = await fetch('/api/resume/default');
+            const response = await fetch(`/api/resume/default?template=${template}`);
             const data = await response.json();
             if (data.success && data.latex_source) {
                 return data.latex_source;
@@ -151,6 +154,16 @@ const ResumeApp = {
 
         // Reset button
         document.getElementById('resetBtn')?.addEventListener('click', () => this.resetToDefault());
+
+        // Template selector
+        document.getElementById('templateSelect')?.addEventListener('change', (e) => {
+            const confirmChange = confirm("Switching templates will overwrite your current changes in the editor. Are you sure you want to proceed?");
+            if (confirmChange) {
+                this.loadTemplate(e.target.value);
+            } else {
+                e.target.value = this.activeTemplate;
+            }
+        });
 
         // Compile button
         document.getElementById('compileBtn')?.addEventListener('click', () => this.compile());
@@ -397,12 +410,26 @@ const ResumeApp = {
     },
 
     // ========================================================================
-    // RESET
+    // RESET & LOAD TEMPLATES
     // ========================================================================
+
+    async loadTemplate(template) {
+        try {
+            this.showStatus('Loading template...', 'pending');
+            const defaultSource = await this.loadDefaultSource(template);
+            this.editor.setValue(defaultSource);
+            this.activeTemplate = template;
+            this.showStatus('Template loaded! Compiling...', 'pending');
+            this.compile();
+        } catch (e) {
+            console.error('Failed to load template:', e);
+            this.showStatus('Error loading template', 'error');
+        }
+    },
 
     async resetToDefault() {
         try {
-            const defaultSource = await this.loadDefaultSource();
+            const defaultSource = await this.loadDefaultSource(this.activeTemplate);
             this.editor.setValue(defaultSource);
             this.showStatus('Reset to default', 'idle');
             this.autoHideStatus(2000);
@@ -447,7 +474,10 @@ const ResumeApp = {
             const response = await fetch('/api/resume/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resume_content: content })
+                body: JSON.stringify({ 
+                    resume_content: content,
+                    template: this.activeTemplate
+                })
             });
 
             const data = await response.json();

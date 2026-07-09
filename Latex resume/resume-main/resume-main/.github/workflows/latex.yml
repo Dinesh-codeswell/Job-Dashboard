@@ -1,0 +1,46 @@
+name: Compile LaTeX Resume
+
+on:
+  push:
+    paths:
+      - "**.tex"
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xu-cheng/texlive-full:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX to PDF
+        run: |
+          mkdir -p output
+          pdflatex -interaction=nonstopmode -output-directory=output main.tex
+          ls -lah output  # Debug: Check if the PDF exists
+
+      - name: Upload PDF as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-pdf
+          path: ./output/main.pdf
+
+      - name: Commit PDF to Repository
+        run: |
+          git config --global --add safe.directory /__w/resume/resume
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add output/main.pdf
+          git commit -m "Update compiled resume PDF" || echo "No changes to commit"
+          git push
+
+      - name: Deploy PDF to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
+          keep_files: true

@@ -645,6 +645,322 @@ if DEFAULT_LATEX_SOURCE.exists():
     except Exception:
         pass
 
+_sourabh_resume_source = r"""\documentclass[letterpaper,11pt]{article}
+
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{} % Clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generated PDF is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[2]{
+  \item\small{
+    \textbf{#1}{: #2 \vspace{-2pt}}
+  }
+}
+
+% Just in case someone needs a heading that does not need to be in a list
+\newcommand{\resumeHeading}[4]{
+    \begin{tabular*}{0.99\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small #3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small #3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small #1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeItemPlain}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubItem}[2]{\resumeItem{#1}{#2}\vspace{-4pt}}
+
+\renewcommand{\labelitemii}{$\circ$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  CV STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%----------HEADING-----------------
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{\href{https://sourabhbajaj.com/}{\Large Sourabh Bajaj}} & Email: \href{mailto:sourabh@sourabhbajaj.com}{sourabh@sourabhbajaj.com}\\
+  \href{https://sourabhbajaj.com/}{sourabhbajaj.com} & Mobile: \href{tel:+11234567890}{+1-123-456-7890} \\
+\end{tabular*}
+
+
+%-----------EDUCATION-----------------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Georgia Institute of Technology}{Atlanta, GA}
+      {Master of Science in Computer Science; GPA: 4.00}{Aug 2012 -- Dec 2013}
+    \resumeSubheading
+      {Birla Institute of Technology and Science}{Pilani, India}
+      {Bachelor of Engineering in Electrical and Electronics; GPA: 3.66 (9.15/10.0)}{Aug 2008 -- July 2012}
+  \resumeSubHeadingListEnd
+
+
+%-----------EXPERIENCE-----------------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {Google}{Mountain View, CA}
+      {Software Engineer}{Oct 2016 -- Present}
+      \resumeItemListStart
+        \resumeItem{TensorFlow}
+          {TensorFlow is an open source software library for numerical computation using data flow graphs; primarily used for training deep learning models. Worked on APIs and performance for training models on Tensor Processing Units (TPU).}
+        \resumeItem{Apache Beam}
+          {Apache Beam is a unified model for defining both batch and streaming data-parallel processing pipelines, as well as a set of language-specific SDKs for constructing pipelines and runners.}
+      \resumeItemListEnd
+      
+    \resumeSubheading
+      {Coursera}{Mountain View, CA}
+      {Senior Software Engineer}{Jan 2014 -- Oct 2016}
+      \resumeItemListStart
+        \resumeItem{Notifications}
+          {Service for sending email, push and in-app notifications. Involved in features such as delivery time optimization, tracking, queuing and A/B testing. Built an internal app to run batch campaigns for marketing, etc.}
+        \resumeItem{Recommendations}
+          {Core service for all recommendation systems at Coursera, currently used on the homepage and throughout the content discovery process. Worked on both offline training and online serving.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+
+%-----------PROJECTS-----------------
+\section{Projects}
+  \resumeSubHeadingListStart
+    \resumeSubItem{QuantSoftware Toolkit}
+      {Open source Python library for financial data analysis and machine learning for finance.}
+    \resumeSubItem{GitHub Visualization}
+      {Data visualization of Git log data using D3 to analyze project trends over time.}
+  \resumeSubHeadingListEnd
+
+%
+%--------SKILLS------------
+\section{Skills}
+  \resumeSubHeadingListStart
+    \item{
+      \textbf{Languages}{: Scala, Python, JavaScript, C++, SQL, Java}
+      \hfill
+      \textbf{Technologies}{: AWS, Play, React, Kafka, GCE}
+    }
+  \resumeSubHeadingListEnd
+
+
+%-------------------------------------------
+\end{document}"""
+
+DEFAULT_SOURABH_SOURCE = Path(__file__).parent.parent / "Latex resume" / "resume-master" / "sourabh_bajaj_resume.tex"
+if DEFAULT_SOURABH_SOURCE.exists():
+    try:
+        with open(DEFAULT_SOURABH_SOURCE, "r", encoding="utf-8") as f:
+            _sourabh_resume_source = f.read()
+    except Exception:
+        pass
+
+
+_pratul_resume_source = r"""\documentclass[a4paper,20pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[pdftex]{hyperref}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.530in}
+\addtolength{\evensidemargin}{-0.375in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.45in}
+\addtolength{\textheight}{1in}
+
+\urlstyle{rm}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\setlength{\footskip}{4pt}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-10pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-6pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    #1 \vspace{-2pt}
+  }
+}
+
+\newcommand{\resumeItemWithoutTitle}[1]{
+  \item\small{
+    {\vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{#3} & \textit{#4} \\
+    \end{tabular*}
+}
+
+\newcommand{\resumeSubSubheading}[1]{
+  \vspace{-1pt}
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textbf{#1} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+
+\newcommand{\resumeSubItem}[2]{
+  \begin{tabular*}{\textwidth}{@{}p{3cm}@{\extracolsep{\fill}}p{15cm}@{}}
+    #1 & #2 \\
+  \end{tabular*}
+}
+
+\renewcommand{\labelitemii}{$\circ$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeSkillsListStart}{}
+\newcommand{\resumeSkillsListEnd}{\vspace{-5pt}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-----------------------------
+%%%%%%  CV STARTS HERE  %%%%%%
+
+\begin{document}
+
+%----------HEADING-----------------
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{{\LARGE Pratul Muthuraja}} & Email: \href{mailto:pratulmuthuraja@gmail.com}{pratulmuthuraja@gmail.com}\\
+  \href{https://pratulmuthuraja.com}{Portfolio: pratulmuthuraja.com} & Mobile:~~~+91 8489468800 \\
+  \href{https://github.com/pratulmuthuraja}{Github: ~~github.com/pratulmuthuraja} \\
+\end{tabular*}
+
+
+%-----------EDUCATION-----------------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Illinois Institute of Technology}{Chicago, USA}
+      {Master of Computer Science}{January 2021 - May 2023}
+    \vspace{-5pt}
+    \resumeSubheading
+      {Anna University}{Chennai, India}
+      {Bachelor of Engineering in Computer Science}{June 2014 - May 2018}
+    \resumeSubHeadingListEnd
+\vspace{-12pt}
+
+\section{Skills}
+    \resumeSkillsListStart
+	\resumeSubItem{Languages}{Python, Go, JavaScript, Java, SQL, Bash, HTML/CSS}
+	\resumeSubItem{Frameworks}{Django, Flask, ReactJS, NodeJS}
+	\resumeSubItem{Tools}{Kubernetes, Docker, GIT, PostgreSQL, MySQL}
+	\resumeSubItem{Platforms}{Linux, Web, AWS, GCP}
+\resumeSkillsListEnd
+
+\vspace{-5pt}
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading{Eastri (Khwaaish AI)}{Mumbai, Remote}
+    {System Engineer}{October 2025 - January 2026}
+    \resumeItemListStart
+        \resumeItem{Architected a scalable AWS infrastructure supporting 100K+ users using EC2, EKS, S3, and CloudFront.}
+        \resumeItem{Designed high-level system architecture and workflow diagrams to define service interactions.}
+      \resumeItemListEnd
+      
+    \resumeSubheading{Armour Chapter of Triangle}{Chicago, USA}
+    {Full-Stack Developer}{November 2023 - November 2024}
+    \resumeSubSubheading{Organization Website}
+    \resumeItemListStart
+        \resumeItem{Built a full-stack web application to securely manage social and event data.}
+        \resumeItem{Overhauled backend architecture, optimizing database queries to bring API response times under 100ms.}
+      \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+\end{document}"""
+
+DEFAULT_PRATUL_SOURCE = Path(__file__).parent.parent / "Latex resume" / "resume-main" / "resume-main" / "main.tex"
+if DEFAULT_PRATUL_SOURCE.exists():
+    try:
+        with open(DEFAULT_PRATUL_SOURCE, "r", encoding="utf-8") as f:
+            _pratul_resume_source = f.read()
+    except Exception:
+        pass
+
+
 
 
 def _find_pdflatex():
@@ -845,11 +1161,21 @@ def api_resume_compile():
 
 @app.route('/api/resume/default', methods=['GET'])
 def api_resume_default():
-    """Get the default LaTeX source."""
+    """Get the default LaTeX source for a specific template."""
+    template = request.args.get('template', 'jake').lower()
+
+    if template == 'sourabh':
+        source = _sourabh_resume_source
+    elif template == 'pratul':
+        source = _pratul_resume_source
+    else:
+        source = _default_resume_source  # Jake's template
+
     return jsonify({
         "success": True,
-        "latex_source": _default_resume_source
+        "latex_source": source
     })
+
 
 
 @app.route('/api/resume/status', methods=['GET'])
@@ -1093,7 +1419,7 @@ def _clean_latex_output(raw_output):
 
 @app.route('/api/resume/generate', methods=['POST'])
 def api_resume_generate():
-    """Use AI (OpenRouter) to convert plain text resume into LaTeX using Jake's template."""
+    """Use AI (OpenRouter) to convert plain text resume into LaTeX using the selected template style."""
     if not OPENROUTER_API_KEY:
         return jsonify({"success": False, "error": "OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env"}), 400
 
@@ -1103,6 +1429,7 @@ def api_resume_generate():
     try:
         data = request.get_json(force=True)
         user_content = data.get("resume_content", "").strip()
+        template = data.get("template", "jake").lower()
 
         if not user_content or len(user_content) < 20:
             return jsonify({"success": False, "error": "Please paste your full resume content (at least 20 characters)"}), 400
@@ -1110,13 +1437,64 @@ def api_resume_generate():
         if len(user_content) > 15000:
             return jsonify({"success": False, "error": "Resume content is too long (max 15,000 characters)"}), 400
 
-        # Extract the preamble from Jake's template to include in the AI prompt
-        preamble_match = re.search(r"(.*?)\\begin\{document\}", _latex_template_reference, re.DOTALL)
-        preamble = preamble_match.group(1) if preamble_match else _latex_template_reference
+        # Choose the reference template and set instructions
+        if template == "sourabh":
+            ref_template = _sourabh_resume_source
+            template_name = "Sourabh Bajaj's Resume"
+            custom_instructions = """## TEMPLATE STRUCTURE (use these exact LaTeX commands):
+The template uses these custom commands - you MUST use them:
+
+1. HEADER: tabular* block with name, email, website link, and mobile number.
+2. EDUCATION: \\section{Education} with \\resumeSubheading{School}{Location}{Degree}{Dates}
+3. EXPERIENCE: \\section{Experience} with \\resumeSubheading{Company}{Location}{JobTitle}{Dates} then \\resumeItemListStart and \\resumeItem{Category}{Description} (e.g. \\resumeItem{Category}{Description})
+4. PROJECTS: \\section{Projects} with \\resumeSubItem{ProjectName}{Description}
+5. SKILLS: \\section{Skills} using \\resumeSubItem{Category}{items}"""
+        elif template == "pratul":
+            ref_template = _pratul_resume_source
+            template_name = "Pratul Muthuraja's Resume"
+            custom_instructions = """## TEMPLATE STRUCTURE (use these exact LaTeX commands):
+The template uses these custom commands - you MUST use them:
+
+1. HEADER: tabular* block with name, email, portfolio, mobile, and github.
+2. EDUCATION: \\section{Education} with \\resumeSubheading{School}{Location}{Degree}{Dates}
+3. SKILLS: \\section{Skills} with \\resumeSubItem{Category}{items}
+4. EXPERIENCE: \\section{Experience} with \\resumeSubheading{Company}{Location}{Role}{Dates} followed by optional \\resumeSubSubheading{ProjectName} and \\resumeItemListStart/\\resumeItem{bullet}"""
+        else:
+            ref_template = _default_resume_source
+            template_name = "Jake's Resume"
+            custom_instructions = """## TEMPLATE STRUCTURE (use these exact LaTeX commands):
+The template uses these custom commands - you MUST use them:
+
+1. HEADER: \\\\begin{{center}} block with name, phone, email, LinkedIn, GitHub
+2. EDUCATION: \\\\section{{Education}} with \\\\resumeSubheading{{School}}{{Location}}{{Degree}}{{Dates}}
+3. EXPERIENCE: \\\\section{{Experience}} with \\\\resumeSubheading{{JobTitle}}{{Dates}}{{Company}}{{Location}} then \\\\resumeItemListStart and \\\\resumeItem{{text}} for each bullet
+4. PROJECTS: \\\\section{{Projects}} with \\\\resumeProjectHeading{{Name $|$ TechStack}}{{Dates}} then \\\\resumeItemListStart / \\\\resumeItem
+5. TECHNICAL SKILLS: \\\\section{{Technical Skills}} with \\\\begin{{itemize}} using \\\\textbf{{Category}}{{: items}}"""
+
+        # Extract the preamble from the selected template
+        preamble_match = re.search(r"(.*?)\\begin\{document\}", ref_template, re.DOTALL)
+        preamble = preamble_match.group(1) if preamble_match else ref_template
+
+        # Build dynamic system prompt
+        system_prompt = f"""You are an expert LaTeX resume generator. Your task is to convert plain text resume content into a properly formatted LaTeX document using the {template_name} template.
+
+{custom_instructions}
+
+## RULES (strict - follow every one):
+1. KEEP the EXACT preamble (everything before \\\\begin{{document}}) from the reference template below - do NOT modify or remove any packages or macros
+2. ONLY modify the content between \\\\begin{{document}} and \\\\end{{document}}
+3. Parse the user's plain text resume and extract contact info, education, experience, projects, and skills.
+4. Use \\\\href{{url}}{{text}} for all links (email, LinkedIn, GitHub)
+5. If a section has no content, OMIT it entirely (don't include empty sections)
+6. If the user's text doesn't specify a date, use a reasonable placeholder like "Date" or empty
+7. Output ONLY the complete LaTeX code wrapped in ```latex ... ``` code block
+8. Do NOT include any explanations, notes, or commentary outside the code block
+9. Ensure the output will compile WITHOUT errors - use proper escaping for special characters (&, %, $, #, _, {{, }}, ~, ^)
+"""
 
         # Build the full system prompt with the template preamble included
         system_prompt_with_template = (
-            _AI_RESUME_SYSTEM_PROMPT
+            system_prompt
             + "\n\n## REFERENCE LATEX PREAMBLE (copy this EXACTLY into your output):\n```latex\n"
             + preamble
             + "\n```"
@@ -1143,6 +1521,7 @@ def api_resume_generate():
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 # ============================================================================

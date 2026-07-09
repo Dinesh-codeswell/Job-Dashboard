@@ -1059,6 +1059,32 @@ a:hover {
     gap: 4px;
 }
 
+.template-select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-family: var(--font-inter);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0 8px;
+    height: 32px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.template-select:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.template-select option {
+    background: var(--color-forest-ink);
+    color: #fff;
+}
+
+
 .pane-btn {
     display: flex;
     align-items: center;
