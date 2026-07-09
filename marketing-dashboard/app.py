@@ -39,6 +39,28 @@ NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
 
+# Prioritized list of free OpenRouter models based on user rankings/scores
+FALLBACK_MODELS = [
+    "google/gemma-4-31b-it:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "openai/gpt-oss-120b:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "qwen/qwen3-coder:free",
+    "openai/gpt-oss-20b:free",
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "liquid/lfm-2.5-1.2b-thinking:free",
+    "liquid/lfm-2.5-1.2b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "openrouter/free"
+]
+
+
 # Cache for jobs (to avoid hitting Notion API on every request)
 _jobs_cache = []
 _jobs_cache_timestamp = None
@@ -819,7 +841,7 @@ Now, convert the user's plain text resume below into a properly formatted LaTeX 
 
 
 def _call_openrouter(system_prompt, user_content):
-    """Call OpenRouter API to generate LaTeX from plain text resume."""
+    """Call OpenRouter API to generate LaTeX from plain text resume, with fallbacks."""
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -827,56 +849,100 @@ def _call_openrouter(system_prompt, user_content):
         "X-OpenRouter-Title": "RoleBoard Resume Generator",
     }
 
-    payload = {
-        "model": OPENROUTER_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-        "temperature": 0.3,
-        "max_tokens": 4096,
-    }
-
-    try:
-        response = requests_lib.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=120
-        )
-    except requests_lib.exceptions.Timeout:
-        raise Exception("OpenRouter API request timed out. Check your internet connection and try again.")
-    except requests_lib.exceptions.ConnectionError:
-        raise Exception("Could not reach OpenRouter API. Check your internet connection.")
-
-    if response.status_code != 200:
-        error_detail = response.text[:500]
-        raise Exception(f"OpenRouter API error ({response.status_code}): {error_detail}")
-
-    try:
-        result = response.json()
-    except Exception:
-        raise Exception(f"Invalid JSON response from OpenRouter: {response.text[:300]}")
-
-    choices = result.get("choices")
-    if not choices or not isinstance(choices, list) or len(choices) == 0:
-        error_info = result.get("error", {})
-        error_msg = error_info.get("message", "No choices returned") if isinstance(error_info, dict) else str(result)[:300]
-        raise Exception(f"AI model returned no response: {error_msg}")
-
-    choice = choices[0]
-    if not isinstance(choice, dict):
-        raise Exception(f"Unexpected response format from AI model")
-
-    message = choice.get("message", {})
-    if not isinstance(message, dict):
-        raise Exception(f"Unexpected message format from AI model")
-
-    content = message.get("content", "")
-    if not content or not isinstance(content, str):
-        raise Exception("AI model returned empty response")
-
-    return content
+    # Build list of models to try in order
+    models_to_try = []
+    
+    # 1. Start with the configured model
+    primary_model = OPENROUTER_MODEL or "google/gemma-4-31b-it:free"
+    models_to_try.append(primary_model)
+    
+    # 2. Append the fallback models in order of ranking, avoiding duplicates
+    for model in FALLBACK_MODELS:
+        if model not in models_to_try:
+            models_to_try.append(model)
+            
+    last_error = None
+    
+    for model in models_to_try:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            "temperature": 0.3,
+            "max_tokens": 4096,
+        }
+        
+        logging.info(f"Attempting to generate resume using OpenRouter model: {model}")
+        
+        try:
+            response = requests_lib.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120
+            )
+            
+            # Check for non-200 responses
+            if response.status_code != 200:
+                error_detail = response.text[:500]
+                last_error = f"Model {model} returned HTTP {response.status_code}: {error_detail}"
+                logging.warning(last_error)
+                continue
+                
+            try:
+                result = response.json()
+            except Exception:
+                last_error = f"Model {model} returned invalid JSON: {response.text[:300]}"
+                logging.warning(last_error)
+                continue
+                
+            choices = result.get("choices")
+            if not choices or not isinstance(choices, list) or len(choices) == 0:
+                error_info = result.get("error", {})
+                error_msg = error_info.get("message", "No choices returned") if isinstance(error_info, dict) else str(result)[:300]
+                last_error = f"Model {model} returned no choices: {error_msg}"
+                logging.warning(last_error)
+                continue
+                
+            choice = choices[0]
+            if not isinstance(choice, dict):
+                last_error = f"Model {model} returned unexpected choice format"
+                logging.warning(last_error)
+                continue
+                
+            message = choice.get("message", {})
+            if not isinstance(message, dict):
+                last_error = f"Model {model} returned unexpected message format"
+                logging.warning(last_error)
+                continue
+                
+            content = message.get("content", "")
+            if not content or not isinstance(content, str):
+                last_error = f"Model {model} returned empty response content"
+                logging.warning(last_error)
+                continue
+                
+            # If we got here, we succeeded!
+            logging.info(f"Successfully generated resume using model: {model}")
+            return content, model
+            
+        except requests_lib.exceptions.Timeout:
+            last_error = f"Model {model} request timed out"
+            logging.warning(last_error)
+            continue
+        except requests_lib.exceptions.ConnectionError:
+            last_error = f"Connection error while reaching model {model}"
+            logging.warning(last_error)
+            continue
+        except Exception as e:
+            last_error = f"Error with model {model}: {str(e)}"
+            logging.warning(last_error)
+            continue
+            
+    # If all models failed, raise the last error encountered
+    raise Exception(f"All OpenRouter models failed to generate content. Last error: {last_error}")
 
 
 def _clean_latex_output(raw_output):
@@ -957,7 +1023,7 @@ def api_resume_generate():
         )
 
         # Call OpenRouter with the enhanced system prompt that includes the template
-        raw_output = _call_openrouter(system_prompt_with_template, user_content)
+        raw_output, success_model = _call_openrouter(system_prompt_with_template, user_content)
 
         # Clean and validate the output
         latex_source = _clean_latex_output(raw_output)
@@ -972,7 +1038,7 @@ def api_resume_generate():
         return jsonify({
             "success": True,
             "latex_source": latex_source,
-            "model": OPENROUTER_MODEL,
+            "model": success_model,
         })
 
     except Exception as e:
