@@ -628,14 +628,24 @@ def _compile_latex_local(latex_source, output_dir):
 
 
 def _compile_latex_online(latex_source):
-    """Compile LaTeX using latexonline.cc API."""
+    """Compile LaTeX using texlive.net API."""
     if not REQUESTS_AVAILABLE:
         return None, "'requests' library not available."
 
     try:
+        files = [
+            ('filecontents[]', ('document.tex', latex_source, 'text/plain')),
+            ('filename[]', (None, 'document.tex')),
+        ]
+        data = {
+            'engine': 'pdflatex',
+            'return': 'pdf'
+        }
+
         response = requests_lib.post(
-            "https://latexonline.cc/compile",
-            data={"text": latex_source, "command": "pdflatex"},
+            "https://texlive.net/cgi-bin/latexcgi",
+            files=files,
+            data=data,
             timeout=120
         )
 
@@ -650,6 +660,7 @@ def _compile_latex_online(latex_source):
         if "html" in content_type.lower():
             return None, "Online compilation failed. Check your LaTeX syntax."
         return None, f"Online compilation failed: {response.text[:300]}"
+
 
     except requests_lib.exceptions.Timeout:
         return None, "Online compilation timed out."
@@ -840,7 +851,7 @@ def _call_openrouter(system_prompt, user_content):
 
     if response.status_code != 200:
         error_detail = response.text[:500]
-        raise Exception(f"OpenRouter API error ({response.status}): {error_detail}")
+        raise Exception(f"OpenRouter API error ({response.status_code}): {error_detail}")
 
     try:
         result = response.json()
