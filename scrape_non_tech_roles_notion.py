@@ -88,18 +88,26 @@ TARGET_KEYWORDS = [
 
     # TIER 2: Account Management (client-facing)
     "Account Manager",
-    "Account Executive",
     "Key Account Manager",
     "Client Partner",
     "Client Services Manager",
     "Account Director",
     "Strategic Account Manager",
-    "Customer Success Manager",
     "Client Relationship Manager",
     "Account Lead",
-    "Business Development Manager",
 
-    # TIER 3: UI/UX Design
+    # TIER 3: Product Roles (NEW category)
+    "Product Manager",
+    "Product Designer",
+    "Product Owner",
+    "Product Lead",
+    "Product Analyst",
+    "Product Marketing Manager",
+    "Technical Product Manager",
+    "Associate Product Manager",
+    "APM",
+
+    # TIER 4: UI/UX Design
     "UI Designer",
     "UX Designer",
     "UI/UX Designer",

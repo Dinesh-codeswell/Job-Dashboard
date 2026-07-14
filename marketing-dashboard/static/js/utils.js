@@ -63,6 +63,7 @@ const Utils = {
             'Marketing': 'marketing',
             'Accounts': 'accounts',
             'UI/UX': 'uiux',
+            'Product': 'product',
             'Founders Office': 'founders'
         };
         return map[domain] || 'other';

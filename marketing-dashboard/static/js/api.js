@@ -57,6 +57,10 @@ const API = {
         return this.get('/api/domains');
     },
 
+    async getLocations() {
+        return this.get('/api/locations');
+    },
+
     async refreshData() {
         return this.post('/api/refresh');
     },

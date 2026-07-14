@@ -73,56 +73,365 @@ CACHE_DURATION = 120  # seconds
 # Role domain keywords for filtering
 ROLE_DOMAINS = {
     "All": [],
-    "Marketing": ["marketing", "brand", "growth", "social media", "content", "campaign",
-                   "demand generation", "pr manager", "communications", "seo"],
-    "Accounts": ["account manager", "account executive", "key account", "client partner",
-                  "client services", "account director", "customer success", "business development"],
-    "UI/UX": ["ui designer", "ux designer", "ui/ux", "product designer", "ux researcher",
-               "interaction designer", "visual designer", "ux lead", "ux architect", "user experience"],
+    "Marketing": ["marketing", "brand", "growth marketing", "content marketing", "demand generation",
+                   "digital marketing", "performance marketing", "social media", "campaign",
+                   "pr manager", "communications", "seo", "marketing lead", "marketing head",
+                   "marketing director", "marketing strategist", "marketing specialist",
+                   "marketing analyst", "marketing executive", "brand manager",
+                   "brand marketing", "product marketing", "marketing intern"],
+    "Accounts": ["account manager", "key account manager", "strategic account",
+                  "client partner", "client services", "account director",
+                  "client relationship manager", "account lead"],
+    "UI/UX": ["ui designer", "ux designer", "ui/ux", "ui ux", "ux researcher",
+               "interaction designer", "visual designer", "ux lead", "ux architect",
+               "user experience", "user interface", "ux strategist", "ux writer"],
+    "Product": ["product manager", "product management", "product designer",
+                 "product owner", "product lead", "product analyst", "product strategist",
+                 "product director", "product head", "product specialist",
+                 "product intern", "product development", "vp product",
+                 "head of product", "chief product officer", "cpo",
+                 "technical product manager", "ai product manager", "platform product manager"],
     "Founders Office": ["founder's office", "founders office", "chief of staff",
-                         "entrepreneur in residence", "eir"],
+                         "entrepreneur in residence", "entrepreneur-in-residence", "eir"],
 }
 
 
 def categorize_role(role_title: str) -> str:
-    """Determine which domain a role belongs to based on keywords."""
+    """
+    Determine which domain a role belongs to based on strict keyword matching.
+    
+    Order matters:
+    1. Product (any role with "Product" in the title qualifies)
+    2. Founders Office (strategic leadership roles)
+    3. Marketing (clearly marketing-specific roles only)
+    4. UI/UX (design & user experience roles only)
+    5. Accounts (relationship management, NOT sales)
+    6. Other (everything else including sales, admin, support, etc.)
+    
+    NOTE: "Account Executive" is classified as Sales → Other, NOT Accounts.
+    "Customer Success" → Other (not Accounts).
+    "Business Development" → Other (not Accounts).
+    "Graphic Designer" → Other (not Marketing).
+    "Team Lead" → Other (generic, not role-specific).
+    "Senior Product Designer" → Product (contains "product designer").
+    "Product Owner" → Product (contains "product").
+    "Enterprise Account Executive" contains "account executive" → Sales → Other.
+    "Account Manager" → Accounts (relationship management).
+    "Key Account Manager" → Accounts.
+    "Client Partner" → Accounts.
+    "Sales Executive" → Other (sales).
+    "Business Development Executive" → Other (sales).
+    "Customer Success Manager" → Other (customer support).
+    "Growth Manager" (without "marketing") → Other (could be growth in any function).
+    "Brand Manager" → Marketing.
+    "Content Writer" → Other (content, not marketing function).
+    "Copywriter" → Other.
+    "PR Manager" → Marketing.
+    "Communications Manager" → Marketing.
+    "SEO Manager" → Marketing.
+    "Social Media Manager" → Marketing.
+    "Product Marketing Manager" → Marketing (product marketing is a marketing function).
+    "Product Manager" → Product.
+    "Product Designer" → Product.
+    "UX Designer" → UI/UX.
+    "UI Designer" → UI/UX.
+    "UX Researcher" → UI/UX.
+    "Visual Designer" → UI/UX.
+    "Interaction Designer" → UI/UX.
+    "Founder's Office" → Founders Office.
+    "Chief of Staff" → Founders Office.
+    "Entrepreneur in Residence" → Founders Office.
+    "EIR" → Founders Office.
+    "Engineering Manager" → Other (technical).
+    "Software Engineer" → Other (technical).
+    "Data Scientist" → Other (technical).
+    "QA Engineer" → Other (technical).
+    "Operations Manager" → Other (operations, not marketing/accounts).
+    "HR Manager" → Other.
+    "Recruiter" → Other.
+    "Admin Assistant" → Other.
+    "Receptionist" → Other.
+    "Accountant" → Other.
+    "Technical Support" → Other.
+    "Delivery Manager" → Other.
+    "Scrum Master" → Other (technical).
+    "Project Manager" → Other (unless product-related, then Product).
+    "Program Manager" → Other (unless product-related).
+    "Business Analyst" → Other (unless product-related).
+    "Data Analyst" → Other.
+    "Financial Analyst" → Other.
+    "Investment Analyst" → Other.
+    "Research Analyst" → Other (unless UX research, then UI/UX).
+    "UX Research Analyst" → UI/UX.
+    
+    Args:
+        role_title: The job title to categorize
+        
+    Returns:
+        Domain string: Product, Founders Office, Marketing, UI/UX, Accounts, or Other
+    """
     if not role_title:
         return "Other"
-    title_lower = role_title.lower()
+    title_lower = role_title.lower().strip()
 
-    # Check Founder's Office first (high priority)
-    founders_keywords = ["founder's office", "founders office", "chief of staff",
-                         "entrepreneur in residence", "entrepreneur-in-residence", "eir"]
-    for kw in founders_keywords:
-        if kw in title_lower:
+    # ========================================================================
+    # HARD EXCLUSIONS FIRST — roles that should NEVER be in any target domain
+    # ========================================================================
+    
+    # Technical/Engineering roles → always "Other"
+    technical_patterns = [
+        "software engineer", "software developer", "software development", "sde",
+        "backend", "frontend", "full stack", "fullstack",
+        "devops", "sre", "site reliability",
+        "data engineer", "ml engineer", "machine learning",
+        "ai engineer", "artificial intelligence",
+        "cloud engineer", "infrastructure engineer",
+        "qa engineer", "test engineer", "sdet",
+        "ui developer", "ux developer",
+        "java developer", "python developer",
+        "react developer", "angular developer",
+        "tech lead", "engineering manager", "staff engineer",
+    ]
+    for pat in technical_patterns:
+        if pat in title_lower:
+            return "Other"
+
+    # Admin/Support roles → always "Other"
+    admin_patterns = [
+        "executive assistant", "personal assistant", "admin assistant",
+        "receptionist", "front desk", "office admin",
+        "data entry", "data operator",
+        "telecaller", "tele caller",
+        "customer support", "customer service", "customer success",
+        "technical support", "support engineer",
+    ]
+    for pat in admin_patterns:
+        if pat in title_lower:
+            return "Other"
+
+    # HR/Recruitment roles → always "Other"
+    hr_patterns = [
+        "hr ", "human resources", "recruiter", "recruitment",
+        "talent acquisition", "talent partner",
+    ]
+    for pat in hr_patterns:
+        if pat in title_lower:
+            return "Other"
+
+    # Finance/Accounting roles → always "Other"
+    finance_patterns = [
+        "accountant", "accounting", "finance ", "financial analyst",
+        "auditor", "tax ", "payroll",
+    ]
+    for pat in finance_patterns:
+        if pat in title_lower:
+            return "Other"
+
+    # Sales roles (non-account) → always "Other"
+    # Note: "Account Executive" is a SALES closing role, NOT account management
+    sales_patterns = [
+        "sales executive", "sales manager", "sales associate",
+        "sales intern", "sales representative", "sales rep",
+        "sales development", "inside sales", "outside sales",
+        "account executive",  # This is sales closing, NOT account management!
+        "business development executive", "bde",
+        "business development manager",  # Often confused with BD in accounts
+        "sdr", "sales development rep",
+        "senior account executive", "enterprise account executive",
+    ]
+    for pat in sales_patterns:
+        if pat in title_lower:
+            return "Other"
+
+    # ========================================================================
+    # CATEGORY 1: PRODUCT (any role containing "product" in the title)
+    # ========================================================================
+    product_terms = [
+        "product manager", "product management", "product designer",
+        "product owner", "product lead", "product analyst",
+        "product strategist", "product director", "product head",
+        "product specialist", "product intern", "product development",
+        "vp product", "head of product", "chief product officer",
+        "cpo", "technical product manager", "ai product manager",
+        "digital product manager", "platform product manager",
+        "product marketing",  # This is a marketing function but it's a "product" role
+    ]
+    for term in product_terms:
+        if term in title_lower:
+            return "Product"
+
+    # Catch-all: if title contains standalone "product" (but not "production")
+    # e.g., "Senior Product Designer" → Product (not UI/UX despite having "designer")
+    words = title_lower.split()
+    if "product" in words:
+        return "Product"
+
+    # ========================================================================
+    # CATEGORY 2: FOUNDERS OFFICE (strategic leadership roles)
+    # ========================================================================
+    founders_terms = [
+        "founder's office", "founders office", "founder office",
+        "chief of staff", "cos",
+        "entrepreneur in residence", "entrepreneur-in-residence", "eir",
+    ]
+    for term in founders_terms:
+        if term in title_lower:
             return "Founders Office"
 
-    # Check Marketing
-    marketing_keywords = ["marketing", "brand", "growth", "social media", "content marketing",
-                          "campaign", "demand generation", "pr", "communications", "seo",
-                          "digital marketing", "product marketing", "performance marketing"]
-    for kw in marketing_keywords:
-        if kw in title_lower:
-            return "Marketing"
+    # ========================================================================
+    # CATEGORY 3: MARKETING (clearly marketing-specific roles only)
+    # ========================================================================
+    # Strict: must start with or contain a clear marketing keyword
+    marketing_terms = [
+        # Direct marketing titles
+        "marketing ",  # "Marketing Manager", "Marketing Lead", etc.
+        "brand manager", "brand marketing", "brand lead",
+        "growth marketing",  # NOT just "growth"
+        "content marketing",
+        "product marketing",
+        "performance marketing",
+        "digital marketing",
+        
+        # Marketing specializations
+        "marketing intern", "marketing analyst",
+        "marketing lead", "marketing head",
+        "marketing director", "marketing strategist",
+        "marketing specialist", "marketing executive",
+        "marketing manager", "marketing coordinator",
+        
+        # Marketing functions
+        "social media", "social-media",
+        "campaign manager", "campaign executive",
+        "demand generation", "demand-gen",
+        
+        # PR & Communications
+        "pr manager", "pr intern", "public relations",
+        "communications manager", "communications lead",
+        "corporate communications",
+        
+        # SEO
+        "seo manager", "seo lead", "seo specialist", "seo executive",
+        
+        # Events & Partnerships
+        "event marketing", "partnership marketing",
+        "field marketing", "marketing operations",
+    ]
+    for term in marketing_terms:
+        if term in title_lower:
+            # Exclude "Software Marketing Engineer" or similar technical roles
+            if not any(tech in title_lower for tech in technical_patterns):
+                return "Marketing"
 
-    # Check UI/UX
-    ux_keywords = ["ui designer", "ux designer", "ui/ux", "ui ux", "product designer",
-                   "ux researcher", "interaction designer", "visual designer", "ux lead",
-                   "ux architect", "user experience", "user interface"]
-    for kw in ux_keywords:
-        if kw in title_lower:
+    # ========================================================================
+    # CATEGORY 4: UI/UX (design & user experience roles only)
+    # ========================================================================
+    ux_terms = [
+        "ui designer", "ux designer", "ui/ux", "ui ux",
+        "ux researcher", "user experience researcher",
+        "interaction designer", "visual designer",
+        "ux lead", "ux architect", "ux strategist",
+        "ux writer", "ux intern", "ux manager",
+        "user experience designer", "user interface designer",
+        "ux design intern", "design researcher",
+        "ux research intern", "usability",
+    ]
+    for term in ux_terms:
+        if term in title_lower:
             return "UI/UX"
 
-    # Check Accounts
-    accounts_keywords = ["account manager", "account executive", "key account",
-                         "client partner", "client services", "account director",
-                         "customer success", "client relationship", "account lead",
-                         "business development manager", "strategic account"]
-    for kw in accounts_keywords:
-        if kw in title_lower:
+    # ========================================================================
+    # CATEGORY 5: ACCOUNTS (client-facing relationship management, NOT sales)
+    # ========================================================================
+    accounts_terms = [
+        "account manager",  # BUT NOT "account executive" (that's sales)
+        "key account",
+        "strategic account",
+        "account director", "account lead",
+        "client partner", "client services",
+        "client relationship", "client success",
+        "client lead", "client director",
+    ]
+    for term in accounts_terms:
+        if term in title_lower:
             return "Accounts"
 
+    # ========================================================================
+    # DEFAULT: Not in any target domain
+    # ========================================================================
     return "Other"
+
+
+def detect_experience_level(role_title: str) -> str:
+    """
+    Detect the experience/seniority level from a job title.
+    
+    Classification logic:
+    - Entry/Early: Intern, Trainee, Fresher, Junior, Associate, Graduate,
+                    Apprentice, Executive (when not Senior Exec)
+    - Mid: No seniority indicators (default for most roles)
+    - Senior: Senior, Lead, Head, Director, VP, Chief, Principal, Staff,
+               Manager (often mid-senior), Owner, Architect, Fellow
+    
+    Args:
+        role_title: The job title to analyze
+        
+    Returns:
+        Experience level string: "Entry Level", "Mid Level", or "Senior Level"
+    """
+    if not role_title:
+        return "Mid Level"
+    
+    title_lower = role_title.lower().strip()
+    
+    # ========================================================================
+    # Check SENIOR LEVEL indicators first (highest priority)
+    # ========================================================================
+    senior_keywords = [
+        # Seniority prefixes
+        "senior ", "sr. ", "sr ",
+        # Leadership titles
+        "lead ", "head of ", "head ",
+        "director of ", "director",
+        "vp of ", "vp ", "vice president",
+        "chief ", "cfo", "cto", "coo", "cmo", "ceo", "cpo", "cso", "cgo",
+        # Staff / Principal
+        "principal ", "staff ",
+        # Manager (typically mid-to-senior)
+        "manager",
+        # Owner / Architect / Fellow
+        "owner", "architect", "fellow",
+        # Strategic roles
+        "partner", "practice lead", "global head",
+    ]
+    for kw in senior_keywords:
+        if kw in title_lower:
+            return "Senior Level"
+    
+    # ========================================================================
+    # Check ENTRY LEVEL indicators
+    # ========================================================================
+    entry_keywords = [
+        "intern", "trainee", "fresher",
+        "junior ", "jr. ", "jr ",
+        "associate ",  # "Associate Product Manager" etc.
+        "executive",  # Account Executive, Executive Assistant (not Senior Exec)
+        "graduate ", "graduate",
+        "apprentice",
+        "entry level", "entry-level",
+        "analyst",  # Many analyst roles are entry-to-mid
+    ]
+    for kw in entry_keywords:
+        if kw in title_lower:
+            # But NOT if it also has a senior keyword
+            senior_overrides = ["senior analyst", "lead analyst", "principal analyst"]
+            if any(override in title_lower for override in senior_overrides):
+                return "Senior Level"
+            return "Entry Level"
+    
+    # ========================================================================
+    # Default: Mid Level
+    # ========================================================================
+    return "Mid Level"
 
 
 # ============================================================================
@@ -212,8 +521,9 @@ def fetch_jobs_from_notion() -> list:
                     if date_data:
                         date_str = date_data.get("start", "")
 
-                # Extract role domain
+                # Extract role domain and experience level
                 domain = categorize_role(role)
+                experience_level = detect_experience_level(role)
 
                 all_jobs.append({
                     "id": page.get("id", ""),
@@ -223,6 +533,7 @@ def fetch_jobs_from_notion() -> list:
                     "url": job_url or "",
                     "date_added": date_str or datetime.now().strftime("%Y-%m-%d"),
                     "domain": domain,
+                    "level": experience_level,
                     "created_time": page.get("created_time", ""),
                     "last_edited_time": page.get("last_edited_time", ""),
                 })
@@ -274,12 +585,14 @@ def index():
 
 @app.route('/api/jobs', methods=['GET'])
 def api_jobs():
-    """Get jobs with optional filtering and pagination."""
+    """Get jobs with optional filtering (domain, search, location, level) and pagination."""
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 30))
         domain = request.args.get('domain', '').strip()
         search = request.args.get('search', '').strip()
+        location = request.args.get('location', '').strip()
+        level = request.args.get('level', '').strip()
         force_refresh = request.args.get('refresh', '').lower() == 'true'
 
         jobs = get_jobs(force_refresh=force_refresh)
@@ -288,6 +601,22 @@ def api_jobs():
         if domain and domain != "All":
             domain_lower = domain.lower()
             jobs = [j for j in jobs if j.get("domain", "").lower() == domain_lower]
+
+        # Apply location filter
+        if location:
+            location_lower = location.lower().strip()
+            jobs = [
+                j for j in jobs
+                if location_lower in j.get("location", "").lower()
+            ]
+
+        # Apply experience level filter
+        if level:
+            level_lower = level.lower().strip()
+            jobs = [
+                j for j in jobs
+                if j.get("level", "").lower() == level_lower
+            ]
 
         # Apply search filter
         if search:
@@ -357,8 +686,44 @@ def api_domains():
     """Get list of available role domains."""
     return jsonify({
         "success": True,
-        "domains": ["All", "Marketing", "Accounts", "UI/UX", "Founders Office"]
+        "domains": ["All", "Marketing", "Accounts", "UI/UX", "Product", "Founders Office"]
     })
+
+
+@app.route('/api/levels', methods=['GET'])
+def api_levels():
+    """Get list of available experience levels."""
+    return jsonify({
+        "success": True,
+        "levels": ["Entry Level", "Mid Level", "Senior Level"]
+    })
+
+
+@app.route('/api/locations', methods=['GET'])
+def api_locations():
+    """Get unique locations from all jobs."""
+    try:
+        jobs = get_jobs()
+        
+        # Extract unique locations, clean them up
+        locations_map = {}
+        for job in jobs:
+            loc = job.get("location", "").strip()
+            if loc and loc.lower() not in ["", "india", "unknown"]:
+                # Normalize: split on common delimiters and take the main city
+                normalized = loc.split(",")[0].split("·")[0].split("\u00b7")[0].strip()
+                if normalized and normalized.lower() not in ["", "india"]:
+                    locations_map[normalized] = locations_map.get(normalized, 0) + 1
+        
+        # Sort by count (most jobs first), then alphabetically
+        sorted_locations = sorted(locations_map.items(), key=lambda x: (-x[1], x[0]))
+        
+        return jsonify({
+            "success": True,
+            "locations": [loc for loc, _ in sorted_locations]
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route('/api/health', methods=['GET'])

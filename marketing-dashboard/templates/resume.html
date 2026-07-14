@@ -13,10 +13,12 @@
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-    <!-- CodeMirror 6 CDN -->
+    <!-- CodeMirror CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/lib/codemirror.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/theme/material-darker.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldgutter.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/dialog/dialog.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.css">
 
     <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -42,14 +44,6 @@
                 <a href="#" class="nav-link">About</a>
             </div>
             <div class="nav-actions">
-                <button class="btn-outline-nav" id="aiGenerateBtn" title="Generate with AI">
-                    <span class="material-symbols-outlined">auto_awesome</span>
-                    <span class="btn-label">AI Generate</span>
-                </button>
-                <button class="btn-outline-nav" id="downloadBtn" title="Download PDF" disabled>
-                    <span class="material-symbols-outlined">download</span>
-                    <span class="btn-label">Download</span>
-                </button>
             </div>
         </div>
     </nav>
@@ -71,23 +65,211 @@
                     <span class="material-symbols-outlined pane-icon">code</span>
                     <span>LaTeX Source</span>
                 </div>
-                <div class="pane-actions">
-                    <select id="templateSelect" class="template-select" title="Choose Template">
-                        <option value="jake">Jake's Resume (Default)</option>
-                        <option value="sourabh">Sourabh Bajaj (sb2nov)</option>
-                        <option value="pratul">Pratul Muthuraja</option>
-                        <option value="faang">FAANG Path (Simple)</option>
-                    </select>
-                    <button class="pane-btn" id="resetBtn" title="Reset to default template">
-                        <span class="material-symbols-outlined">restart_alt</span>
-                    </button>
-                    <button class="pane-btn" id="compileBtn" title="Manually compile">
-                        <span class="material-symbols-outlined">play_arrow</span>
-                    </button>
-                    <label class="pane-btn" title="Toggle word wrap">
-                        <input type="checkbox" id="wrapToggle" checked>
-                        <span class="material-symbols-outlined">wrap_text</span>
-                    </label>
+                <div class="pane-actions pane-toolbar" id="editorToolbar">
+                    <!-- Toolbar Group: Undo/Redo -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="undoBtn" title="Undo (Ctrl+Z)">
+                            <span class="material-symbols-outlined">undo</span>
+                        </button>
+                        <button class="toolbar-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)">
+                            <span class="material-symbols-outlined">redo</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Bold/Italic -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="boldBtn" title="Bold (Ctrl+B)">
+                            <span class="material-symbols-outlined">format_bold</span>
+                        </button>
+                        <button class="toolbar-btn" id="italicBtn" title="Italic (Ctrl+I)">
+                            <span class="material-symbols-outlined">format_italic</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Insert Symbol -->
+                    <div class="toolbar-group symbol-group">
+                        <button class="toolbar-btn" id="symbolBtn" title="Insert Symbol">
+                            <span class="material-symbols-outlined">functions</span>
+                        </button>
+                        <div class="symbol-picker" id="symbolPicker" style="display: none;">
+                            <div class="symbol-picker-header">
+                                <span>Insert Symbol</span>
+                                <button class="symbol-picker-close" id="symbolPickerClose">&times;</button>
+                            </div>
+                            <div class="symbol-picker-grid">
+                                <button class="symbol-item" title="alpha">\alpha</button>
+                                <button class="symbol-item" title="beta">\beta</button>
+                                <button class="symbol-item" title="gamma">\gamma</button>
+                                <button class="symbol-item" title="delta">\delta</button>
+                                <button class="symbol-item" title="epsilon">\epsilon</button>
+                                <button class="symbol-item" title="theta">\theta</button>
+                                <button class="symbol-item" title="lambda">\lambda</button>
+                                <button class="symbol-item" title="mu">\mu</button>
+                                <button class="symbol-item" title="pi">\pi</button>
+                                <button class="symbol-item" title="sigma">\sigma</button>
+                                <button class="symbol-item" title="omega">\omega</button>
+                                <button class="symbol-item" title="infty">\infty</button>
+                                <button class="symbol-item" title="in">\in</button>
+                                <button class="symbol-item" title="sum">\sum</button>
+                                <button class="symbol-item" title="rightarrow">\rightarrow</button>
+                                <button class="symbol-item" title="leftarrow">\leftarrow</button>
+                                <button class="symbol-item" title="Rightarrow">\Rightarrow</button>
+                                <button class="symbol-item" title="cdot">\cdot</button>
+                                <button class="symbol-item" title="times">\times</button>
+                                <button class="symbol-item" title="partial">\partial</button>
+                                <button class="symbol-item" title="nabla">\nabla</button>
+                                <button class="symbol-item" title="emptyset">\emptyset</button>
+                                <button class="symbol-item" title="forall">\forall</button>
+                                <button class="symbol-item" title="exists">\exists</button>
+                                <button class="symbol-item" title="neg">\neg</button>
+                                <button class="symbol-item" title="wedge">\wedge</button>
+                                <button class="symbol-item" title="vee">\vee</button>
+                                <button class="symbol-item" title="oplus">\oplus</button>
+                                <button class="symbol-item" title="otimes">\otimes</button>
+                                <button class="symbol-item" title="bullet">\bullet</button>
+                                <button class="symbol-item" title="dots">\dots</button>
+                                <button class="symbol-item" title="section">\S</button>
+                                <button class="symbol-item" title="pounds">\pounds</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Search/Replace -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="searchBtn" title="Search & Replace (Ctrl+H)">
+                            <span class="material-symbols-outlined">search</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Snippets -->
+                    <div class="toolbar-group snippets-group">
+                        <button class="toolbar-btn" id="snippetsBtn" title="Insert LaTeX Snippet">
+                            <span class="material-symbols-outlined">content_paste</span>
+                        </button>
+                        <div class="snippets-panel" id="snippetsPanel" style="display: none;">
+                            <div class="snippets-header">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">content_paste</span>
+                                <span>Quick Snippets</span>
+                            </div>
+                            <div class="snippets-body">
+                                <div class="snippet-category">
+                                    <div class="snippet-category-title">Resume Templates</div>
+                                    <button class="snippet-item" data-snippet="resume-experience">
+                                        <span class="snippet-item-icon">💼</span>
+                                        <span class="snippet-item-label">Experience Entry</span>
+                                        <span class="snippet-item-desc">Company, role, bullets</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="resume-education">
+                                        <span class="snippet-item-icon">🎓</span>
+                                        <span class="snippet-item-label">Education Entry</span>
+                                        <span class="snippet-item-desc">School, degree, dates</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="resume-project">
+                                        <span class="snippet-item-icon">📑</span>
+                                        <span class="snippet-item-label">Project Entry</span>
+                                        <span class="snippet-item-desc">Project heading + bullets</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="resume-skills">
+                                        <span class="snippet-item-icon">📝</span>
+                                        <span class="snippet-item-label">Skills Section</span>
+                                        <span class="snippet-item-desc">Skills with categories</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="resume-header">
+                                        <span class="snippet-item-icon">👤</span>
+                                        <span class="snippet-item-label">Resume Header</span>
+                                        <span class="snippet-item-desc">Name, contact info</span>
+                                    </button>
+                                </div>
+                                <div class="snippet-divider"></div>
+                                <div class="snippet-category">
+                                    <div class="snippet-category-title">Lists &amp; Layout</div>
+                                    <button class="snippet-item" data-snippet="bullet-list">
+                                        <span class="snippet-item-icon">•</span>
+                                        <span class="snippet-item-label">Bullet List</span>
+                                        <span class="snippet-item-desc">itemize environment</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="numbered-list">
+                                        <span class="snippet-item-icon">1.</span>
+                                        <span class="snippet-item-label">Numbered List</span>
+                                        <span class="snippet-item-desc">enumerate environment</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="table">
+                                        <span class="snippet-item-icon">░</span>
+                                        <span class="snippet-item-label">Table</span>
+                                        <span class="snippet-item-desc">tabular environment</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="center">
+                                        <span class="snippet-item-icon">↔</span>
+                                        <span class="snippet-item-label">Center Block</span>
+                                        <span class="snippet-item-desc">centered text</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="minipage">
+                                        <span class="snippet-item-icon">▭</span>
+                                        <span class="snippet-item-label">Mini Page</span>
+                                        <span class="snippet-item-desc">Side-by-side content</span>
+                                    </button>
+                                </div>
+                                <div class="snippet-divider"></div>
+                                <div class="snippet-category">
+                                    <div class="snippet-category-title">Media &amp; Code</div>
+                                    <button class="snippet-item" data-snippet="figure">
+                                        <span class="snippet-item-icon">🖼</span>
+                                        <span class="snippet-item-label">Figure</span>
+                                        <span class="snippet-item-desc">Image with caption</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="code-block">
+                                        <span class="snippet-item-icon">🔍</span>
+                                        <span class="snippet-item-label">Code Block</span>
+                                        <span class="snippet-item-desc">Verbatim code</span>
+                                    </button>
+                                    <button class="snippet-item" data-snippet="hyperlink">
+                                        <span class="snippet-item-icon">🔗</span>
+                                        <span class="snippet-item-label">Hyperlink / URL</span>
+                                        <span class="snippet-item-desc">Clickable link</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: AI Generate -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="aiGenerateBtn" title="Generate with AI">
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Template + Actions (kept for backward compat) -->
+                    <div class="toolbar-group">
+                        <select id="templateSelect" class="toolbar-select" title="Choose Template">
+                            <option value="jake">Jake (Default)</option>
+                            <option value="sourabh">Sourabh</option>
+                            <option value="pratul">Pratul</option>
+                            <option value="faang">FAANG</option>
+                        </select>
+                        <button class="toolbar-btn" id="resetBtn" title="Reset to default template">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                        </button>
+                        <button class="toolbar-btn compile-btn" id="compileBtn" title="Compile (Ctrl+Enter)">
+                            <span class="material-symbols-outlined">play_arrow</span>
+                        </button>
+                        <label class="toolbar-btn" title="Toggle word wrap">
+                            <input type="checkbox" id="wrapToggle" checked>
+                            <span class="material-symbols-outlined">wrap_text</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="editor-container" id="editorContainer">
@@ -108,14 +290,22 @@
                     <span>PDF Preview</span>
                 </div>
                 <div class="pane-actions">
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="downloadBtn" title="Download PDF" disabled>
+                            <span class="material-symbols-outlined">download</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-divider"></div>
                     <span class="page-indicator" id="pageIndicator">—</span>
-                    <button class="pane-btn" id="zoomOutBtn" title="Zoom out">
-                        <span class="material-symbols-outlined">zoom_out</span>
-                    </button>
-                    <span class="zoom-level" id="zoomLevel">100%</span>
-                    <button class="pane-btn" id="zoomInBtn" title="Zoom in">
-                        <span class="material-symbols-outlined">zoom_in</span>
-                    </button>
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="zoomOutBtn" title="Zoom out">
+                            <span class="material-symbols-outlined">zoom_out</span>
+                        </button>
+                        <span class="zoom-level" id="zoomLevel">100%</span>
+                        <button class="toolbar-btn" id="zoomInBtn" title="Zoom in">
+                            <span class="material-symbols-outlined">zoom_in</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="preview-container" id="previewContainer">
@@ -152,6 +342,48 @@
             </div>
         </section>
     </main>
+
+    <!-- ============================================================
+         SEARCH & REPLACE MODAL
+         ============================================================ -->
+    <div class="search-modal-overlay" id="searchModalOverlay" style="display: none;">
+        <div class="search-modal">
+            <div class="search-modal-header">
+                <span class="search-modal-title">Search &amp; Replace</span>
+                <button class="search-modal-close" id="searchModalClose">&times;</button>
+            </div>
+            <div class="search-modal-body">
+                <div class="search-field">
+                    <label for="searchQuery">Find:</label>
+                    <input type="text" id="searchQuery" class="search-text-input" placeholder="Search text..." />
+                </div>
+                <div class="search-field">
+                    <label for="searchReplace">Replace with:</label>
+                    <input type="text" id="searchReplace" class="search-text-input" placeholder="Replacement text..." />
+                </div>
+                <div class="search-options">
+                    <label class="search-checkbox">
+                        <input type="checkbox" id="searchCaseSensitive" />
+                        <span>Case sensitive</span>
+                    </label>
+                    <label class="search-checkbox">
+                        <input type="checkbox" id="searchRegex" />
+                        <span>Regex</span>
+                    </label>
+                </div>
+                <div class="search-info" id="searchInfo">
+                    <span id="searchMatchCount">0 matches</span>
+                    <span id="searchCurrentMatch"></span>
+                </div>
+                <div class="search-actions">
+                    <button class="search-btn" id="searchPrevBtn">&#x2190; Previous</button>
+                    <button class="search-btn search-btn-primary" id="searchNextBtn">Next &#x2192;</button>
+                    <button class="search-btn search-btn-danger" id="searchReplaceBtn">Replace</button>
+                    <button class="search-btn search-btn-danger" id="searchReplaceAllBtn">Replace All</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================
          AI GENERATE MODAL
@@ -221,6 +453,11 @@ Frameworks: React, Flask, Node.js"
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/foldgutter.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/search/search.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/comment/comment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.min.js"></script>
 
     <!-- Resume App -->
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>

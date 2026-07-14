@@ -7,9 +7,10 @@ const RoleBoard = {
     currentPage: 1,
     totalPages: 1,
     limit: 30,
-    filters: { domain: 'All', search: '' },
+    filters: { domain: 'All', search: '', location: '', level: '' },
     jobs: [],
     stats: null,
+    locations: [],
 
     // Loading
     isLoading: false,
@@ -22,6 +23,7 @@ const RoleBoard = {
             // Load initial data
             await Promise.all([
                 this.loadStats(),
+                this.loadLocations(),
                 this.loadJobs(1)
             ]);
 
@@ -52,10 +54,18 @@ const RoleBoard = {
             if (this.filters.search) {
                 params.search = this.filters.search;
             }
+            if (this.filters.location) {
+                params.location = this.filters.location;
+            }
+            if (this.filters.level) {
+                params.level = this.filters.level;
+            }
 
             const response = await API.getJobs(page, this.limit, {
                 domain: this.filters.domain !== 'All' ? this.filters.domain : '',
-                search: this.filters.search
+                search: this.filters.search,
+                location: this.filters.location,
+                level: this.filters.level
             });
 
             if (response.success) {
@@ -95,6 +105,28 @@ const RoleBoard = {
         } catch (error) {
             console.error('Error loading stats:', error);
         }
+    },
+
+    async loadLocations() {
+        try {
+            const response = await API.getLocations();
+            if (response.success && response.locations) {
+                this.locations = response.locations;
+                this.populateLocationFilter();
+            }
+        } catch (error) {
+            console.error('Error loading locations:', error);
+        }
+    },
+
+    populateLocationFilter() {
+        const select = document.getElementById('locationFilter');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">All Locations</option>' +
+            this.locations.map(loc => 
+                `<option value="${Utils.escapeHtml(loc)}">${Utils.escapeHtml(loc)}</option>`
+            ).join('');
     },
 
     // ========================================================================
@@ -256,6 +288,24 @@ const RoleBoard = {
                 if (query.length >= 2 || query.length === 0) {
                     debouncedSearch(query);
                 }
+            });
+        }
+
+        // Location filter
+        const locationFilter = document.getElementById('locationFilter');
+        if (locationFilter) {
+            locationFilter.addEventListener('change', (e) => {
+                this.filters.location = e.target.value;
+                this.goToPage(1);
+            });
+        }
+
+        // Experience Level filter
+        const levelFilter = document.getElementById('levelFilter');
+        if (levelFilter) {
+            levelFilter.addEventListener('change', (e) => {
+                this.filters.level = e.target.value;
+                this.goToPage(1);
             });
         }
 
