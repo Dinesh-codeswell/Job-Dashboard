@@ -242,6 +242,15 @@
 
                     <div class="toolbar-divider"></div>
 
+                    <!-- Toolbar Group: Keyboard Shortcuts -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="shortcutsBtn" title="Keyboard Shortcuts (Ctrl+Shift+/)">
+                            <span class="material-symbols-outlined">keyboard</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
                     <!-- Toolbar Group: AI Generate -->
                     <div class="toolbar-group">
                         <button class="toolbar-btn" id="aiGenerateBtn" title="Generate with AI">
@@ -269,6 +278,13 @@
                             <input type="checkbox" id="wrapToggle" checked>
                             <span class="material-symbols-outlined">wrap_text</span>
                         </label>
+                        <label class="toolbar-btn" title="Toggle line numbers (Ctrl+Shift+L)">
+                            <input type="checkbox" id="lineNumToggle" checked>
+                            <span class="material-symbols-outlined">format_list_numbered</span>
+                        </label>
+                        <button class="toolbar-btn" id="fullscreenBtn" title="Toggle full-screen editor (F11)">
+                            <span class="material-symbols-outlined">fullscreen</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -381,6 +397,135 @@
                     <button class="search-btn search-btn-danger" id="searchReplaceBtn">Replace</button>
                     <button class="search-btn search-btn-danger" id="searchReplaceAllBtn">Replace All</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         KEYBOARD SHORTCUTS MODAL
+         ============================================================ -->
+    <div class="shortcuts-modal-overlay" id="shortcutsModalOverlay" style="display: none;">
+        <div class="shortcuts-modal">
+            <div class="shortcuts-modal-header">
+                <div class="shortcuts-modal-title">
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-highlighter-yellow);">keyboard</span>
+                    <span>Keyboard Shortcuts</span>
+                </div>
+                <button class="shortcuts-modal-close" id="shortcutsModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="shortcuts-modal-body">
+
+                <div class="shortcut-category">
+                    <div class="shortcut-category-title">Compilation &amp; Preview</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Compile / refresh PDF</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Save &amp; compile</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>S</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Zoom in</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>+</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Zoom out</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>-</kbd></span>
+                    </div>
+                </div>
+
+                <div class="shortcut-divider"></div>
+
+                <div class="shortcut-category">
+                    <div class="shortcut-category-title">Text Formatting</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Bold <span class="shortcut-note">(wraps in \textbf)</span></span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>B</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Italic <span class="shortcut-note">(wraps in \textit)</span></span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>I</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Undo last edit</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Z</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Redo last undone</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span>
+                    </div>
+                </div>
+
+                <div class="shortcut-divider"></div>
+
+                <div class="shortcut-category">
+                    <div class="shortcut-category-title">LaTeX Assistance</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Trigger auto-completion</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Space</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Type LaTeX command</span>
+                        <span class="shortcut-keys"><kbd>\</kbd> + letters</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Search &amp; replace</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>H</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Open search</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>F</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Show this cheat sheet</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>/</kbd></span>
+                    </div>
+                </div>
+
+                <div class="shortcut-divider"></div>
+
+                <div class="shortcut-category">
+                    <div class="shortcut-category-title">Navigation</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Focus editor</span>
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Close search modal</span>
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Close AI generator</span>
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Close this cheat sheet</span>
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                    </div>
+                </div>
+
+                <div class="shortcut-divider"></div>
+
+                <div class="shortcut-category">
+                    <div class="shortcut-category-title">Layout &amp; View</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Toggle full-screen editor</span>
+                        <span class="shortcut-keys"><kbd>F11</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Toggle line numbers</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Toggle word wrap</span>
+                        <span class="shortcut-keys">Toolbar button</span>
+                    </div>
+                </div>
+                </div>
+
             </div>
         </div>
     </div>

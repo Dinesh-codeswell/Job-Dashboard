@@ -67,5 +67,14 @@ const Utils = {
             'Founders Office': 'founders'
         };
         return map[domain] || 'other';
+    },
+
+    getLevelClass(level) {
+        const map = {
+            'Entry Level': 'level-entry',
+            'Mid Level': 'level-mid',
+            'Senior Level': 'level-senior'
+        };
+        return map[level] || '';
     }
 };

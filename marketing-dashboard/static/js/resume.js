@@ -502,6 +502,11 @@ const ResumeApp = {
                 'Cmd-S': () => this.compile(),
                 'Ctrl-Enter': () => this.compile(),
                 'Cmd-Enter': () => this.compile(),
+                'Ctrl-=': () => this.zoomIn(),
+                'Cmd-=': () => this.zoomIn(),
+                'Ctrl--': () => this.zoomOut(),
+                'Cmd--': () => this.zoomOut(),
+                // F11 is handled in global keydown to avoid double-firing
                 'Ctrl-B': () => this.insertBold(),
                 'Cmd-B': () => this.insertBold(),
                 'Ctrl-I': () => this.insertItalic(),
@@ -1132,8 +1137,17 @@ code goes here
         // ---- Compile button ----
         document.getElementById('compileBtn')?.addEventListener('click', () => this.compile());
 
+        // ---- Shortcuts button ----
+        document.getElementById('shortcutsBtn')?.addEventListener('click', () => this.openShortcutsModal());
+
         // ---- AI Generate button ----
         document.getElementById('aiGenerateBtn')?.addEventListener('click', () => this.openAiModal());
+
+        // ---- Shortcuts Modal events ----
+        document.getElementById('shortcutsModalClose')?.addEventListener('click', () => this.closeShortcutsModal());
+        document.getElementById('shortcutsModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeShortcutsModal();
+        });
 
         // ---- AI Modal events ----
         document.getElementById('aiModalClose')?.addEventListener('click', () => this.closeAiModal());
@@ -1147,6 +1161,14 @@ code goes here
         document.getElementById('wrapToggle')?.addEventListener('change', (e) => {
             if (this.editor) this.editor.setOption('lineWrapping', e.target.checked);
         });
+
+        // ---- Line numbers toggle ----
+        document.getElementById('lineNumToggle')?.addEventListener('change', (e) => {
+            if (this.editor) this.editor.setOption('lineNumbers', e.target.checked);
+        });
+
+        // ---- Full-screen toggle ----
+        document.getElementById('fullscreenBtn')?.addEventListener('click', () => this.toggleFullscreen());
 
         // ---- Zoom controls ----
         document.getElementById('zoomInBtn')?.addEventListener('click', () => this.zoomIn());
@@ -1168,6 +1190,13 @@ code goes here
                     return;
                 }
             }
+            // Shortcuts modal shortcuts
+            if (document.getElementById('shortcutsModalOverlay')?.style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    this.closeShortcutsModal();
+                    return;
+                }
+            }
             // AI modal shortcuts
             if (document.getElementById('aiModalOverlay')?.style.display === 'flex') {
                 if (e.key === 'Escape') {
@@ -1175,6 +1204,31 @@ code goes here
                     return;
                 }
             }
+            // Full-screen toggle (F11)
+            if (e.code === 'F11') {
+                e.preventDefault();
+                this.toggleFullscreen();
+                return;
+            }
+
+            // Line numbers toggle (Ctrl+Shift+L)
+            if ((e.key === 'L' || e.key === 'l') && e.ctrlKey && e.shiftKey) {
+                e.preventDefault();
+                const toggle = document.getElementById('lineNumToggle');
+                if (toggle) {
+                    toggle.checked = !toggle.checked;
+                    toggle.dispatchEvent(new Event('change'));
+                }
+                return;
+            }
+
+            // Shortcuts modal shortcut (use e.code for layout-independent key detection)
+            if (e.code === 'Slash' && e.ctrlKey && e.shiftKey) {
+                e.preventDefault();
+                this.openShortcutsModal();
+                return;
+            }
+
             // Editor shortcuts (when not in an input)
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
                 if (e.key === 'Escape') {
@@ -1413,6 +1467,48 @@ code goes here
         } catch (e) {
             console.error('Reset failed:', e);
         }
+    },
+
+    // ========================================================================
+    // KEYBOARD SHORTCUTS MODAL
+    // ========================================================================
+
+    openShortcutsModal() {
+        document.getElementById('shortcutsModalOverlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    },
+
+    closeShortcutsModal() {
+        document.getElementById('shortcutsModalOverlay').style.display = 'none';
+        document.body.style.overflow = '';
+    },
+
+    // ========================================================================
+    // FULL-SCREEN MODE
+    // ========================================================================
+
+    toggleFullscreen() {
+        const body = document.body;
+        const btn = document.getElementById('fullscreenBtn');
+        const isFullscreen = body.classList.toggle('resume-fullscreen');
+
+        // Update button icon
+        if (btn) {
+            const icon = btn.querySelector('.material-symbols-outlined');
+            if (icon) {
+                icon.textContent = isFullscreen ? 'fullscreen_exit' : 'fullscreen';
+            }
+            btn.title = isFullscreen ? 'Exit full-screen editor (F11)' : 'Toggle full-screen editor (F11)';
+        }
+
+        // Refresh CodeMirror to fill new dimensions
+        if (this.editor) {
+            setTimeout(() => this.editor.refresh(), 100);
+        }
+
+        // Show status
+        this.showStatus(isFullscreen ? 'Full-screen editor mode' : 'Split-pane mode', 'pending');
+        this.autoHideStatus(1500);
     },
 
     // ========================================================================

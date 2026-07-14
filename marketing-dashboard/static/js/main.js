@@ -170,6 +170,9 @@ const RoleBoard = {
         const location = Utils.escapeHtml(job.location || 'India');
         const domain = job.domain || 'Other';
         const domainClass = Utils.getDomainClass(domain);
+        const level = job.level || '';
+        const levelClass = Utils.getLevelClass(level);
+        const levelIcon = level === 'Entry Level' ? '🟢' : level === 'Mid Level' ? '🟡' : level === 'Senior Level' ? '🔴' : '';
         const dateStr = Utils.formatDate(job.date_added);
         const url = job.url || '#';
         const animDelay = (index * 50);
@@ -180,7 +183,10 @@ const RoleBoard = {
                  onclick="RoleBoard.openJob('${Utils.escapeHtml(url)}')">
                 <div class="job-card-header">
                     <span class="job-domain-badge ${domainClass}">${Utils.escapeHtml(domain)}</span>
-                    <span class="job-date">${dateStr}</span>
+                    <div class="job-card-header-right">
+                        ${level ? `<span class="job-level-badge ${levelClass}">${levelIcon} ${Utils.escapeHtml(level.replace(' Level', ''))}</span>` : ''}
+                        <span class="job-date">${dateStr}</span>
+                    </div>
                 </div>
                 <div class="job-company">${company}</div>
                 <div class="job-title">${title}</div>
