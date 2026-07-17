@@ -1842,8 +1842,8 @@ def resume_editor():
     return render_template('resume.html')
 
 
-@app.route('/api/resume/compile', methods=['POST'])
-def api_resume_compile():
+@app.route('/api/latex/build', methods=['POST'])
+def api_latex_build():
     """Compile LaTeX source to PDF and return it."""
     try:
         data = request.get_json(force=True)
@@ -1887,8 +1887,8 @@ def api_resume_compile():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route('/api/resume/default', methods=['GET'])
-def api_resume_default():
+@app.route('/api/latex/template', methods=['GET'])
+def api_latex_template():
     """Get the default LaTeX source for a specific template."""
     template = request.args.get('template', 'jake').lower()
 
@@ -1908,8 +1908,8 @@ def api_resume_default():
 
 
 
-@app.route('/api/resume/status', methods=['GET'])
-def api_resume_status():
+@app.route('/api/latex/status', methods=['GET'])
+def api_latex_status():
     """Check if pdflatex is available locally."""
     pdflatex_path = _find_pdflatex()
     return jsonify({
@@ -2147,8 +2147,8 @@ def _clean_latex_output(raw_output):
     raise Exception("Could not extract valid LaTeX from AI output. The model may have returned an unexpected format. Try again.")
 
 
-@app.route('/api/resume/generate', methods=['POST'])
-def api_resume_generate():
+@app.route('/api/latex/generate', methods=['POST'])
+def api_latex_generate():
     """Use AI (OpenRouter) to convert plain text resume into LaTeX using the selected template style."""
     if not OPENROUTER_API_KEY:
         return jsonify({"success": False, "error": "OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env"}), 400

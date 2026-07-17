@@ -452,7 +452,7 @@ const ResumeApp = {
 
         try {
             this.showStatus('Loading template...', 'pending');
-            const response = await fetch(`/api/resume/default?template=${template}`);
+            const response = await fetch(`/api/latex/template?template=${template}`);
             const data = await response.json();
             if (data.success && data.latex_source) {
                 this.editor.setValue(data.latex_source);
@@ -1298,7 +1298,7 @@ code goes here
         if (downloadBtn) downloadBtn.disabled = true;
 
         try {
-            const response = await fetch('/api/resume/compile', {
+            const response = await fetch('/api/latex/build', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ latex_source: source })
@@ -1542,7 +1542,7 @@ code goes here
         this.showAiStatus('Generating your resume with AI...', 'loading');
 
         try {
-            const response = await fetch('/api/resume/generate', {
+            const response = await fetch('/api/latex/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
