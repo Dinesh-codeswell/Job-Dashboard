@@ -78,26 +78,6 @@ const Utils = {
         return map[domain] || 'other';
     },
 
-    /**
-     * Tag colors (used for filter dropdown dots and card accents)
-     */
-    DOMAIN_COLORS: {
-        'Software Engineer': '#cfe8ff',
-        'Data Analyst': '#d8f3dc',
-        'Data Engineer': '#e5dbff',
-        'Data Science': '#ffe4e6',
-        'ML Engineer': '#ede9fe',
-        'DevOps & Cloud': '#ffedd5',
-        'QA & Testing': '#ecfccb',
-        'Security': '#fee2e2',
-        'Support': '#ccfbf1',
-        'Operations': '#fef3c7',
-        'Marketing': '#ffe95c',
-        'UI/UX': '#d5f5c2',
-        'Product': '#ffb347',
-        'Founders Office': '#f6d0ff'
-    },
-
     getLevelClass(level) {
         const map = {
             'Entry Level': 'level-entry',

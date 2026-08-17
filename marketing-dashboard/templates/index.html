@@ -106,16 +106,18 @@
              ============================================================ -->
         <section class="filters-section">
             <div class="filters-row">
-                <!-- Unified multi-select domain filter (tag-based) -->
-                <div class="multi-select-filter" id="domainFilter">
-                    <button type="button" class="multi-select-trigger" id="domainFilterTrigger" aria-haspopup="listbox" aria-expanded="false">
-                        <span class="material-symbols-outlined multi-select-icon">sell</span>
-                        <span class="multi-select-label" id="domainFilterLabel">All Domains</span>
-                        <span class="material-symbols-outlined multi-select-chevron">expand_more</span>
-                    </button>
-                    <div class="multi-select-menu" id="domainFilterMenu" role="listbox" aria-multiselectable="true">
-                        <!-- Domain tag checkboxes are rendered dynamically from /api/domains -->
-                    </div>
+                <!-- Role tag filter: native multi-select, styled like the other filters -->
+                <div class="domain-filter-wrapper">
+                    <span class="material-symbols-outlined domain-icon">sell</span>
+                    <select
+                        id="domainFilter"
+                        class="filter-select filter-select-multi"
+                        multiple
+                        size="6"
+                        title="Ctrl/Cmd + click to select multiple role tags"
+                    >
+                        <!-- Options are rendered dynamically from /api/domains -->
+                    </select>
                 </div>
 
                 <div class="filter-search">

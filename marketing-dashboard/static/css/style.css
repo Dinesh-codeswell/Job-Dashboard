@@ -425,152 +425,37 @@ a:hover {
     }
 }
 
-.filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-8);
-}
-
-.filter-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-8);
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid var(--color-pencil-gray);
-    border-radius: var(--radius-tags);
-    font-family: var(--font-inter);
-    font-weight: 500;
-    font-size: 13px;
-    color: var(--color-forest-ink);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.filter-chip:hover {
-    background: var(--color-whisper-gray);
-    border-color: var(--color-forest-ink);
-}
-
-.filter-chip.active {
-    background: var(--color-forest-ink);
-    color: var(--color-cream-paper);
-    border-color: var(--color-forest-ink);
-}
-
-.filter-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-/* ============================================================================
-   MULTI-SELECT DOMAIN FILTER (unified tag dropdown)
-   ============================================================================ */
-.multi-select-filter {
+/* Role tag filter: native multi-select, styled like the other filter selects */
+.domain-filter-wrapper {
     position: relative;
-    min-width: 200px;
+    min-width: 220px;
 }
 
-.multi-select-trigger {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-8);
-    width: 100%;
-    padding: 10px 16px;
-    background: transparent;
-    border: 1px solid var(--color-pencil-gray);
-    border-radius: var(--radius-tags);
-    font-family: var(--font-inter);
-    font-size: 14px;
-    color: var(--color-forest-ink);
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-}
-
-.multi-select-trigger:hover,
-.multi-select-trigger.open {
-    border-color: var(--color-forest-ink);
-}
-
-.multi-select-icon {
-    font-size: 18px;
-    color: var(--color-pencil-gray);
-}
-
-.multi-select-label {
-    flex: 1;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.multi-select-chevron {
-    font-size: 18px;
-    color: var(--color-pencil-gray);
-    transition: transform 0.2s ease;
-}
-
-.multi-select-trigger.open .multi-select-chevron {
-    transform: rotate(180deg);
-}
-
-.multi-select-menu {
+.domain-icon {
     position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    z-index: 50;
-    min-width: 240px;
-    max-height: 340px;
+    left: 12px;
+    top: 14px;
+    font-size: 18px;
+    color: var(--color-pencil-gray);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.filter-select.filter-select-multi {
+    height: auto;
+    min-height: 44px;
+    padding: 6px 12px 6px 40px;
+    background-image: none;
     overflow-y: auto;
-    background: var(--color-cream-paper);
-    border: 1px solid var(--color-pencil-gray);
-    border-radius: var(--radius-tags);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    padding: 8px;
-    display: none;
 }
 
-.multi-select-menu.open {
-    display: block;
-}
-
-.multi-select-option {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-8);
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: var(--font-inter);
-    font-size: 13px;
-    color: var(--color-forest-ink);
-    transition: background 0.15s ease;
-}
-
-.multi-select-option:hover {
-    background: var(--color-whisper-gray);
-}
-
-.multi-select-option input[type="checkbox"] {
-    accent-color: var(--color-forest-ink);
-    cursor: pointer;
-}
-
-.multi-select-option-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+.filter-select-multi option {
+    padding: 6px 8px;
+    border-radius: 4px;
 }
 
 @media (max-width: 640px) {
-    .multi-select-filter {
-        min-width: 100%;
-    }
-
-    .multi-select-menu {
+    .domain-filter-wrapper {
         min-width: 100%;
     }
 }
@@ -580,7 +465,7 @@ a:hover {
     display: flex;
     flex-direction: row;
     gap: var(--spacing-16);
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
 }
 
