@@ -446,6 +446,7 @@ a:hover {
     min-height: 44px;
     padding: 6px 12px 6px 40px;
     background-image: none;
+    border-radius: var(--radius-cards); /* 12px — not a pill */
     overflow-y: auto;
 }
 
