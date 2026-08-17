@@ -133,12 +133,17 @@ const RoleBoard = {
     },
 
     renderDomainFilter() {
-        const select = document.getElementById('domainFilter');
-        if (!select || !this.domains || !this.domains.length) return;
+        const menu = document.getElementById('domainFilterMenu');
+        if (!menu || !this.domains || !this.domains.length) return;
 
-        select.innerHTML = this.domains.map(domain => {
-            const value = domain === 'All' ? 'All' : domain;
-            return `<option value="${Utils.escapeHtml(value)}" ${domain === 'All' ? 'selected' : ''}>${Utils.escapeHtml(domain)}</option>`;
+        menu.innerHTML = this.domains.map(domain => {
+            const isAll = domain === 'All';
+            return `
+                <label class="domain-filter-option">
+                    <input type="checkbox" class="domain-filter-checkbox" data-domain="${Utils.escapeHtml(domain)}" ${isAll ? 'checked' : ''} />
+                    <span class="domain-filter-option-label">${Utils.escapeHtml(domain)}</span>
+                </label>
+            `;
         }).join('');
     },
 
@@ -293,26 +298,58 @@ const RoleBoard = {
     // ========================================================================
 
     setupEventListeners() {
-        // Role tag filter (native multi-select, same pattern as location/level)
-        const domainFilter = document.getElementById('domainFilter');
-        if (domainFilter) {
-            domainFilter.addEventListener('change', () => {
-                const allOption = domainFilter.querySelector('option[value="All"]');
-                const selected = [...domainFilter.selectedOptions].map(o => o.value);
+        // Role tag filter — dropdown multi-select (open/collapse like other filters)
+        const trigger = document.getElementById('domainFilterTrigger');
+        const menu = document.getElementById('domainFilterMenu');
 
-                if (selected.includes('All') && selected.length > 1) {
-                    // A specific tag was picked while "All" was on → "All" loses
-                    if (allOption) allOption.selected = false;
-                    this.filters.domains = selected.filter(v => v !== 'All' && v !== '');
-                } else if (selected.includes('All') || selected.length === 0) {
-                    // "All Domains" (or nothing selected) → show everything
-                    if (allOption && selected.length === 0) allOption.selected = true;
+        if (trigger && menu) {
+            // Open / close on trigger click
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = menu.classList.toggle('open');
+                trigger.classList.toggle('open', isOpen);
+                trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+
+            // Collapse when clicking outside the dropdown
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.domain-filter-wrapper')) {
+                    menu.classList.remove('open');
+                    trigger.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Collapse on Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    menu.classList.remove('open');
+                    trigger.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Tag selection — menu stays open while picking (multi-select)
+            menu.addEventListener('change', (e) => {
+                if (!e.target.classList.contains('domain-filter-checkbox')) return;
+
+                const cb = e.target;
+                const allBox = menu.querySelector('.domain-filter-checkbox[data-domain="All"]');
+                const specificBoxes = [...menu.querySelectorAll('.domain-filter-checkbox:not([data-domain="All"])')];
+
+                if (cb.dataset.domain === 'All' && cb.checked) {
+                    // "All Domains" clears every specific tag
+                    specificBoxes.forEach(b => b.checked = false);
                     this.filters.domains = [];
                 } else {
-                    // One or more specific tags selected
-                    this.filters.domains = selected.filter(v => v !== 'All' && v !== '');
+                    // Selecting any specific tag unchecks "All Domains"
+                    if (allBox) allBox.checked = false;
+                    this.filters.domains = specificBoxes
+                        .filter(b => b.checked)
+                        .map(b => b.dataset.domain);
                 }
 
+                this.updateDomainFilterLabel();
                 this.goToPage(1);
             });
         }
@@ -376,6 +413,19 @@ const RoleBoard = {
                 this.goToPage(this.currentPage - 1);
             }
         });
+    },
+
+    updateDomainFilterLabel() {
+        const label = document.getElementById('domainFilterLabel');
+        if (!label) return;
+
+        if (!this.filters.domains.length) {
+            label.textContent = 'All Domains';
+        } else if (this.filters.domains.length <= 2) {
+            label.textContent = this.filters.domains.join(' + ');
+        } else {
+            label.textContent = `${this.filters.domains.length} tags selected`;
+        }
     },
 
     // ========================================================================

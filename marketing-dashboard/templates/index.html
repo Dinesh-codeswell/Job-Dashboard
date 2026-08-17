@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
 </head>
 <body>
     <!-- ============================================================
@@ -106,18 +106,16 @@
              ============================================================ -->
         <section class="filters-section">
             <div class="filters-row">
-                <!-- Role tag filter: native multi-select, styled like the other filters -->
+                <!-- Role tag filter: dropdown multi-select (behaves like the other filters) -->
                 <div class="domain-filter-wrapper">
-                    <span class="material-symbols-outlined domain-icon">sell</span>
-                    <select
-                        id="domainFilter"
-                        class="filter-select filter-select-multi"
-                        multiple
-                        size="6"
-                        title="Ctrl/Cmd + click to select multiple role tags"
-                    >
-                        <!-- Options are rendered dynamically from /api/domains -->
-                    </select>
+                    <button type="button" class="domain-filter-trigger" id="domainFilterTrigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="material-symbols-outlined domain-icon">sell</span>
+                        <span class="domain-filter-label" id="domainFilterLabel">All Domains</span>
+                        <span class="material-symbols-outlined domain-filter-chevron">expand_more</span>
+                    </button>
+                    <div class="domain-filter-menu" id="domainFilterMenu" role="listbox" aria-multiselectable="true">
+                        <!-- Tag checkboxes are rendered dynamically from /api/domains -->
+                    </div>
                 </div>
 
                 <div class="filter-search">
@@ -194,10 +192,10 @@
     <!-- ============================================================
          JAVASCRIPT
          ============================================================ -->
-    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/api.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=3"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
