@@ -388,11 +388,10 @@ const RoleBoard = {
             });
         }
 
-        // Refresh button
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.handleRefresh());
-        }
+        // Refresh buttons (desktop dock + mobile menu)
+        document.querySelectorAll('.dock-refresh').forEach(btn => {
+            btn.addEventListener('click', () => this.handleRefresh());
+        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {

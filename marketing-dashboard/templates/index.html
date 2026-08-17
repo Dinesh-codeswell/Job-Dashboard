@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body>
     <!-- ============================================================
@@ -23,30 +23,53 @@
     <div id="sparkles-bg" class="sparkles-container"></div>
 
     <!-- ============================================================
-         FLOATING NAV BAR
+         FLOATING DOCK NAV (FloatingDock-style)
          ============================================================ -->
-    <nav class="nav-bar">
-        <div class="nav-inner">
-            <!-- Logo -->
-            <div class="nav-logo">
-                <div class="logo-mark">
+    <nav class="floating-dock" aria-label="Main navigation">
+        <!-- Desktop dock -->
+        <div class="dock-bar" id="dockBar">
+            <div class="dock-item-wrap">
+                <a href="/" class="dock-item dock-logo-item" data-title="RoleBoard" aria-label="RoleBoard home">
                     <span class="logo-monogram">rb</span>
-                </div>
-                <span class="logo-text">RoleBoard</span>
+                </a>
+                <span class="dock-tooltip">RoleBoard</span>
             </div>
-
-            <!-- Nav Links -->
-            <div class="nav-links">
-                <a href="/" class="nav-link active">Jobs</a>
-                <a href="/resume" class="nav-link">Resume</a>
-                <a href="#" class="nav-link">About</a>
+            <div class="dock-item-wrap">
+                <a href="/" class="dock-item active" data-title="Jobs" aria-label="Jobs">
+                    <span class="material-symbols-outlined dock-icon">work</span>
+                </a>
+                <span class="dock-tooltip">Jobs</span>
             </div>
-
-            <!-- Nav Actions -->
-            <div class="nav-actions">
-                <button class="btn-outline-nav" id="refreshBtn" title="Refresh jobs">
-                    <span class="material-symbols-outlined">refresh</span>
+            <div class="dock-item-wrap">
+                <a href="/resume" class="dock-item" data-title="Resume" aria-label="Resume">
+                    <span class="material-symbols-outlined dock-icon">description</span>
+                </a>
+                <span class="dock-tooltip">Resume</span>
+            </div>
+            <div class="dock-item-wrap">
+                <a href="#" class="dock-item" data-title="About" aria-label="About">
+                    <span class="material-symbols-outlined dock-icon">info</span>
+                </a>
+                <span class="dock-tooltip">About</span>
+            </div>
+            <div class="dock-item-wrap">
+                <button type="button" class="dock-item dock-refresh" id="refreshBtn" data-title="Refresh" aria-label="Refresh jobs">
+                    <span class="material-symbols-outlined dock-icon">refresh</span>
                 </button>
+                <span class="dock-tooltip">Refresh</span>
+            </div>
+        </div>
+
+        <!-- Mobile dock -->
+        <div class="dock-mobile">
+            <button type="button" class="dock-mobile-toggle" id="dockMobileToggle" aria-label="Toggle navigation" aria-expanded="false">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div class="dock-mobile-menu" id="dockMobileMenu">
+                <a href="/" class="dock-mobile-item"><span class="material-symbols-outlined">work</span> Jobs</a>
+                <a href="/resume" class="dock-mobile-item"><span class="material-symbols-outlined">description</span> Resume</a>
+                <a href="#" class="dock-mobile-item"><span class="material-symbols-outlined">info</span> About</a>
+                <button type="button" class="dock-mobile-item dock-refresh"><span class="material-symbols-outlined">refresh</span> Refresh</button>
             </div>
         </div>
     </nav>
@@ -187,10 +210,11 @@
     <!-- ============================================================
          JAVASCRIPT
          ============================================================ -->
-    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/api.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/dock.js') }}?v=4"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

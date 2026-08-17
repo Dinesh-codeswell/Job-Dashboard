@@ -162,37 +162,186 @@ a:hover {
 }
 
 /* ============================================================================
-   NAVIGATION BAR
+   FLOATING DOCK NAV (FloatingDock-style)
    ============================================================================ */
-.nav-bar {
+.floating-dock {
     position: fixed;
     top: var(--spacing-24);
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
-    width: 90%;
-    max-width: var(--page-max-width);
 }
 
-.nav-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+/* Desktop dock bar */
+.dock-bar {
+    display: none;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 14px 8px;
     background: var(--color-cream-paper);
     border: 1px solid var(--color-pencil-gray);
     border-radius: var(--radius-nav);
-    padding: 8px 12px;
     box-shadow: var(--shadow-xl);
     backdrop-filter: blur(12px);
 }
 
-/* Logo */
-.nav-logo {
+.dock-item-wrap {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: var(--spacing-8);
 }
 
+.dock-item {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-whisper-gray);
+    border: 1px solid var(--color-pencil-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    will-change: transform;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.dock-item:hover {
+    background: var(--color-sticky-note-mint);
+    border-color: var(--color-forest-ink);
+}
+
+.dock-item.active {
+    background: var(--color-forest-ink);
+    border-color: var(--color-forest-ink);
+}
+
+.dock-item.active .dock-icon {
+    color: var(--color-cream-paper);
+}
+
+.dock-item.dock-logo-item {
+    background: var(--color-highlighter-yellow);
+    border: none;
+    font-size: 14px;
+}
+
+.dock-icon {
+    font-size: 20px;
+    color: var(--color-forest-ink);
+}
+
+/* Tooltip above each dock item */
+.dock-tooltip {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: var(--color-forest-ink);
+    color: var(--color-cream-paper);
+    font-family: var(--font-inter);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 110;
+}
+
+.dock-item-wrap:hover .dock-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Mobile dock: toggle + expanding menu */
+.dock-mobile {
+    position: relative;
+    display: block;
+}
+
+.dock-mobile-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--color-cream-paper);
+    border: 1px solid var(--color-pencil-gray);
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-forest-ink);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.dock-mobile-toggle:hover,
+.dock-mobile-toggle.open {
+    background: var(--color-forest-ink);
+    color: var(--color-cream-paper);
+    border-color: var(--color-forest-ink);
+}
+
+.dock-mobile-toggle .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.dock-mobile-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+    background: var(--color-cream-paper);
+    border: 1px solid var(--color-pencil-gray);
+    border-radius: var(--radius-nav);
+    box-shadow: var(--shadow-xl);
+    padding: 8px;
+}
+
+.dock-mobile-menu.open {
+    display: flex;
+}
+
+.dock-mobile-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    font-family: var(--font-inter);
+    font-size: 14px;
+    color: var(--color-forest-ink);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.dock-mobile-item:hover {
+    background: var(--color-whisper-gray);
+}
+
+.dock-mobile-item .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* Responsive: desktop dock on md+, mobile toggle below md */
+@media (min-width: 768px) {
+    .dock-bar {
+        display: flex;
+    }
+
+    .dock-mobile {
+        display: none;
+    }
+}
+
+/* Logo mark (also used in the footer) */
 .logo-mark {
     width: 40px;
     height: 40px;
@@ -215,83 +364,6 @@ a:hover {
     color: var(--color-forest-ink);
     letter-spacing: -0.02em;
     text-transform: lowercase;
-}
-
-.logo-text {
-    font-family: var(--font-inter);
-    font-weight: 700;
-    font-size: 20px;
-    color: var(--color-forest-ink);
-    display: none;
-}
-
-@media (min-width: 640px) {
-    .logo-text {
-        display: block;
-    }
-}
-
-/* Nav Links */
-.nav-links {
-    display: none;
-    align-items: center;
-    gap: var(--spacing-32);
-}
-
-@media (min-width: 768px) {
-    .nav-links {
-        display: flex;
-    }
-}
-
-.nav-link {
-    font-family: var(--font-inter);
-    font-weight: 500;
-    font-size: 14px;
-    color: var(--color-forest-ink);
-    padding: 4px 8px;
-    border-radius: var(--radius-md);
-    transition: background 0.2s;
-}
-
-.nav-link:hover {
-    background: var(--color-whisper-gray);
-}
-
-.nav-link.active {
-    font-weight: 600;
-}
-
-/* Nav Actions */
-.nav-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-8);
-}
-
-.btn-outline-nav {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-8);
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid var(--color-forest-ink);
-    border-radius: var(--radius-buttons);
-    font-family: var(--font-inter);
-    font-weight: 500;
-    font-size: 14px;
-    color: var(--color-forest-ink);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-outline-nav:hover {
-    background: var(--color-forest-ink);
-    color: var(--color-cream-paper);
-}
-
-.btn-outline-nav .material-symbols-outlined {
-    font-size: 18px;
 }
 
 /* ============================================================================
@@ -1237,10 +1309,7 @@ a:hover {
     flex-direction: column;
 }
 
-.resume-nav {
-    position: fixed;
-    top: var(--spacing-16);
-}
+
 
 /* Status Bar - hidden by default, shown only during compilation */
 .compile-status {
@@ -1309,7 +1378,7 @@ a:hover {
     display: flex;
     flex: 1;
     overflow: hidden;
-    padding-top: 76px;
+    padding-top: 96px;
     height: 100vh;
 }
 
@@ -2439,7 +2508,7 @@ div.CodeMirror span.CodeMirror-selectedtext {
    ============================================================================ */
 
 /* When full-screen is active on the body */
-.resume-fullscreen .nav-bar {
+.resume-fullscreen .floating-dock {
     display: none;
 }
 
@@ -2470,7 +2539,7 @@ div.CodeMirror span.CodeMirror-selectedtext {
 .editor-pane,
 .preview-pane,
 .resize-handle,
-.nav-bar {
+.floating-dock {
     transition: all 0.3s ease;
 }
 

@@ -24,26 +24,50 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body class="resume-body">
     <!-- ============================================================
-         NAV BAR (same style as main dashboard)
+         FLOATING DOCK NAV (same style as main dashboard)
          ============================================================ -->
-    <nav class="nav-bar resume-nav">
-        <div class="nav-inner">
-            <div class="nav-logo">
-                <div class="logo-mark">
+    <nav class="floating-dock" aria-label="Main navigation">
+        <!-- Desktop dock -->
+        <div class="dock-bar" id="dockBar">
+            <div class="dock-item-wrap">
+                <a href="/" class="dock-item dock-logo-item" data-title="RoleBoard" aria-label="RoleBoard home">
                     <span class="logo-monogram">rb</span>
-                </div>
-                <span class="logo-text">RoleBoard</span>
+                </a>
+                <span class="dock-tooltip">RoleBoard</span>
             </div>
-            <div class="nav-links">
-                <a href="/" class="nav-link">Jobs</a>
-                <a href="/resume" class="nav-link active">Resume</a>
-                <a href="#" class="nav-link">About</a>
+            <div class="dock-item-wrap">
+                <a href="/" class="dock-item" data-title="Jobs" aria-label="Jobs">
+                    <span class="material-symbols-outlined dock-icon">work</span>
+                </a>
+                <span class="dock-tooltip">Jobs</span>
             </div>
-            <div class="nav-actions">
+            <div class="dock-item-wrap">
+                <a href="/resume" class="dock-item active" data-title="Resume" aria-label="Resume">
+                    <span class="material-symbols-outlined dock-icon">description</span>
+                </a>
+                <span class="dock-tooltip">Resume</span>
+            </div>
+            <div class="dock-item-wrap">
+                <a href="#" class="dock-item" data-title="About" aria-label="About">
+                    <span class="material-symbols-outlined dock-icon">info</span>
+                </a>
+                <span class="dock-tooltip">About</span>
+            </div>
+        </div>
+
+        <!-- Mobile dock -->
+        <div class="dock-mobile">
+            <button type="button" class="dock-mobile-toggle" id="dockMobileToggle" aria-label="Toggle navigation" aria-expanded="false">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div class="dock-mobile-menu" id="dockMobileMenu">
+                <a href="/" class="dock-mobile-item"><span class="material-symbols-outlined">work</span> Jobs</a>
+                <a href="/resume" class="dock-mobile-item"><span class="material-symbols-outlined">description</span> Resume</a>
+                <a href="#" class="dock-mobile-item"><span class="material-symbols-outlined">info</span> About</a>
             </div>
         </div>
     </nav>
@@ -605,8 +629,9 @@ Frameworks: React, Flask, Node.js"
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.min.js"></script>
 
     <!-- Resume App -->
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/resume.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/dock.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/resume.js') }}?v=4"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
