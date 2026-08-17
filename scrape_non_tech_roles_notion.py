@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-LinkedIn Jobs Scraper - Non-Tech Roles (MARKETING EDITION)
+LinkedIn Jobs Scraper - Tech + Non-Tech Roles
 ⚡ FRESH JOBS DASHBOARD - 24 HOURS - HIGH SUCCESS RATE ⚡
 
-TARGET DOMAINS:
-  - Marketing (all marketing-related roles)
-  - Accounts (client-facing account management roles)
+TARGET DOMAINS (narrow tech tags + non-tech):
+  - Software Engineer (incl. web / WordPress / mobile developers)
+  - Data Analyst, Data Engineer, Data Science, ML Engineer
+  - DevOps & Cloud, QA & Testing, Security
+  - Support (Email Support, Customer Support Engineer, Technical Support)
+  - Operations
+  - Marketing (incl. Social Media Marketing)
+  - Product (Product Manager, Product Designer, Product Owner, etc.)
   - UI/UX (UI Designer, UX Designer, UI/UX combined roles)
   - Founder's Office, Entrepreneur in Residence, Chief of Staff
 
@@ -53,108 +58,153 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
-# TARGET KEYWORDS - Non-Tech Roles Only
+# TARGET KEYWORDS - Tech + Non-Tech Roles
 # ============================================================================
 
-# HIGH-YIELD keywords targeting Marketing, Accounts, UI/UX, Founder's Office
+# HIGH-YIELD keywords covering narrow tech sub-domains (Software Engineer, Data
+# Analyst, Data Engineer, Data Science, ML Engineer, DevOps & Cloud, QA & Testing,
+# Security) plus Support, Operations, Marketing, Product, UI/UX and Founder's Office.
+# Includes Deepak's requested roles + closely related variants.
+#
+# LEVEL DISTRIBUTION (50:30:20 = Early : Mid : Senior) applied where practical:
+#   - Early keywords → intern, junior, associate, executive roles
+#   - Mid keywords   → independent contributor & manager roles
+#   - Senior keywords → director, head, VP, and strategic leadership roles
 TARGET_KEYWORDS = [
-    # TIER 0: Strategic Leadership (highest priority)
-    "Founder's Office",
+
+    # =========================================================================
+    # DOMAIN: FOUNDERS OFFICE  (4 keywords)
+    # =========================================================================
+    "Founder's Office Intern",
     "Chief of Staff",
     "Entrepreneur in Residence",
-    "EIR",
+    "Founder's Office",
 
-    # TIER 1: Marketing Roles
+    # =========================================================================
+    # DOMAIN: MARKETING  (18 keywords — incl. Deepak's Marketing / Social Media)
+    # =========================================================================
+    # EARLY
+    "Marketing Intern",
+    "Marketing Executive",
+    "Marketing Associate",
+    "Marketing Analyst",
+    "Digital Marketing Executive",
+    "Social Media Executive",
+    "SEO Executive",
+    "Marketing",          # Deepak: generic marketing
+    "Social Media Marketing",  # Deepak: social media marketing
+    "Social Media Marketing Executive",
+    # MID
     "Marketing Manager",
-    "Digital Marketing",
     "Brand Manager",
-    "Brand Marketing",
-    "Growth Marketing",
-    "Content Marketing",
-    "Product Marketing",
-    "Performance Marketing",
+    "Digital Marketing Manager",
+    "Content Marketing Manager",
+    "Social Media Manager",
+    # SENIOR
     "Marketing Lead",
-    "Social Media Marketing",
     "Marketing Head",
     "Marketing Director",
-    "Campaign Manager",
-    "Marketing Strategist",
-    "Demand Generation",
-    "Marketing Analyst",
-    "SEO Manager",
-    "PR Manager",
-    "Communications Manager",
-    "Marketing Specialist",
 
-    # TIER 2: Account Management (client-facing)
-    "Account Manager",
-    "Key Account Manager",
-    "Client Partner",
-    "Client Services Manager",
-    "Account Director",
-    "Strategic Account Manager",
-    "Client Relationship Manager",
-    "Account Lead",
-
-    # TIER 3: Product Roles (NEW category)
+    # =========================================================================
+    # DOMAIN: PRODUCT  (7 keywords)
+    # =========================================================================
+    "Associate Product Manager",
+    "Product Intern",
+    "Junior Product Manager",
+    "Product Analyst",
     "Product Manager",
     "Product Designer",
-    "Product Owner",
-    "Product Lead",
-    "Product Analyst",
-    "Product Marketing Manager",
-    "Technical Product Manager",
-    "Associate Product Manager",
-    "APM",
+    "Senior Product Manager",
 
-    # TIER 4: UI/UX Design
-    "UI Designer",
-    "UX Designer",
-    "UI/UX Designer",
-    "Product Designer",
-    "UX Researcher",
-    "Interaction Designer",
+    # =========================================================================
+    # DOMAIN: UI/UX  (7 keywords)
+    # =========================================================================
+    "UI Design Intern",
+    "UX Design Intern",
+    "Junior UX Designer",
     "Visual Designer",
+    "UX Designer",
+    "UI Designer",
     "UX Lead",
-    "UX Architect",
-    "Design Lead",
-    "UX Strategist",
-    "User Experience Designer",
-    "User Interface Designer",
+
+    # =========================================================================
+    # DOMAIN: SUPPORT  (6 keywords — Deepak: Email Support, Customer Support Engineer)
+    # =========================================================================
+    "Email Support",          # Deepak
+    "Email Support Executive",
+    "Email Support Specialist",
+    "Customer Support Engineer",  # Deepak
+    "Support Engineer",
+    "Technical Support Engineer",
+
+    # =========================================================================
+    # DOMAIN: OPERATIONS  (5 keywords — Deepak: Operations)
+    # =========================================================================
+    "Operations Executive",
+    "Operations Associate",
+    "Operations Coordinator",
+    "Operations Analyst",
+    "Operations Manager",
+
+    # =========================================================================
+    # DOMAIN: SOFTWARE ENGINEERING  (11 keywords — incl. Deepak: WordPress Developer)
+    # =========================================================================
+    # EARLY
+    "Software Engineer Intern",
+    "Junior Software Engineer",
+    "Frontend Developer",
+    "Backend Developer",
+    "Web Developer",
+    "WordPress Developer",     # Deepak
+    # MID
+    "Software Engineer",
+    "Full Stack Developer",
+    "Java Developer",
+    "Python Developer",
+    "Mobile Developer",
+
+    # =========================================================================
+    # DOMAIN: DATA & ML  (9 keywords — Deepak: Data Analyst)
+    # =========================================================================
+    # EARLY
+    "Data Analyst",           # Deepak
+    "Junior Data Analyst",
+    "Data Analysis",
+    # MID
+    "Data Engineer",
+    "ML Engineer",
+    "AI Engineer",
+    # SENIOR
+    "Data Scientist",
+    "Machine Learning Engineer",
+    "Data Science",
+
+    # =========================================================================
+    # DOMAIN: DEVOPS, QA & SECURITY  (8 keywords — Deepak: Quality Analyst)
+    # =========================================================================
+    # EARLY
+    "QA Tester",
+    "Quality Analyst",        # Deepak
+    "QA Analyst",
+    # MID
+    "QA Engineer",
+    "DevOps Engineer",
+    "Security Engineer",
+    # SENIOR
+    "Cloud Engineer",
+    "Site Reliability Engineer",
 ]
 
-# EXCLUDE technical roles (keep only non-tech)
+# EXCLUDE low-skill / non-core roles only (tech + target non-tech roles are INCLUDED)
+# NOTE: Customer Support / Customer Service are NOT excluded anymore — they map to
+# the Support tag (Email Support, Customer Support Engineer, etc.).
 EXCLUDE_KEYWORDS = [
-    # Engineering & Development
-    "Software Engineer", "Software Development", "SDE",
-    "Backend Engineer", "Backend Developer",
-    "Frontend Engineer", "Frontend Developer",
-    "Full Stack Engineer", "Full Stack Developer",
-    "Java Developer", "Python Developer",
-    "Java Programmer", "Python Programmer",
-    "DevOps Engineer", "Site Reliability Engineer",
-    "SRE", "Platform Engineer",
-    "QA Engineer", "Test Engineer",
-    "SDET", "Automation Engineer",
-
-    # Data & ML
-    "Data Scientist", "Machine Learning Engineer",
-    "ML Engineer", "Data Engineer",
-    "Analytics Engineer", "AI Engineer",
-    "Data Analyst", "Data Architect",
-    "Deep Learning",
-
-    # Infrastructure & Security
-    "Cloud Engineer", "Security Engineer",
-    "Network Engineer", "System Administrator",
-    "Infrastructure Engineer",
-
     # Low-skill / Non-core
     "Data Entry",
-    "Customer Support", "Customer Service",
-    "Telecaller", "Telecaller",
+    "Telecaller",
     "Recruiter", "Recruitment",
-    "Admin", "Administrative",
+    "Admin Assistant", "Office Admin",
+    "Administrative",
     "Video Editor", "Copywriter",
     "Content Writer",
     "HR Executive", "Human Resources",
@@ -167,7 +217,7 @@ EXCLUDE_KEYWORDS = [
 
 class RoleFilter:
     """
-    Normalizes and deduplicates job roles for non-tech domains.
+    Normalizes and deduplicates job roles for tech + non-tech domains.
     No artificial limit on roles - only deduplication.
     """
 
@@ -216,18 +266,6 @@ class RoleFilter:
         "communications executive": "Communications Manager",
         "demand generation manager": "Demand Generation",
         "marketing analytics": "Marketing Analyst",
-
-        # Account Management variations
-        "senior account manager": "Account Manager",
-        "senior account executive": "Account Executive",
-        "national account manager": "Key Account Manager",
-        "global account manager": "Strategic Account Manager",
-        "account management": "Account Manager",
-        "senior client partner": "Client Partner",
-        "customer success executive": "Customer Success Manager",
-        "client relationship executive": "Client Relationship Manager",
-        "business development executive": "Business Development Manager",
-        "bdm": "Business Development Manager",
 
         # UI/UX variations
         "ui/ux designer": "UI/UX Designer",
@@ -387,15 +425,15 @@ class OptimizedJobSearchScraper(JobSearchScraper):
 
 
 # ============================================================================
-# NON-TECH ROLES SCRAPER
+# TECH + NON-TECH ROLES SCRAPER
 # ============================================================================
 
 class NonTechRolesScraper:
     """
-    LinkedIn jobs scraper specifically for non-technical roles:
-    Marketing, Accounts, UI/UX, Founder's Office, EIR, Chief of Staff.
+    LinkedIn jobs scraper for tech + non-tech roles:
+    Tech/IT, Marketing, Product, UI/UX, Founder's Office, EIR, Chief of Staff.
     
-    Inherits optimizations from the tech scraper:
+    Inherits optimizations from the original tech scraper:
     1. LinkedIn 24-hour native filter
     2. High-yield keywords
     3. Smart role filtering
@@ -410,7 +448,7 @@ class NonTechRolesScraper:
         notion_database_id: Optional[str] = None,
         headless: bool = True,
         hours_ago: int = 24,
-        max_age_days: int = 7
+        max_age_days: int = 5
     ):
         """Initialize scraper."""
         self.session_file = session_file
@@ -757,7 +795,7 @@ class NonTechRolesScraper:
             print(f"  No jobs older than {cutoff_date} found. Database is clean!")
 
     def _should_exclude_job(self, job_title: str, job_description: str = "") -> bool:
-        """Check if job should be excluded (technical/non-target role)."""
+        """Check if job should be excluded (low-skill / non-core role)."""
         title_lower = job_title.lower() if job_title else ""
         desc_lower = job_description.lower() if job_description else ""
         
@@ -775,7 +813,7 @@ class NonTechRolesScraper:
         skip_duplicates: bool = True,
         max_roles: int = 9999
     ) -> Dict[str, Any]:
-        """Run the non-tech roles scraping workflow."""
+        """Run the tech + non-tech roles scraping workflow."""
 
         results = {
             "success": False,
@@ -794,11 +832,11 @@ class NonTechRolesScraper:
         keywords = keywords or TARGET_KEYWORDS
 
         print("\n" + "="*70)
-        print("🎯 NON-TECH ROLES SCRAPER - INDIA (24 HOURS)")
+        print("🎯 TECH + NON-TECH ROLES SCRAPER - INDIA (24 HOURS)")
         print("="*70)
         print(f"📍 Location: {location}")
-        print(f"📍 Keywords: {len(keywords)} (non-tech roles)")
-        print(f"📍 Domains: Marketing, Accounts, UI/UX, Founder's Office, Chief of Staff, EIR")
+        print(f"📍 Keywords: {len(keywords)} (tech + non-tech roles)")
+        print(f"📍 Domains: Software, Data (Analyst/Engineer/Science/ML), DevOps/QA/Security, Support, Operations, Marketing, Product, UI/UX, Founder's Office")
         print(f"📍 Limit per keyword: {limit_per_keyword} jobs")
         print(f"📍 Time Filter: PAST {self.hours_ago} HOURS (LinkedIn native filter)")
         print(f"📍 Max Roles: UNLIMITED (dedup only, no artificial cap)")
@@ -921,7 +959,7 @@ class NonTechRolesScraper:
 async def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="🎯 Non-Tech Roles Scraper - India (Marketing, Accounts, UI/UX, Entrepreneurial Roles)",
+        description="🎯 Tech + Non-Tech Roles Scraper - India (Software, Data, DevOps/QA/Security, Support, Operations, Marketing, Product, UI/UX, Entrepreneurial Roles)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -932,14 +970,18 @@ Examples:
   python scrape_non_tech_roles_notion.py --location Bangalore
 
 ROLE FILTERING:
-  - Technical roles (Engineer, Developer, SDE, etc.) are excluded
+  - Core tech roles are included and split into narrow tags (Software Engineer,
+    Data Analyst, Data Engineer, Data Science, ML Engineer, DevOps & Cloud,
+    QA & Testing, Security)
+  - Support (Email Support, Customer Support Engineer) and Operations roles are included
+  - Low-skill / non-core roles (Data Entry, Telecaller, HR, Recruiter, etc.) are excluded
   - Founder's Office, Chief of Staff, EIR roles always appear first
   - Roles are deduplicated only (no artificial limit)
-  - Targets: Marketing, Accounts, UI/UX, Founder's Office, Chief of Staff, EIR
+  - Targets: Software, Data, DevOps/QA/Security, Support, Operations, Marketing, Product, UI/UX, Founder's Office
 
 OPTIMIZATIONS:
   - LinkedIn's 24-hour native filter (f_TPR=r86400)
-  - High-yield keywords for non-tech roles
+  - High-yield keywords for tech + non-tech roles
   - Success rate: 85-95%
         """
     )
@@ -1021,7 +1063,7 @@ OPTIMIZATIONS:
     print(f"📋 Target Notion Database: {notion_database_id or '❌ NOT SET'}")
     print(f"📋 Using API Key: {notion_api_key[:20] if notion_api_key else '❌ NOT SET'}...")
 
-    # Create non-tech roles scraper
+    # Create tech + non-tech roles scraper
     workflow = NonTechRolesScraper(
         session_file=args.session_file,
         notion_api_key=notion_api_key,

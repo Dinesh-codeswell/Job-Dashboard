@@ -1,5 +1,8 @@
 """
-🎯 Non-Tech Roles Dashboard - Marketing, Accounts, UI/UX, Entrepreneurial Roles
+🎯 Tech + Non-Tech Roles Dashboard
+Narrow tech tags (Software Engineer, Data Analyst, Data Engineer, Data Science,
+ML Engineer, DevOps & Cloud, QA & Testing, Security) plus Support, Operations,
+Marketing, Product, UI/UX and Founder's Office roles.
 Reads job listings directly from Notion database and displays them
 with the SayBriefly design system.
 """
@@ -71,17 +74,38 @@ CACHE_DURATION = 120  # seconds
 # ============================================================================
 
 # Role domain keywords for filtering
+# NOTE: categorize_role() is the source of truth for tagging; this dict documents
+# the tag taxonomy and is used for the dropdown labels.
 ROLE_DOMAINS = {
     "All": [],
+    "Software Engineer": ["software engineer", "software developer", "sde", "backend", "frontend",
+                           "full stack", "fullstack", "java developer", "python developer",
+                           "react developer", "angular developer", "node.js", "mobile developer",
+                           "android developer", "ios developer", "web developer", "wordpress",
+                           "tech lead", "software architect", "engineering manager"],
+    "Data Analyst": ["data analyst", "data analysis", "analytics analyst", "reporting analyst",
+                      "power bi analyst", "mis analyst"],
+    "Data Engineer": ["data engineer", "analytics engineer", "data architect", "etl",
+                       "data warehouse", "big data"],
+    "Data Science": ["data scientist", "data science"],
+    "ML Engineer": ["machine learning", "ml engineer", "ai engineer", "artificial intelligence",
+                     "deep learning", "nlp", "computer vision", "llm", "genai"],
+    "DevOps & Cloud": ["devops", "sre", "site reliability", "platform engineer", "cloud engineer",
+                        "infrastructure engineer", "system administrator", "network engineer",
+                        "kubernetes", "aws", "azure", "gcp"],
+    "QA & Testing": ["qa engineer", "test engineer", "sdet", "qa tester", "automation engineer",
+                      "quality assurance", "quality analyst", "qa analyst", "manual tester"],
+    "Security": ["security engineer", "cybersecurity", "cyber security", "security analyst",
+                  "penetration tester", "information security", "network security"],
+    "Support": ["customer support", "customer service", "email support", "support engineer",
+                 "technical support", "helpdesk", "service desk", "it support"],
+    "Operations": ["operations", "business operations", "ops manager", "ops executive"],
     "Marketing": ["marketing", "brand", "growth marketing", "content marketing", "demand generation",
                    "digital marketing", "performance marketing", "social media", "campaign",
                    "pr manager", "communications", "seo", "marketing lead", "marketing head",
                    "marketing director", "marketing strategist", "marketing specialist",
                    "marketing analyst", "marketing executive", "brand manager",
                    "brand marketing", "product marketing", "marketing intern"],
-    "Accounts": ["account manager", "key account manager", "strategic account",
-                  "client partner", "client services", "account director",
-                  "client relationship manager", "account lead"],
     "UI/UX": ["ui designer", "ux designer", "ui/ux", "ui ux", "ux researcher",
                "interaction designer", "visual designer", "ux lead", "ux architect",
                "user experience", "user interface", "ux strategist", "ux writer"],
@@ -98,30 +122,41 @@ ROLE_DOMAINS = {
 
 def categorize_role(role_title: str) -> str:
     """
-    Determine which domain a role belongs to based on strict keyword matching.
+    Determine which domain tag a role belongs to based on strict keyword matching.
+    Tech roles are classified into NARROW sub-domains (not one broad bucket).
     
     Order matters:
-    1. Product (any role with "Product" in the title qualifies)
-    2. Founders Office (strategic leadership roles)
-    3. Marketing (clearly marketing-specific roles only)
-    4. UI/UX (design & user experience roles only)
-    5. Accounts (relationship management, NOT sales)
-    6. Other (everything else including sales, admin, support, etc.)
+    1. Tech sub-domains (Software Engineer, Data Analyst, Data Engineer,
+       Data Science, ML Engineer, DevOps & Cloud, QA & Testing, Security)
+    2. Support (Email Support, Customer Support Engineer, Technical Support, etc.)
+    3. Operations
+    4. Product (any role with "Product" in the title qualifies)
+    5. Founders Office (strategic leadership roles)
+    6. Marketing (clearly marketing-specific roles only, incl. Social Media)
+    7. UI/UX (design & user experience roles only)
+    8. Other (everything else including sales, admin, hr, finance, etc.)
     
-    NOTE: "Account Executive" is classified as Sales → Other, NOT Accounts.
-    "Customer Success" → Other (not Accounts).
-    "Business Development" → Other (not Accounts).
+    NOTE: "Software Engineer" → Software Engineer.
+    "Data Scientist" → Data Science.
+    "ML Engineer" → ML Engineer.
+    "Data Analyst" → Data Analyst.
+    "QA Engineer" / "Quality Analyst" → QA & Testing.
+    "WordPress Developer" / "Web Developer" → Software Engineer.
+    "Customer Support Engineer" / "Email Support" → Support.
+    "Operations Executive" / "Operations Manager" → Operations.
+    "Marketing" / "Social Media Marketing" → Marketing.
+    "Account Executive" is classified as Sales → Other.
+    "Customer Success" → Other.
+    "Business Development" → Other.
     "Graphic Designer" → Other (not Marketing).
     "Team Lead" → Other (generic, not role-specific).
     "Senior Product Designer" → Product (contains "product designer").
     "Product Owner" → Product (contains "product").
-    "Enterprise Account Executive" contains "account executive" → Sales → Other.
-    "Account Manager" → Accounts (relationship management).
-    "Key Account Manager" → Accounts.
-    "Client Partner" → Accounts.
+    "Account Manager" → Other (Accounts domain removed).
+    "Key Account Manager" → Other.
+    "Client Partner" → Other.
     "Sales Executive" → Other (sales).
     "Business Development Executive" → Other (sales).
-    "Customer Success Manager" → Other (customer support).
     "Growth Manager" (without "marketing") → Other (could be growth in any function).
     "Brand Manager" → Marketing.
     "Content Writer" → Other (content, not marketing function).
@@ -142,23 +177,16 @@ def categorize_role(role_title: str) -> str:
     "Chief of Staff" → Founders Office.
     "Entrepreneur in Residence" → Founders Office.
     "EIR" → Founders Office.
-    "Engineering Manager" → Other (technical).
-    "Software Engineer" → Other (technical).
-    "Data Scientist" → Other (technical).
-    "QA Engineer" → Other (technical).
-    "Operations Manager" → Other (operations, not marketing/accounts).
     "HR Manager" → Other.
     "Recruiter" → Other.
     "Admin Assistant" → Other.
     "Receptionist" → Other.
     "Accountant" → Other.
-    "Technical Support" → Other.
     "Delivery Manager" → Other.
-    "Scrum Master" → Other (technical).
+    "Scrum Master" → Other (technical, not in a target tag).
     "Project Manager" → Other (unless product-related, then Product).
     "Program Manager" → Other (unless product-related).
     "Business Analyst" → Other (unless product-related).
-    "Data Analyst" → Other.
     "Financial Analyst" → Other.
     "Investment Analyst" → Other.
     "Research Analyst" → Other (unless UX research, then UI/UX).
@@ -168,7 +196,9 @@ def categorize_role(role_title: str) -> str:
         role_title: The job title to categorize
         
     Returns:
-        Domain string: Product, Founders Office, Marketing, UI/UX, Accounts, or Other
+        Domain tag string, e.g. Software Engineer, Data Analyst, Data Science,
+        ML Engineer, DevOps & Cloud, QA & Testing, Security, Support, Operations,
+        Marketing, Product, UI/UX, Founders Office, or Other
     """
     if not role_title:
         return "Other"
@@ -177,33 +207,13 @@ def categorize_role(role_title: str) -> str:
     # ========================================================================
     # HARD EXCLUSIONS FIRST — roles that should NEVER be in any target domain
     # ========================================================================
-    
-    # Technical/Engineering roles → always "Other"
-    technical_patterns = [
-        "software engineer", "software developer", "software development", "sde",
-        "backend", "frontend", "full stack", "fullstack",
-        "devops", "sre", "site reliability",
-        "data engineer", "ml engineer", "machine learning",
-        "ai engineer", "artificial intelligence",
-        "cloud engineer", "infrastructure engineer",
-        "qa engineer", "test engineer", "sdet",
-        "ui developer", "ux developer",
-        "java developer", "python developer",
-        "react developer", "angular developer",
-        "tech lead", "engineering manager", "staff engineer",
-    ]
-    for pat in technical_patterns:
-        if pat in title_lower:
-            return "Other"
 
-    # Admin/Support roles → always "Other"
+    # Admin/Back-office roles → always "Other"
     admin_patterns = [
         "executive assistant", "personal assistant", "admin assistant",
         "receptionist", "front desk", "office admin",
         "data entry", "data operator",
         "telecaller", "tele caller",
-        "customer support", "customer service", "customer success",
-        "technical support", "support engineer",
     ]
     for pat in admin_patterns:
         if pat in title_lower:
@@ -227,7 +237,7 @@ def categorize_role(role_title: str) -> str:
         if pat in title_lower:
             return "Other"
 
-    # Sales roles (non-account) → always "Other"
+    # Sales roles → always "Other"
     # Note: "Account Executive" is a SALES closing role, NOT account management
     sales_patterns = [
         "sales executive", "sales manager", "sales associate",
@@ -244,7 +254,124 @@ def categorize_role(role_title: str) -> str:
             return "Other"
 
     # ========================================================================
-    # CATEGORY 1: PRODUCT (any role containing "product" in the title)
+    # TECH SUB-DOMAINS (narrow classification)
+    # ========================================================================
+
+    # 1. SOFTWARE ENGINEER — engineering & development (incl. web / WordPress / mobile)
+    # SDE titles like "SDE", "SDE I", "SDE-1" (exact word only — "SDET" is QA)
+    sde_words = title_lower.replace('-', ' ').split()
+    if "sde" in sde_words and "sdet" not in sde_words:
+        return "Software Engineer"
+
+    software_patterns = [
+        "software engineer", "software developer", "software development",
+        "backend", "frontend", "full stack", "fullstack",
+        "java developer", "python developer", "react developer", "angular developer",
+        "node.js developer", "nodejs", "mobile developer", "android developer",
+        "ios developer", "web developer", "wordpress",
+        "php developer", "ruby developer", "golang", "dotnet", "c# developer",
+        "game developer", "tech lead", "software architect", "engineering manager",
+        "staff engineer", "ui developer", "ux developer",
+        # Technical program / project management (tech roles)
+        "technical program manager", "tpm", "technical project manager",
+    ]
+    for pat in software_patterns:
+        if pat in title_lower:
+            return "Software Engineer"
+
+    # 2. DATA ANALYST — analytics & reporting
+    data_analyst_patterns = [
+        "data analyst", "data analysis", "analytics analyst", "reporting analyst",
+        "power bi analyst", "mis analyst", "tableau analyst",
+    ]
+    for pat in data_analyst_patterns:
+        if pat in title_lower:
+            return "Data Analyst"
+
+    # 3. DATA ENGINEER — data infrastructure & pipelines
+    data_engineer_patterns = [
+        "data engineer", "analytics engineer", "data architect", "data modeler",
+        "etl developer", "data warehouse", "big data engineer", "data platform",
+    ]
+    for pat in data_engineer_patterns:
+        if pat in title_lower:
+            return "Data Engineer"
+
+    # 4. DATA SCIENCE — data science & research
+    data_science_patterns = [
+        "data scientist", "data science",
+    ]
+    for pat in data_science_patterns:
+        if pat in title_lower:
+            return "Data Science"
+
+    # 5. ML ENGINEER — machine learning, AI & deep learning
+    ml_patterns = [
+        "machine learning", "ml engineer", "ai engineer", "artificial intelligence",
+        "deep learning", "nlp", "computer vision", "llm", "generative ai", "genai",
+    ]
+    for pat in ml_patterns:
+        if pat in title_lower:
+            return "ML Engineer"
+
+    # 6. DEVOPS & CLOUD — infrastructure, reliability & cloud
+    devops_patterns = [
+        "devops", "sre", "site reliability", "platform engineer",
+        "cloud engineer", "infrastructure engineer", "system administrator", "sysadmin",
+        "network engineer", "database administrator", "dba",
+        "kubernetes", "aws", "azure", "gcp", "release engineer",
+    ]
+    for pat in devops_patterns:
+        if pat in title_lower:
+            return "DevOps & Cloud"
+
+    # 7. QA & TESTING — quality assurance & testing (incl. Quality Analyst)
+    qa_patterns = [
+        "qa engineer", "test engineer", "sdet", "qa tester", "automation engineer",
+        "quality assurance", "quality analyst", "qa analyst", "manual tester",
+        "software tester", "test analyst",
+    ]
+    for pat in qa_patterns:
+        if pat in title_lower:
+            return "QA & Testing"
+
+    # 8. SECURITY — cybersecurity & information security
+    security_patterns = [
+        "security engineer", "cybersecurity", "cyber security", "security analyst",
+        "penetration tester", "information security", "network security",
+        "application security", "soc analyst", "incident response",
+    ]
+    for pat in security_patterns:
+        if pat in title_lower:
+            return "Security"
+
+    # ========================================================================
+    # CATEGORY: SUPPORT (customer-facing support & service roles)
+    # ========================================================================
+    support_patterns = [
+        "customer support", "customer service", "customer care",
+        "support engineer", "technical support", "email support",
+        "helpdesk", "help desk", "service desk", "it support",
+        "desktop support", "client support",
+    ]
+    for pat in support_patterns:
+        if pat in title_lower:
+            return "Support"
+
+    # ========================================================================
+    # CATEGORY: OPERATIONS
+    # ========================================================================
+    operations_patterns = [
+        "operations", "business operations",
+        "ops manager", "ops executive", "ops associate",
+        "ops coordinator", "ops lead",
+    ]
+    for pat in operations_patterns:
+        if pat in title_lower:
+            return "Operations"
+
+    # ========================================================================
+    # CATEGORY: PRODUCT (any role containing "product" in the title)
     # ========================================================================
     product_terms = [
         "product manager", "product management", "product designer",
@@ -267,7 +394,7 @@ def categorize_role(role_title: str) -> str:
         return "Product"
 
     # ========================================================================
-    # CATEGORY 2: FOUNDERS OFFICE (strategic leadership roles)
+    # CATEGORY: FOUNDERS OFFICE (strategic leadership roles)
     # ========================================================================
     founders_terms = [
         "founder's office", "founders office", "founder office",
@@ -279,18 +406,19 @@ def categorize_role(role_title: str) -> str:
             return "Founders Office"
 
     # ========================================================================
-    # CATEGORY 3: MARKETING (clearly marketing-specific roles only)
+    # CATEGORY: MARKETING (clearly marketing-specific roles only)
     # ========================================================================
     # Strict: must start with or contain a clear marketing keyword
     marketing_terms = [
         # Direct marketing titles
-        "marketing ",  # "Marketing Manager", "Marketing Lead", etc.
+        "marketing",  # "Marketing", "Marketing Manager", "Marketing Lead", etc.
         "brand manager", "brand marketing", "brand lead",
         "growth marketing",  # NOT just "growth"
         "content marketing",
         "product marketing",
         "performance marketing",
         "digital marketing",
+        "social media marketing",  # Explicit "Social Media Marketing" roles
         
         # Marketing specializations
         "marketing intern", "marketing analyst",
@@ -318,12 +446,11 @@ def categorize_role(role_title: str) -> str:
     ]
     for term in marketing_terms:
         if term in title_lower:
-            # Exclude "Software Marketing Engineer" or similar technical roles
-            if not any(tech in title_lower for tech in technical_patterns):
-                return "Marketing"
+            # Tech / Support / Operations roles were already caught above
+            return "Marketing"
 
     # ========================================================================
-    # CATEGORY 4: UI/UX (design & user experience roles only)
+    # CATEGORY: UI/UX (design & user experience roles only)
     # ========================================================================
     ux_terms = [
         "ui designer", "ux designer", "ui/ux", "ui ux",
@@ -338,22 +465,6 @@ def categorize_role(role_title: str) -> str:
     for term in ux_terms:
         if term in title_lower:
             return "UI/UX"
-
-    # ========================================================================
-    # CATEGORY 5: ACCOUNTS (client-facing relationship management, NOT sales)
-    # ========================================================================
-    accounts_terms = [
-        "account manager",  # BUT NOT "account executive" (that's sales)
-        "key account",
-        "strategic account",
-        "account director", "account lead",
-        "client partner", "client services",
-        "client relationship", "client success",
-        "client lead", "client director",
-    ]
-    for term in accounts_terms:
-        if term in title_lower:
-            return "Accounts"
 
     # ========================================================================
     # DEFAULT: Not in any target domain
@@ -585,11 +696,12 @@ def index():
 
 @app.route('/api/jobs', methods=['GET'])
 def api_jobs():
-    """Get jobs with optional filtering (domain, search, location, level) and pagination."""
+    """Get jobs with optional filtering (domains, search, location, level) and pagination."""
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 30))
         domain = request.args.get('domain', '').strip()
+        domains_param = request.args.get('domains', '').strip()
         search = request.args.get('search', '').strip()
         location = request.args.get('location', '').strip()
         level = request.args.get('level', '').strip()
@@ -597,10 +709,16 @@ def api_jobs():
 
         jobs = get_jobs(force_refresh=force_refresh)
 
-        # Apply domain filter
+        # Apply domain filter(s) — multi-select support (comma-separated `domains`)
+        # plus backward-compatible single `domain` param
+        selected_domains = [d.strip() for d in domains_param.split(',') if d.strip()]
         if domain and domain != "All":
-            domain_lower = domain.lower()
-            jobs = [j for j in jobs if j.get("domain", "").lower() == domain_lower]
+            if domain.lower() not in [d.lower() for d in selected_domains]:
+                selected_domains.append(domain)
+
+        if selected_domains and "all" not in [d.lower() for d in selected_domains]:
+            domains_lower = {d.lower() for d in selected_domains}
+            jobs = [j for j in jobs if j.get("domain", "").lower() in domains_lower]
 
         # Apply location filter
         if location:
@@ -683,10 +801,26 @@ def api_stats():
 
 @app.route('/api/domains', methods=['GET'])
 def api_domains():
-    """Get list of available role domains."""
+    """Get list of available role domain tags."""
     return jsonify({
         "success": True,
-        "domains": ["All", "Marketing", "Accounts", "UI/UX", "Product", "Founders Office"]
+        "domains": [
+            "All",
+            "Software Engineer",
+            "Data Analyst",
+            "Data Engineer",
+            "Data Science",
+            "ML Engineer",
+            "DevOps & Cloud",
+            "QA & Testing",
+            "Security",
+            "Support",
+            "Operations",
+            "Marketing",
+            "UI/UX",
+            "Product",
+            "Founders Office",
+        ]
     })
 
 

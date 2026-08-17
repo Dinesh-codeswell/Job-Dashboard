@@ -1,5 +1,5 @@
 /**
- * RoleBoard — Non-Tech Jobs Dashboard
+ * RoleBoard — Tech & Non-Tech Jobs Dashboard
  * Main dashboard logic with SayBriefly design
  */
 const RoleBoard = {
@@ -7,7 +7,7 @@ const RoleBoard = {
     currentPage: 1,
     totalPages: 1,
     limit: 30,
-    filters: { domain: 'All', search: '', location: '', level: '' },
+    filters: { domains: [], search: '', location: '', level: '' },
     jobs: [],
     stats: null,
     locations: [],
@@ -24,6 +24,7 @@ const RoleBoard = {
             await Promise.all([
                 this.loadStats(),
                 this.loadLocations(),
+                this.loadDomains(),
                 this.loadJobs(1)
             ]);
 
@@ -48,8 +49,8 @@ const RoleBoard = {
 
         try {
             const params = { page, limit: this.limit };
-            if (this.filters.domain && this.filters.domain !== 'All') {
-                params.domain = this.filters.domain;
+            if (this.filters.domains && this.filters.domains.length) {
+                params.domains = this.filters.domains.join(',');
             }
             if (this.filters.search) {
                 params.search = this.filters.search;
@@ -62,7 +63,7 @@ const RoleBoard = {
             }
 
             const response = await API.getJobs(page, this.limit, {
-                domain: this.filters.domain !== 'All' ? this.filters.domain : '',
+                domains: this.filters.domains.length ? this.filters.domains.join(',') : '',
                 search: this.filters.search,
                 location: this.filters.location,
                 level: this.filters.level
@@ -119,6 +120,39 @@ const RoleBoard = {
         }
     },
 
+    async loadDomains() {
+        try {
+            const response = await API.getDomains();
+            if (response.success && response.domains) {
+                this.domains = response.domains;
+                this.renderDomainFilter();
+            }
+        } catch (error) {
+            console.error('Error loading domains:', error);
+        }
+    },
+
+    renderDomainFilter() {
+        const menu = document.getElementById('domainFilterMenu');
+        if (!menu || !this.domains || !this.domains.length) return;
+
+        menu.innerHTML = this.domains.map(domain => {
+            const isAll = domain === 'All';
+            const color = isAll ? '#e8e6e0' : (Utils.DOMAIN_COLORS[domain] || '#e8e6e0');
+            const dot = isAll
+                ? ''
+                : `<span class="filter-dot" style="background: ${color};"></span>`;
+            return `
+                <label class="multi-select-option">
+                    <input type="checkbox" class="domain-checkbox" data-domain="${Utils.escapeHtml(domain)}" ${isAll ? 'checked' : ''} />
+                    <span class="multi-select-option-label">${dot} ${Utils.escapeHtml(domain)}</span>
+                </label>
+            `;
+        }).join('');
+
+        // Re-attach change listeners via event delegation (see setupEventListeners)
+    },
+
     populateLocationFilter() {
         const select = document.getElementById('locationFilter');
         if (!select) return;
@@ -163,8 +197,8 @@ const RoleBoard = {
     },
 
     createJobCard(job, index) {
-        // Sanitize domain for use as CSS class name
-        const safeDomain = (job.domain || 'Other').replace(/[\s\/]/g, '-').toLowerCase();
+        // Sanitize domain for use as CSS class name (any non-alphanumeric run -> single dash)
+        const safeDomain = (job.domain || 'Other').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
         const title = Utils.escapeHtml(job.role || 'Position');
         const company = Utils.escapeHtml(job.company || 'Company');
         const location = Utils.escapeHtml(job.location || 'India');
@@ -270,16 +304,52 @@ const RoleBoard = {
     // ========================================================================
 
     setupEventListeners() {
-        // Filter chips
-        const filterChips = document.querySelectorAll('.filter-chip');
-        filterChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                filterChips.forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                this.filters.domain = chip.dataset.domain;
+        // Unified multi-select domain filter (tag-based dropdown)
+        const trigger = document.getElementById('domainFilterTrigger');
+        const menu = document.getElementById('domainFilterMenu');
+
+        if (trigger && menu) {
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = menu.classList.toggle('open');
+                trigger.classList.toggle('open', isOpen);
+                trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.multi-select-filter')) {
+                    menu.classList.remove('open');
+                    trigger.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Handle checkbox changes (multi-select) via event delegation
+            // so dynamically rendered checkboxes work without re-binding.
+            menu.addEventListener('change', (e) => {
+                if (!e.target.classList.contains('domain-checkbox')) return;
+
+                const cb = e.target;
+                const allBox = menu.querySelector('.domain-checkbox[data-domain="All"]');
+                const specificBoxes = [...menu.querySelectorAll('.domain-checkbox:not([data-domain="All"])')];
+
+                if (cb.dataset.domain === 'All' && cb.checked) {
+                    // "All Domains" clears every specific tag
+                    specificBoxes.forEach(b => b.checked = false);
+                    this.filters.domains = [];
+                } else {
+                    // Selecting any specific tag unchecks "All Domains"
+                    if (allBox) allBox.checked = false;
+                    this.filters.domains = specificBoxes
+                        .filter(b => b.checked)
+                        .map(b => b.dataset.domain);
+                }
+
+                this.updateDomainFilterLabel();
                 this.goToPage(1);
             });
-        });
+        }
 
         // Search with debounce
         const searchInput = document.getElementById('searchInput');
@@ -340,6 +410,19 @@ const RoleBoard = {
                 this.goToPage(this.currentPage - 1);
             }
         });
+    },
+
+    updateDomainFilterLabel() {
+        const label = document.getElementById('domainFilterLabel');
+        if (!label) return;
+
+        if (!this.filters.domains.length) {
+            label.textContent = 'All Domains';
+        } else if (this.filters.domains.length <= 2) {
+            label.textContent = this.filters.domains.join(' + ');
+        } else {
+            label.textContent = `${this.filters.domains.length} domains selected`;
+        }
     },
 
     // ========================================================================

@@ -1,4 +1,4 @@
-# RoleBoard - Non-Tech Jobs Dashboard Dependencies
+# RoleBoard - Tech & Non-Tech Jobs Dashboard Dependencies
 # For local development & Vercel deployment
 
 # Web framework

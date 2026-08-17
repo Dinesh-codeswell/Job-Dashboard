@@ -1,5 +1,5 @@
 """
-Configuration for Non-Tech Roles Dashboard.
+Configuration for Tech + Non-Tech Roles Dashboard.
 """
 import os
 from dotenv import load_dotenv

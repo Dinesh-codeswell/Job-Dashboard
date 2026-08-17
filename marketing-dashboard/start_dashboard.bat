@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo  🎯 RoleBoard - Non-Tech Jobs Dashboard
+echo  🎯 RoleBoard - Tech & Non-Tech Jobs Dashboard
 echo ========================================
 echo.
 

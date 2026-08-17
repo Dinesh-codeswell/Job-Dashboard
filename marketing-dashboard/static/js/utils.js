@@ -56,17 +56,46 @@ const Utils = {
     },
 
     /**
-     * Get domain class for styling
+     * Get domain class for styling (job card badge)
      */
     getDomainClass(domain) {
         const map = {
+            'Software Engineer': 'software-engineer',
+            'Data Analyst': 'data-analyst',
+            'Data Engineer': 'data-engineer',
+            'Data Science': 'data-science',
+            'ML Engineer': 'ml-engineer',
+            'DevOps & Cloud': 'devops',
+            'QA & Testing': 'qa',
+            'Security': 'security',
+            'Support': 'support',
+            'Operations': 'operations',
             'Marketing': 'marketing',
-            'Accounts': 'accounts',
             'UI/UX': 'uiux',
             'Product': 'product',
             'Founders Office': 'founders'
         };
         return map[domain] || 'other';
+    },
+
+    /**
+     * Tag colors (used for filter dropdown dots and card accents)
+     */
+    DOMAIN_COLORS: {
+        'Software Engineer': '#cfe8ff',
+        'Data Analyst': '#d8f3dc',
+        'Data Engineer': '#e5dbff',
+        'Data Science': '#ffe4e6',
+        'ML Engineer': '#ede9fe',
+        'DevOps & Cloud': '#ffedd5',
+        'QA & Testing': '#ecfccb',
+        'Security': '#fee2e2',
+        'Support': '#ccfbf1',
+        'Operations': '#fef3c7',
+        'Marketing': '#ffe95c',
+        'UI/UX': '#d5f5c2',
+        'Product': '#ffb347',
+        'Founders Office': '#f6d0ff'
     },
 
     getLevelClass(level) {

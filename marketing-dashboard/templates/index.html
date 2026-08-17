@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoleBoard — Non-Tech Jobs Dashboard</title>
+    <title>RoleBoard — Tech & Non-Tech Jobs Dashboard</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,14 +63,14 @@
             <!-- Tagline Badge -->
             <div class="tagline-badge">
                 <span class="material-symbols-outlined tagline-icon">lightbulb</span>
-                <span>Non-Tech Roles · Live Updates</span>
+                <span>Tech & Non-Tech Roles · Live Updates</span>
             </div>
 
             <!-- Display Headline -->
             <h1 class="hero-headline">
                 Find your next
+                <span class="highlight-word">tech</span>,
                 <span class="highlight-word">marketing</span>,
-                <span class="highlight-word">product</span>,
                 or
                 <span class="highlight-word">design</span>
                 role.
@@ -78,8 +78,8 @@
 
             <!-- Subhead -->
             <p class="hero-subhead">
-                Curated opportunities in Marketing, Product, Account Management, UI/UX Design,
-                and Startup Leadership — updated every 24 hours.
+                Curated opportunities in Software, Data & AI, DevOps, QA, Support,
+                Marketing, Product, UI/UX Design, and Startup Leadership — updated every 24 hours.
             </p>
 
             <!-- Stats Strip -->
@@ -105,31 +105,19 @@
              FILTERS
              ============================================================ -->
         <section class="filters-section">
-            <div class="filter-chips" id="filterChips">
-                <button class="filter-chip active" data-domain="All">All</button>
-                <button class="filter-chip" data-domain="Marketing">
-                    <span class="filter-dot" style="background: #ffe95c;"></span>
-                    Marketing
-                </button>
-                <button class="filter-chip" data-domain="Accounts">
-                    <span class="filter-dot" style="background: #a8e5e5;"></span>
-                    Accounts
-                </button>
-                <button class="filter-chip" data-domain="UI/UX">
-                    <span class="filter-dot" style="background: #d5f5c2;"></span>
-                    UI/UX
-                </button>
-                <button class="filter-chip" data-domain="Product">
-                    <span class="filter-dot" style="background: #ffb347;"></span>
-                    Product
-                </button>
-                <button class="filter-chip" data-domain="Founders Office">
-                    <span class="filter-dot" style="background: #f6d0ff;"></span>
-                    Founders Office
-                </button>
-            </div>
-
             <div class="filters-row">
+                <!-- Unified multi-select domain filter (tag-based) -->
+                <div class="multi-select-filter" id="domainFilter">
+                    <button type="button" class="multi-select-trigger" id="domainFilterTrigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="material-symbols-outlined multi-select-icon">sell</span>
+                        <span class="multi-select-label" id="domainFilterLabel">All Domains</span>
+                        <span class="material-symbols-outlined multi-select-chevron">expand_more</span>
+                    </button>
+                    <div class="multi-select-menu" id="domainFilterMenu" role="listbox" aria-multiselectable="true">
+                        <!-- Domain tag checkboxes are rendered dynamically from /api/domains -->
+                    </div>
+                </div>
+
                 <div class="filter-search">
                     <span class="material-symbols-outlined search-icon">search</span>
                     <input
@@ -191,7 +179,7 @@
                     </div>
                     <span class="footer-brand-name">RoleBoard</span>
                 </div>
-                <p class="footer-copy">Curated non-tech opportunities · Updated daily from LinkedIn</p>
+                <p class="footer-copy">Curated tech & non-tech opportunities · Updated daily from LinkedIn</p>
                 <div class="footer-links">
                     <a href="#" class="footer-link">About</a>
                     <a href="#" class="footer-link">Privacy</a>
