@@ -3,50 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoleBoard — Tech & Non-Tech Jobs Dashboard</title>
+    <title>RoleBoard — Live Jobs Terminal & Resume Engine</title>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts: JetBrains Mono (primary) & Inter (secondary) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body>
     <!-- ============================================================
-         SPARKLES BACKGROUND
+         SUBTLE SKETCH / CRAYON DUST PARTICLES
          ============================================================ -->
     <div id="sparkles-bg" class="sparkles-container"></div>
 
     <!-- ============================================================
-         FLOATING NAV BAR
+         TOP NAVIGATION BAR
          ============================================================ -->
     <nav class="nav-bar">
         <div class="nav-inner">
             <!-- Logo -->
-            <div class="nav-logo">
+            <a href="/" class="nav-logo">
                 <div class="logo-mark">
-                    <span class="logo-monogram">rb</span>
+                    <span class="logo-duck-glyph">🦆</span>
                 </div>
-                <span class="logo-text">RoleBoard</span>
-            </div>
+                <div class="logo-text-group">
+                    <span class="logo-text">ROLEBOARD</span>
+                    <span class="logo-terminal-tag">v2.4_live</span>
+                </div>
+            </a>
 
             <!-- Nav Links -->
             <div class="nav-links">
-                <a href="/" class="nav-link active">Jobs</a>
-                <a href="/resume" class="nav-link">Resume</a>
-                <a href="#" class="nav-link">About</a>
+                <a href="/" class="nav-link active">// JOBS</a>
+                <a href="/resume" class="nav-link">// RESUME</a>
+                <a href="#about" class="nav-link">// ABOUT</a>
             </div>
 
             <!-- Nav Actions -->
             <div class="nav-actions">
-                <button class="btn-outline-nav" id="refreshBtn" title="Refresh jobs">
+                <button class="btn-refresh-nav" id="refreshBtn" title="Refresh jobs (r)">
                     <span class="material-symbols-outlined">refresh</span>
+                    <span class="btn-text">REFRESH</span>
                 </button>
+                <a href="/resume" class="btn-primary-nav">
+                    <span>BUILD RESUME</span>
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -62,8 +70,8 @@
         <header class="hero">
             <!-- Tagline Badge -->
             <div class="tagline-badge">
-                <span class="material-symbols-outlined tagline-icon">lightbulb</span>
-                <span>Tech & Non-Tech Roles · Live Updates</span>
+                <span class="tagline-indicator"></span>
+                <span>HARVESTING REAL-TIME TECH & NON-TECH OPPORTUNITIES</span>
             </div>
 
             <!-- Display Headline -->
@@ -74,34 +82,44 @@
 
             <!-- Subhead -->
             <p class="hero-subhead">
-                Curated tech & business roles, refreshed daily.
+                Curated tech & business jobs from LinkedIn, refreshed continuously. Monospace terminal readout on cream paper.
             </p>
 
             <!-- Stats Strip -->
             <div class="stats-strip">
                 <div class="stat-chip">
                     <span class="stat-value" id="totalJobs">—</span>
-                    <span class="stat-label">Open Roles</span>
+                    <span class="stat-label">ACTIVE ROLES</span>
                 </div>
                 <div class="stat-divider"></div>
                 <div class="stat-chip">
                     <span class="stat-value" id="totalDomains">—</span>
-                    <span class="stat-label">Domains</span>
+                    <span class="stat-label">CATEGORIES</span>
                 </div>
                 <div class="stat-divider"></div>
                 <div class="stat-chip">
                     <span class="stat-value" id="totalCompanies">—</span>
-                    <span class="stat-label">Companies</span>
+                    <span class="stat-label">COMPANIES</span>
                 </div>
             </div>
         </header>
+
+        <!-- ============================================================
+             CANARY YELLOW MARQUEE BANNER
+             ============================================================ -->
+        <div class="marquee-strip">
+            <div class="marquee-track">
+                <span>✦ LIVE LINKEDIN HARVEST ✦ ZERO SPAM ✦ 100% VERIFIED POSITIONS ✦ LATEX RESUME COMPILER ✦ REAL-TIME DISCOVERY ✦ DEVELOPER & BUSINESS ROLES ✦ HARD OFFSET RETRO SHADOWS ✦ CRAYON-CODED TERMINAL ✦</span>
+                <span>✦ LIVE LINKEDIN HARVEST ✦ ZERO SPAM ✦ 100% VERIFIED POSITIONS ✦ LATEX RESUME COMPILER ✦ REAL-TIME DISCOVERY ✦ DEVELOPER & BUSINESS ROLES ✦ HARD OFFSET RETRO SHADOWS ✦ CRAYON-CODED TERMINAL ✦</span>
+            </div>
+        </div>
 
         <!-- ============================================================
              FILTERS
              ============================================================ -->
         <section class="filters-section">
             <div class="filters-row">
-                <!-- Role tag filter: dropdown multi-select (behaves like the other filters) -->
+                <!-- Role tag filter: dropdown multi-select -->
                 <div class="domain-filter-wrapper">
                     <button type="button" class="domain-filter-trigger" id="domainFilterTrigger" aria-haspopup="listbox" aria-expanded="false">
                         <span class="material-symbols-outlined domain-icon">sell</span>
@@ -119,7 +137,7 @@
                         type="text"
                         id="searchInput"
                         class="search-input"
-                        placeholder="Search roles, companies..."
+                        placeholder="> search roles, companies, keywords..."
                     />
                 </div>
                 <div class="location-filter-wrapper">
@@ -144,7 +162,7 @@
              RESULTS HEADER
              ============================================================ -->
         <div class="results-header">
-            <p class="results-count" id="resultsCount">Loading...</p>
+            <p class="results-count" id="resultsCount">Loading jobs...</p>
             <p class="results-hint">Press <kbd>/</kbd> to search · <kbd>r</kbd> to refresh</p>
         </div>
 
@@ -166,18 +184,20 @@
         <!-- ============================================================
              FOOTER
              ============================================================ -->
-        <footer class="page-footer">
+        <footer class="page-footer" id="about">
             <div class="footer-inner">
                 <div class="footer-brand">
                     <div class="logo-mark small">
-                        <span class="logo-monogram">rb</span>
+                        <span class="logo-duck-glyph small">🦆</span>
                     </div>
                     <span class="footer-brand-name">RoleBoard</span>
+                    <span class="footer-badge">NEO-BRUTALIST // TERMINAL EDITION</span>
                 </div>
-                <p class="footer-copy">Curated tech & non-tech opportunities · Updated daily from LinkedIn</p>
+                <p class="footer-copy">Curated tech & non-tech opportunities refreshed continuously from LinkedIn. Built with MotherDuck crayon-coded design system.</p>
                 <div class="footer-links">
-                    <a href="#" class="footer-link">About</a>
-                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="/" class="footer-link">Jobs Terminal</a>
+                    <a href="/resume" class="footer-link">LaTeX Resume Engine</a>
+                    <a href="https://github.com/Dinesh-codeswell/Job-Dashboard" target="_blank" rel="noopener" class="footer-link">GitHub</a>
                 </div>
             </div>
         </footer>
@@ -187,21 +207,21 @@
     <!-- ============================================================
          JAVASCRIPT
          ============================================================ -->
-    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/api.js') }}?v=3"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/sparkles.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=4"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Sparkles
+            // Initialize Subtle Sketch Particles
             try {
                 new Sparkles('sparkles-bg', {
-                    minSize: 0.6,
-                    maxSize: 1.4,
-                    speed: 0.8,
-                    particleColor: '#1a3300',
-                    particleDensity: 60,
+                    minSize: 0.5,
+                    maxSize: 1.2,
+                    speed: 0.5,
+                    particleColor: '#383838',
+                    particleDensity: 28,
                     background: 'transparent'
                 });
             } catch (error) {

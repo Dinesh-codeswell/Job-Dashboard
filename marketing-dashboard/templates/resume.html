@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Builder — RoleBoard</title>
+    <title>RoleBoard — LaTeX Resume Engine</title>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts: JetBrains Mono & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -24,26 +24,33 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body class="resume-body">
     <!-- ============================================================
-         NAV BAR (same style as main dashboard)
+         TOP NAVIGATION BAR
          ============================================================ -->
     <nav class="nav-bar resume-nav">
         <div class="nav-inner">
-            <div class="nav-logo">
+            <a href="/" class="nav-logo">
                 <div class="logo-mark">
-                    <span class="logo-monogram">rb</span>
+                    <span class="logo-duck-glyph">🦆</span>
                 </div>
-                <span class="logo-text">RoleBoard</span>
-            </div>
+                <div class="logo-text-group">
+                    <span class="logo-text">ROLEBOARD</span>
+                    <span class="logo-terminal-tag">latex_engine</span>
+                </div>
+            </a>
             <div class="nav-links">
-                <a href="/" class="nav-link">Jobs</a>
-                <a href="/resume" class="nav-link active">Resume</a>
-                <a href="#" class="nav-link">About</a>
+                <a href="/" class="nav-link">// JOBS</a>
+                <a href="/resume" class="nav-link active">// RESUME</a>
+                <a href="/#about" class="nav-link">// ABOUT</a>
             </div>
             <div class="nav-actions">
+                <a href="/" class="btn-refresh-nav" title="Back to jobs dashboard">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span class="btn-text">JOBS</span>
+                </a>
             </div>
         </div>
     </nav>

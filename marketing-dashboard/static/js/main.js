@@ -184,10 +184,10 @@ const RoleBoard = {
 
         if (!this.jobs || this.jobs.length === 0) {
             grid.innerHTML = `
-                <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 80px 24px;">
-                    <p style="font-size: 48px; margin-bottom: 16px;">📭</p>
-                    <h2 style="font-family: var(--font-inter); font-weight: 600; font-size: 20px; margin-bottom: 8px;">No roles found</h2>
-                    <p style="color: var(--color-pencil-gray); font-size: 14px;">Try a different filter or check back later</p>
+                <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 56px 24px; background: var(--color-frost-white); border: 2px solid var(--color-charcoal-ink); border-radius: var(--radius-cards); box-shadow: var(--shadow-card);">
+                    <p style="font-size: 40px; margin-bottom: 12px; line-height: 1;">🦆</p>
+                    <h2 style="font-family: var(--font-aeonik-mono); font-weight: 700; font-size: 18px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.04em;">// NO ROLES FOUND</h2>
+                    <p style="color: var(--color-graphite); font-family: var(--font-aeonik-mono); font-size: 13px; letter-spacing: 0.02em;">Configure Notion database or refine your active search and filters.</p>
                 </div>
             `;
             return;
