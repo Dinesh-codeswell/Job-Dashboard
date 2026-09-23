@@ -27,10 +27,12 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-# Load environment variables - look in project root AND current directory
-# The .env file with API keys is at the project root level
+# Load environment variables - look in marketing-dashboard/, project root, AND CWD
+load_dotenv(dotenv_path=Path(__file__).parent / '.env')
 load_dotenv(dotenv_path=Path(__file__).parent.parent / '.env')
 load_dotenv()  # Also check CWD as fallback
+
+import threading
 
 # Create Flask app
 app = Flask(__name__)
@@ -41,6 +43,26 @@ NOTION_API_KEY = os.getenv("NOTION_API_KEY")
 NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+
+# Global persistent HTTP session for Notion requests (enables HTTP keep-alive / TLS reuse)
+_notion_session = None
+
+def _get_notion_session():
+    global _notion_session
+    if _notion_session is None and REQUESTS_AVAILABLE:
+        try:
+            _notion_session = requests_lib.Session()
+            adapter = requests_lib.adapters.HTTPAdapter(
+                pool_connections=10,
+                pool_maxsize=10,
+                max_retries=2
+            )
+            _notion_session.mount("https://", adapter)
+            _notion_session.mount("http://", adapter)
+        except Exception as e:
+            print(f"Warning: Could not initialize requests session: {e}")
+            _notion_session = None
+    return _notion_session
 
 # Prioritized list of free OpenRouter models based on user rankings/scores
 FALLBACK_MODELS = [
@@ -64,10 +86,19 @@ FALLBACK_MODELS = [
 ]
 
 
-# Cache for jobs (to avoid hitting Notion API on every request)
+# High-performance Stale-While-Revalidate Cache configuration
+CACHE_DIR = Path(tempfile.gettempdir()) if os.getenv("VERCEL") else Path(__file__).parent
+CACHE_FILE = CACHE_DIR / "jobs_cache.json"
+CACHE_FRESH_SECONDS = 180      # 3 minutes: cache considered completely fresh
+CACHE_MAX_AGE_SECONDS = 86400  # 24 hours: serve stale from memory/disk while background fetching
+
 _jobs_cache = []
 _jobs_cache_timestamp = None
-CACHE_DURATION = 120  # seconds
+_jobs_stats_cache = None
+_jobs_locations_cache = None
+_cache_lock = threading.Lock()
+_fetch_lock = threading.Lock()
+_is_fetching = False
 
 # ============================================================================
 # ROLES CONFIGURATION
@@ -546,13 +577,15 @@ def detect_experience_level(role_title: str) -> str:
 
 
 # ============================================================================
-# NOTION API READER
+# NOTION API READER & DATA FETCHING
 # ============================================================================
 
 def _notion_request(method, endpoint, body=None):
-    """Make a direct HTTP request to the Notion API (bypasses library version issues)."""
-    import urllib.request, urllib.error, json
-
+    """
+    Make an optimized HTTP request to the Notion API.
+    Uses persistent HTTP keep-alive connection pooling via requests.Session,
+    with automatic fallback to urllib.request if needed.
+    """
     url = f"https://api.notion.com/v1/{endpoint}"
     headers = {
         "Authorization": f"Bearer {NOTION_API_KEY}",
@@ -560,11 +593,32 @@ def _notion_request(method, endpoint, body=None):
         "Notion-Version": "2022-06-28"
     }
 
+    # Try connection-pooled requests session
+    session = _get_notion_session()
+    if session:
+        try:
+            resp = session.request(
+                method=method,
+                url=url,
+                json=body,
+                headers=headers,
+                timeout=20
+            )
+            if resp.status_code >= 400:
+                raise Exception(f"Notion API HTTP {resp.status_code}: {resp.text}")
+            return resp.json()
+        except Exception as e:
+            if "Notion API HTTP" in str(e):
+                raise
+            # Network blip on session pool, fall through to urllib fallback
+
+    # Fallback to direct urllib.request
+    import urllib.request, urllib.error, json
     data = json.dumps(body).encode("utf-8") if body else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
 
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
@@ -572,7 +626,12 @@ def _notion_request(method, endpoint, body=None):
 
 
 def fetch_jobs_from_notion() -> list:
-    """Fetch all jobs from the Notion database using direct HTTP requests."""
+    """
+    Fetch all jobs from the Notion database.
+    - Requests descending sort by Date Posted so newest jobs arrive first
+    - Uses persistent keep-alive connections to avoid SSL handshake overhead
+    - Safely extracts text, cleans up properties, and pre-indexes search terms
+    """
     if not NOTION_API_KEY or not NOTION_DATABASE_ID:
         print("Notion API key or database ID not configured")
         return []
@@ -581,13 +640,30 @@ def fetch_jobs_from_notion() -> list:
         all_jobs = []
         has_more = True
         start_cursor = None
+        use_sorts = True
+        sort_config = [{"property": "Date Posted", "direction": "descending"}]
 
         while has_more:
             query_body = {"page_size": 100}
             if start_cursor:
                 query_body["start_cursor"] = start_cursor
+            if use_sorts and sort_config:
+                query_body["sorts"] = sort_config
 
-            response = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", query_body)
+            try:
+                response = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", query_body)
+            except Exception as e:
+                # If Notion rejects sorting (e.g. property mismatch), retry query without sorts
+                if use_sorts and ("sort" in str(e).lower() or "validation_error" in str(e).lower() or "HTTP 400" in str(e)):
+                    print(f"Notice: Notion sort rejected ({e}), falling back to unsorted query")
+                    use_sorts = False
+                    sort_config = None
+                    if "sorts" in query_body:
+                        del query_body["sorts"]
+                    response = _notion_request("POST", f"databases/{NOTION_DATABASE_ID}/query", query_body)
+                else:
+                    raise
+
             has_more = response.get("has_more", False)
             start_cursor = response.get("next_cursor")
 
@@ -600,7 +676,7 @@ def fetch_jobs_from_notion() -> list:
                 if company_prop.get("type") == "title":
                     title_list = company_prop.get("title", [])
                     if title_list:
-                        company = title_list[0].get("plain_text", "")
+                        company = "".join(t.get("plain_text", "") for t in title_list).strip()
 
                 # Extract Position (Rich text)
                 role = ""
@@ -608,7 +684,7 @@ def fetch_jobs_from_notion() -> list:
                 if position_prop.get("type") == "rich_text":
                     rt_list = position_prop.get("rich_text", [])
                     if rt_list:
-                        role = rt_list[0].get("plain_text", "")
+                        role = "".join(t.get("plain_text", "") for t in rt_list).strip()
 
                 # Extract Location (Rich text)
                 location = ""
@@ -616,13 +692,13 @@ def fetch_jobs_from_notion() -> list:
                 if location_prop.get("type") == "rich_text":
                     loc_list = location_prop.get("rich_text", [])
                     if loc_list:
-                        location = loc_list[0].get("plain_text", "")
+                        location = "".join(t.get("plain_text", "") for t in loc_list).strip()
 
                 # Extract Application Link (URL)
                 job_url = ""
                 url_prop = props.get("Application Link", {})
                 if url_prop.get("type") == "url":
-                    job_url = url_prop.get("url", "")
+                    job_url = url_prop.get("url", "") or ""
 
                 # Extract Date Posted
                 date_str = ""
@@ -631,6 +707,9 @@ def fetch_jobs_from_notion() -> list:
                     date_data = date_prop.get("date", {})
                     if date_data:
                         date_str = date_data.get("start", "")
+
+                created_time = page.get("created_time", "")
+                fallback_date = created_time[:10] if created_time else datetime.now().strftime("%Y-%m-%d")
 
                 # Extract role domain and experience level
                 domain = categorize_role(role)
@@ -642,10 +721,10 @@ def fetch_jobs_from_notion() -> list:
                     "role": role or "Unknown",
                     "location": location or "India",
                     "url": job_url or "",
-                    "date_added": date_str or datetime.now().strftime("%Y-%m-%d"),
+                    "date_added": date_str or fallback_date,
                     "domain": domain,
                     "level": experience_level,
-                    "created_time": page.get("created_time", ""),
+                    "created_time": created_time,
                     "last_edited_time": page.get("last_edited_time", ""),
                 })
 
@@ -658,27 +737,212 @@ def fetch_jobs_from_notion() -> list:
         return []
 
 
+# ============================================================================
+# HIGH-PERFORMANCE CACHE & AGGREGATION ENGINE
+# ============================================================================
+
+def _compute_aggregations(jobs):
+    """Pre-compute dashboard stats and locations in a single pass O(N)."""
+    total = len(jobs)
+    domains = {}
+    companies = {}
+    locations_map = {}
+
+    for j in jobs:
+        # Domain count
+        d = j.get("domain", "Other")
+        domains[d] = domains.get(d, 0) + 1
+
+        # Company count
+        c = j.get("company", "Unknown")
+        companies[c] = companies.get(c, 0) + 1
+
+        # Location cleanup & normalization
+        loc = (j.get("location") or "").strip()
+        if loc and loc.lower() not in ["", "india", "unknown"]:
+            normalized = loc.split(",")[0].split("·")[0].split("\u00b7")[0].strip()
+            if normalized and normalized.lower() not in ["", "india"]:
+                locations_map[normalized] = locations_map.get(normalized, 0) + 1
+
+    sorted_locations = [loc for loc, _ in sorted(locations_map.items(), key=lambda x: (-x[1], x[0]))]
+
+    stats = {
+        "total_jobs": total,
+        "domains": dict(sorted(domains.items(), key=lambda x: x[1], reverse=True)),
+        "companies": dict(sorted(companies.items(), key=lambda x: x[1], reverse=True)[:20]),
+        "total_companies": len(companies),
+    }
+
+    return stats, sorted_locations
+
+
+def _update_cache(jobs, save_disk=True):
+    """Update in-memory cache, build fast-search indexes, and persist to disk."""
+    global _jobs_cache, _jobs_cache_timestamp, _jobs_stats_cache, _jobs_locations_cache
+
+    if not jobs:
+        return
+
+    # Add lowercase search helper fields for high-speed in-memory filtering
+    for j in jobs:
+        role = j.get("role") or ""
+        company = j.get("company") or ""
+        location = j.get("location") or ""
+        domain = j.get("domain") or "Other"
+        level = j.get("level") or ""
+
+        j["_search_text"] = f"{role} {company} {location}".lower()
+        j["_domain_lower"] = domain.lower()
+        j["_level_lower"] = level.lower()
+        j["_location_lower"] = location.lower()
+
+    # Sort descending by date_added and created_time (most recent first)
+    jobs.sort(key=lambda j: (j.get("date_added") or "", j.get("created_time") or ""), reverse=True)
+
+    stats, locations = _compute_aggregations(jobs)
+    now = datetime.now()
+
+    with _cache_lock:
+        _jobs_cache = jobs
+        _jobs_cache_timestamp = now
+        _jobs_stats_cache = stats
+        _jobs_locations_cache = locations
+
+    if save_disk:
+        _save_disk_cache(jobs, now)
+
+
+def _load_disk_cache():
+    """Load cached jobs from disk on server startup (< 5ms)."""
+    global _jobs_cache, _jobs_cache_timestamp
+    try:
+        if CACHE_FILE.exists():
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            jobs = data.get("jobs", [])
+            ts_str = data.get("timestamp")
+            if jobs:
+                _update_cache(jobs, save_disk=False)
+                if ts_str:
+                    try:
+                        _jobs_cache_timestamp = datetime.fromisoformat(ts_str)
+                    except Exception:
+                        _jobs_cache_timestamp = datetime.now() - timedelta(minutes=5)
+                print(f" Loaded {len(jobs)} jobs from disk cache (saved at {_jobs_cache_timestamp})")
+                return True
+    except Exception as e:
+        print(f"Notice: Could not load disk cache: {e}")
+    return False
+
+
+def _save_disk_cache(jobs, timestamp):
+    """Save clean jobs to disk cache atomically."""
+    try:
+        clean_jobs = []
+        for j in jobs:
+            clean = {k: v for k, v in j.items() if not k.startswith("_")}
+            clean_jobs.append(clean)
+
+        data = {
+            "timestamp": timestamp.isoformat(),
+            "count": len(clean_jobs),
+            "jobs": clean_jobs
+        }
+
+        # Write to temporary file first then atomic rename
+        temp_file = CACHE_FILE.with_suffix(".tmp")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        temp_file.replace(CACHE_FILE)
+    except Exception as e:
+        print(f"Notice: Could not save disk cache: {e}")
+
+
+def _trigger_background_refresh():
+    """Trigger background refresh thread (Stale-While-Revalidate)."""
+    global _is_fetching
+
+    with _fetch_lock:
+        if _is_fetching:
+            return  # Already refreshing, do not duplicate
+        _is_fetching = True
+
+    def _worker():
+        global _is_fetching
+        try:
+            fresh_jobs = fetch_jobs_from_notion()
+            if fresh_jobs:
+                _update_cache(fresh_jobs, save_disk=True)
+                print(f" Background Notion refresh complete: {len(fresh_jobs)} jobs active")
+        except Exception as e:
+            print(f"Background refresh error: {e}")
+        finally:
+            with _fetch_lock:
+                _is_fetching = False
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+
+
 def get_jobs(force_refresh: bool = False) -> list:
-    """Get jobs with caching."""
+    """
+    Get jobs with Stale-While-Revalidate (SWR) caching.
+    - If cache is fresh (< 3 mins): returns immediately (0ms).
+    - If cache is stale: returns immediately from memory (0ms) and refreshes in background.
+    - If memory empty on startup: loads from persistent disk cache (< 5ms) and refreshes in background.
+    - If no cache exists anywhere: synchronous fetch is performed once and cached.
+    """
     global _jobs_cache, _jobs_cache_timestamp
 
     now = datetime.now()
 
-    if (not force_refresh
-        and _jobs_cache_timestamp
-        and (now - _jobs_cache_timestamp).seconds < CACHE_DURATION
-        and _jobs_cache):
+    # User explicitly requested a forced refresh (e.g. Refresh button)
+    if force_refresh:
+        fresh_jobs = fetch_jobs_from_notion()
+        if fresh_jobs:
+            _update_cache(fresh_jobs, save_disk=True)
+            return _jobs_cache
         return _jobs_cache
 
-    jobs = fetch_jobs_from_notion()
+    # Check in-memory cache
+    with _cache_lock:
+        cache_exists = bool(_jobs_cache)
+        is_fresh = False
+        if cache_exists and _jobs_cache_timestamp:
+            age = (now - _jobs_cache_timestamp).total_seconds()
+            is_fresh = age < CACHE_FRESH_SECONDS
 
-    # Sort by date_added (most recent first)
-    jobs.sort(key=lambda j: j.get("date_added", ""), reverse=True)
+    # 1. Fresh cache: instant return
+    if cache_exists and is_fresh:
+        return _jobs_cache
 
-    _jobs_cache = jobs
-    _jobs_cache_timestamp = now
+    # 2. Stale cache: instant return + trigger background refresh
+    if cache_exists and not is_fresh:
+        _trigger_background_refresh()
+        return _jobs_cache
 
-    return jobs
+    # 3. Memory cache empty: check disk cache
+    if not cache_exists:
+        if _load_disk_cache():
+            with _cache_lock:
+                age = (now - _jobs_cache_timestamp).total_seconds() if _jobs_cache_timestamp else 9999
+            if age >= CACHE_FRESH_SECONDS:
+                _trigger_background_refresh()
+            return _jobs_cache
+
+    # 4. Cold start without disk cache: fetch once and cache
+    fresh_jobs = fetch_jobs_from_notion()
+    if fresh_jobs:
+        _update_cache(fresh_jobs, save_disk=True)
+
+    return _jobs_cache
+
+
+# Initialize disk cache on module load for instant first response
+try:
+    _load_disk_cache()
+except Exception:
+    pass
 
 
 # ============================================================================
@@ -689,6 +953,7 @@ def get_jobs(force_refresh: bool = False) -> list:
 def index():
     """Main dashboard page."""
     return render_template('index.html')
+
 
 # ============================================================================
 # API ENDPOINTS
@@ -718,14 +983,17 @@ def api_jobs():
 
         if selected_domains and "all" not in [d.lower() for d in selected_domains]:
             domains_lower = {d.lower() for d in selected_domains}
-            jobs = [j for j in jobs if j.get("domain", "").lower() in domains_lower]
+            jobs = [
+                j for j in jobs
+                if j.get("_domain_lower", j.get("domain", "").lower()) in domains_lower
+            ]
 
         # Apply location filter
         if location:
             location_lower = location.lower().strip()
             jobs = [
                 j for j in jobs
-                if location_lower in j.get("location", "").lower()
+                if location_lower in j.get("_location_lower", j.get("location", "").lower())
             ]
 
         # Apply experience level filter
@@ -733,17 +1001,15 @@ def api_jobs():
             level_lower = level.lower().strip()
             jobs = [
                 j for j in jobs
-                if j.get("level", "").lower() == level_lower
+                if j.get("_level_lower", j.get("level", "").lower()) == level_lower
             ]
 
-        # Apply search filter
+        # Apply search filter (optimized against pre-indexed lower-cased text)
         if search:
             search_lower = search.lower()
             jobs = [
                 j for j in jobs
-                if search_lower in j.get("role", "").lower()
-                or search_lower in j.get("company", "").lower()
-                or search_lower in j.get("location", "").lower()
+                if search_lower in j.get("_search_text", f"{j.get('role','')} {j.get('company','')} {j.get('location','')}".lower())
             ]
 
         # Calculate pagination
@@ -753,16 +1019,29 @@ def api_jobs():
         end = start + limit
         paginated_jobs = jobs[start:end] if start < total else []
 
-        return jsonify({
+        # Return clean jobs without internal _ keys
+        clean_paginated = []
+        for j in paginated_jobs:
+            clean_paginated.append({k: v for k, v in j.items() if not k.startswith("_")})
+
+        response_data = {
             "success": True,
-            "jobs": paginated_jobs,
+            "jobs": clean_paginated,
             "pagination": {
                 "page": page,
                 "limit": limit,
                 "total": total,
                 "total_pages": total_pages,
             }
-        })
+        }
+
+        # Optional metadata inclusion to reduce initial round-trips
+        if request.args.get('include_meta', '').lower() == 'true':
+            with _cache_lock:
+                response_data["stats"] = _jobs_stats_cache
+                response_data["locations"] = _jobs_locations_cache
+
+        return jsonify(response_data)
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -770,29 +1049,18 @@ def api_jobs():
 
 @app.route('/api/stats', methods=['GET'])
 def api_stats():
-    """Get dashboard statistics."""
+    """Get dashboard statistics (instant O(1) response from pre-aggregated cache)."""
     try:
-        jobs = get_jobs()
+        get_jobs()  # Ensure cache is initialized / background refreshed if stale
+        with _cache_lock:
+            stats = _jobs_stats_cache
 
-        total = len(jobs)
-        domains = {}
-        for job in jobs:
-            d = job.get("domain", "Other")
-            domains[d] = domains.get(d, 0) + 1
-
-        companies = {}
-        for job in jobs:
-            c = job.get("company", "Unknown")
-            companies[c] = companies.get(c, 0) + 1
+        if stats is None:
+            stats, _ = _compute_aggregations(_jobs_cache)
 
         return jsonify({
             "success": True,
-            "stats": {
-                "total_jobs": total,
-                "domains": dict(sorted(domains.items(), key=lambda x: x[1], reverse=True)),
-                "companies": dict(sorted(companies.items(), key=lambda x: x[1], reverse=True)[:20]),
-                "total_companies": len(companies),
-            }
+            "stats": stats
         })
 
     except Exception as e:
@@ -835,26 +1103,18 @@ def api_levels():
 
 @app.route('/api/locations', methods=['GET'])
 def api_locations():
-    """Get unique locations from all jobs."""
+    """Get unique locations from all jobs (instant O(1) response from pre-aggregated cache)."""
     try:
-        jobs = get_jobs()
-        
-        # Extract unique locations, clean them up
-        locations_map = {}
-        for job in jobs:
-            loc = job.get("location", "").strip()
-            if loc and loc.lower() not in ["", "india", "unknown"]:
-                # Normalize: split on common delimiters and take the main city
-                normalized = loc.split(",")[0].split("·")[0].split("\u00b7")[0].strip()
-                if normalized and normalized.lower() not in ["", "india"]:
-                    locations_map[normalized] = locations_map.get(normalized, 0) + 1
-        
-        # Sort by count (most jobs first), then alphabetically
-        sorted_locations = sorted(locations_map.items(), key=lambda x: (-x[1], x[0]))
-        
+        get_jobs()  # Ensure cache is initialized / background refreshed if stale
+        with _cache_lock:
+            locations = _jobs_locations_cache
+
+        if locations is None:
+            _, locations = _compute_aggregations(_jobs_cache)
+
         return jsonify({
             "success": True,
-            "locations": [loc for loc, _ in sorted_locations]
+            "locations": locations or []
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -863,7 +1123,16 @@ def api_locations():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
-    return jsonify({"status": "healthy", "source": "notion"})
+    with _cache_lock:
+        cache_count = len(_jobs_cache)
+        cache_ts = _jobs_cache_timestamp.isoformat() if _jobs_cache_timestamp else None
+
+    return jsonify({
+        "status": "healthy",
+        "source": "notion",
+        "cached_jobs": cache_count,
+        "cache_timestamp": cache_ts
+    })
 
 
 @app.route('/api/refresh', methods=['POST'])

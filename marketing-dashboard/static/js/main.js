@@ -11,25 +11,27 @@ const RoleBoard = {
     jobs: [],
     stats: null,
     locations: [],
+    domains: [],
 
-    // Loading
+    // Loading & Request tracking
     isLoading: false,
+    currentRequestId: 0,
 
     /**
      * Initialize the dashboard
      */
     async init() {
         try {
-            // Load initial data
-            await Promise.all([
-                this.loadStats(),
-                this.loadLocations(),
-                this.loadDomains(),
-                this.loadJobs(1)
-            ]);
-
-            // Setup event listeners
+            // Setup event listeners immediately so user interactions are never blocked
             this.setupEventListeners();
+
+            // Load jobs immediately (highest visual priority for real-time responsiveness)
+            this.loadJobs(1);
+
+            // Concurrently fetch domains, locations, and stats in background
+            this.loadDomains();
+            this.loadLocations();
+            this.loadStats();
 
             console.log('✅ RoleBoard initialized');
         } catch (error) {
@@ -43,31 +45,30 @@ const RoleBoard = {
     // ========================================================================
 
     async loadJobs(page = 1) {
-        if (this.isLoading) return;
+        const requestId = ++this.currentRequestId;
         this.isLoading = true;
-        this.showSkeleton();
+
+        const grid = document.getElementById('jobsGrid');
+        // If no jobs exist yet, display skeleton cards.
+        // If jobs are already rendered, gently dim them without jarring DOM wipe.
+        if (!this.jobs || this.jobs.length === 0) {
+            this.showSkeleton();
+        } else if (grid) {
+            grid.classList.add('loading-fade');
+        }
 
         try {
-            const params = { page, limit: this.limit };
-            if (this.filters.domains && this.filters.domains.length) {
-                params.domains = this.filters.domains.join(',');
-            }
-            if (this.filters.search) {
-                params.search = this.filters.search;
-            }
-            if (this.filters.location) {
-                params.location = this.filters.location;
-            }
-            if (this.filters.level) {
-                params.level = this.filters.level;
-            }
-
             const response = await API.getJobs(page, this.limit, {
                 domains: this.filters.domains.length ? this.filters.domains.join(',') : '',
                 search: this.filters.search,
                 location: this.filters.location,
                 level: this.filters.level
             });
+
+            // If user performed another action while this request was in flight, ignore stale response
+            if (requestId !== this.currentRequestId) {
+                return;
+            }
 
             if (response.success) {
                 this.jobs = response.jobs || [];
@@ -80,19 +81,24 @@ const RoleBoard = {
                 this.updateResultsCount(response.pagination?.total || 0);
 
                 // Update stats total from API
-                if (this.stats) {
-                    this.stats.total_jobs = response.pagination?.total || 0;
+                if (this.stats && response.pagination?.total !== undefined) {
+                    this.stats.total_jobs = response.pagination.total;
                     this.renderStats();
                 }
             }
         } catch (error) {
-            console.error('Error loading jobs:', error);
-            if (this.jobs.length === 0) {
-                this.hideSkeleton();
-                this.showError('Failed to load jobs. Please try again.');
+            if (requestId === this.currentRequestId) {
+                console.error('Error loading jobs:', error);
+                if (this.jobs.length === 0) {
+                    this.hideSkeleton();
+                    this.showError('Failed to load jobs. Please try again.');
+                }
             }
         } finally {
-            this.isLoading = false;
+            if (requestId === this.currentRequestId) {
+                this.isLoading = false;
+                if (grid) grid.classList.remove('loading-fade');
+            }
         }
     },
 
@@ -445,14 +451,22 @@ const RoleBoard = {
     },
 
     async handleRefresh() {
+        const btn = document.getElementById('refreshBtn');
+        if (btn) btn.classList.add('rotating');
         try {
+            API.clearCache();
             await API.refreshData();
             await Promise.all([
                 this.loadStats(),
+                this.loadLocations(),
                 this.loadJobs(this.currentPage)
             ]);
         } catch (error) {
             console.error('Refresh failed:', error);
+        } finally {
+            if (btn) {
+                setTimeout(() => btn.classList.remove('rotating'), 400);
+            }
         }
     },
 
