@@ -2179,22 +2179,33 @@ def _compile_latex_local(latex_source, output_dir):
 
         log_path = os.path.join(output_dir, "resume.log")
         error_msg = "LaTeX compilation failed. Check your syntax."
+        error_line = None
+        culprit = None
         if os.path.isfile(log_path):
             with open(log_path, "r", encoding="utf-8", errors="replace") as f:
                 log_content = f.read()
+                line_matches = re.findall(r"l\.(\d+)", log_content)
+                if line_matches:
+                    try:
+                        error_line = int(line_matches[0])
+                    except (ValueError, TypeError):
+                        pass
                 errors = re.findall(r"! (.*?)\n", log_content, re.MULTILINE)
                 if errors:
                     error_msg = "LaTeX error: " + errors[0][:300]
-        return None, error_msg
+                culprits = re.findall(r"l\.\d+\s*(.*?)\n", log_content)
+                if culprits:
+                    culprit = culprits[0].strip()[:80]
+        return None, {"error": error_msg, "line": error_line, "culprit": culprit}
 
     except Exception as e:
-        return None, f"Compilation error: {str(e)}"
+        return None, {"error": f"Compilation error: {str(e)}", "line": None, "culprit": None}
 
 
 def _compile_latex_online(latex_source):
     """Compile LaTeX using texlive.net API."""
     if not REQUESTS_AVAILABLE:
-        return None, "'requests' library not available."
+        return None, {"error": "'requests' library not available.", "line": None, "culprit": None}
 
     try:
         files = [
@@ -2226,17 +2237,18 @@ def _compile_latex_online(latex_source):
                 return pdf_path, None
 
         content_type = response.headers.get("content-type", "")
+        line_matches = re.findall(r"l\.(\d+)", response.text)
+        error_line = int(line_matches[0]) if line_matches else None
         if "html" in content_type.lower():
-            return None, "Online compilation failed. Check your LaTeX syntax."
-        return None, f"Online compilation failed: {response.text[:300]}"
-
+            return None, {"error": "Online compilation failed. Check your LaTeX syntax.", "line": error_line, "culprit": None}
+        return None, {"error": f"Online compilation failed: {response.text[:300]}", "line": error_line, "culprit": None}
 
     except requests_lib.exceptions.Timeout:
-        return None, "Online compilation timed out."
+        return None, {"error": "Online compilation timed out.", "line": None, "culprit": None}
     except requests_lib.exceptions.ConnectionError:
-        return None, "Could not reach the online compiler."
+        return None, {"error": "Could not reach the online compiler.", "line": None, "culprit": None}
     except Exception as e:
-        return None, f"Online compilation error: {str(e)}"
+        return None, {"error": f"Online compilation error: {str(e)}", "line": None, "culprit": None}
 
 
 @app.route('/resume')
@@ -2263,7 +2275,13 @@ def api_latex_build():
             pdf_path, error = _compile_latex_online(latex_source)
 
         if pdf_path is None:
-            return jsonify({"success": False, "error": error}), 400
+            err_dict = error if isinstance(error, dict) else {"error": str(error), "line": None, "culprit": None}
+            return jsonify({
+                "success": False,
+                "error": err_dict.get("error", "Compilation failed"),
+                "line": err_dict.get("line"),
+                "culprit": err_dict.get("culprit")
+            }), 400
 
         with open(pdf_path, "rb") as f:
             pdf_data = f.read()
@@ -2320,6 +2338,174 @@ def api_latex_status():
         "online_available": REQUESTS_AVAILABLE,
         "pdflatex_path": pdflatex_path
     })
+
+
+# ============================================================================
+# RESUME-AS-CODE (JSON Schema <-> Jinja2 LaTeX Template Rendering)
+# ============================================================================
+
+try:
+    from resume_schemas import DEFAULT_RESUME_DATA, render_latex_from_schema
+except ImportError:
+    DEFAULT_RESUME_DATA = {}
+    render_latex_from_schema = None
+
+
+@app.route('/api/resume/schema-default', methods=['GET'])
+def api_resume_schema_default():
+    """Get the default structured resume data schema (JSON)."""
+    return jsonify({
+        "success": True,
+        "data": DEFAULT_RESUME_DATA
+    })
+
+
+@app.route('/api/resume/render-from-data', methods=['POST'])
+def api_resume_render_from_data():
+    """Render a clean LaTeX source string from structured JSON resume data."""
+    try:
+        body = request.get_json(force=True)
+        template_name = body.get('template', 'jake')
+        resume_data = body.get('data')
+
+        if not resume_data:
+            return jsonify({"success": False, "error": "No resume data provided"}), 400
+
+        # Unwrap if client sent { data: { basics: ... } }
+        if isinstance(resume_data, dict) and 'data' in resume_data and isinstance(resume_data['data'], dict) and 'basics' in resume_data['data']:
+            resume_data = resume_data['data']
+
+        if not render_latex_from_schema:
+            return jsonify({"success": False, "error": "Template engine not loaded"}), 500
+
+        latex_source = render_latex_from_schema(template_name, resume_data)
+        return jsonify({
+            "success": True,
+            "template": template_name,
+            "latex_source": latex_source,
+            "latex": latex_source
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================================
+# DYNAMIC RSS 2.0 FEED & OUTBOUND WEBHOOK DISPATCHER
+# ============================================================================
+
+@app.route('/api/feed/rss', methods=['GET'])
+def api_feed_rss():
+    """Dynamic RSS 2.0 feed for real-time jobs."""
+    try:
+        domain = request.args.get('domain', '').strip()
+        location = request.args.get('location', '').strip()
+        level = request.args.get('level', '').strip()
+        limit = min(int(request.args.get('limit', 50)), 100)
+
+        jobs = get_jobs()
+        filtered = []
+        for j in jobs:
+            if domain and domain.lower() != 'all' and domain.lower() != j.get('domain', '').lower():
+                continue
+            if location and location.lower() not in (j.get('location') or '').lower():
+                continue
+            if level and level.lower() != (j.get('level') or '').lower():
+                continue
+            filtered.append(j)
+            if len(filtered) >= limit:
+                break
+
+        from xml.sax.saxutils import escape as xml_escape
+        build_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+        rss_items = []
+        for j in filtered:
+            title = f"{j.get('role', 'Role')} at {j.get('company', 'Company')}"
+            link = j.get('url') or 'http://localhost:5001/'
+            desc = f"Role: {j.get('role')}\nCompany: {j.get('company')}\nLocation: {j.get('location')}\nDomain: {j.get('domain')}\nLevel: {j.get('level')}\nDate Added: {j.get('date_added')}"
+            category = j.get('domain', 'Other')
+
+            rss_items.append(f"""    <item>
+      <title>{xml_escape(title)}</title>
+      <link>{xml_escape(link)}</link>
+      <guid isPermaLink="false">{xml_escape(str(j.get('id', link)))}</guid>
+      <category>{xml_escape(category)}</category>
+      <description><![CDATA[{desc}]]></description>
+      <pubDate>{xml_escape(build_date)}</pubDate>
+    </item>""")
+
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>RoleBoard — Live Jobs Feed</title>
+    <link>http://localhost:5001/</link>
+    <description>Curated tech and business opportunities refreshed from LinkedIn</description>
+    <language>en-us</language>
+    <lastBuildDate>{build_date}</lastBuildDate>
+{chr(10).join(rss_items)}
+  </channel>
+</rss>"""
+        return Response(xml_content, mimetype='application/rss+xml', headers={'Content-Type': 'application/rss+xml; charset=utf-8'})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/webhook/test', methods=['POST'])
+def api_webhook_test():
+    """Test webhook notification dispatch (Discord, Slack, or generic HTTP POST)."""
+    try:
+        data = request.get_json(force=True)
+        webhook_url = (data.get("webhook_url") or "").strip()
+        webhook_type = data.get("type", "discord").lower()
+
+        if not webhook_url or not webhook_url.startswith("http"):
+            return jsonify({"success": False, "error": "Invalid or missing webhook URL"}), 400
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if "discord.com" in webhook_url or webhook_type == "discord":
+            payload = {
+                "username": "RoleBoard Terminal 🦆",
+                "content": "🔔 **RoleBoard Webhook Alert Connected!**",
+                "embeds": [{
+                    "title": "🦆 Live Job Alert Test",
+                    "description": "Your webhook is successfully configured to receive real-time tech & business role alerts from RoleBoard.",
+                    "color": 7324415,
+                    "fields": [
+                        {"name": "Status", "value": "🟢 Connected & Active", "inline": True},
+                        {"name": "Timestamp", "value": now_str, "inline": True}
+                    ],
+                    "footer": {"text": "RoleBoard // MotherDuck Neo-Brutalist Edition"}
+                }]
+            }
+        elif "slack.com" in webhook_url or webhook_type == "slack":
+            payload = {
+                "text": f"🦆 *RoleBoard Job Alert Connected!*\nYour webhook is verified and active at `{now_str}`."
+            }
+        else:
+            payload = {
+                "source": "RoleBoard",
+                "event": "webhook_verified",
+                "timestamp": now_str,
+                "message": "RoleBoard webhook connection successful."
+            }
+
+        if REQUESTS_AVAILABLE:
+            resp = requests_lib.post(webhook_url, json=payload, timeout=10)
+            if resp.status_code >= 400:
+                return jsonify({"success": False, "error": f"Webhook returned HTTP {resp.status_code}: {resp.text[:200]}"}), 400
+        else:
+            import urllib.request
+            req = urllib.request.Request(
+                webhook_url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json', 'User-Agent': 'RoleBoard-Notifier/1.0'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                pass
+
+        return jsonify({"success": True, "message": "Test notification dispatched successfully!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ============================================================================

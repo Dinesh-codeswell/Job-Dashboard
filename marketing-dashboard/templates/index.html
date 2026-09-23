@@ -47,6 +47,10 @@
 
             <!-- Nav Actions -->
             <div class="nav-actions">
+                <button class="btn-refresh-nav" id="alertsModalBtn" title="Real-time RSS & Webhook Alerts">
+                    <span class="material-symbols-outlined">rss_feed</span>
+                    <span class="btn-text">ALERTS &amp; RSS</span>
+                </button>
                 <button class="btn-refresh-nav" id="refreshBtn" title="Refresh jobs (r)">
                     <span class="material-symbols-outlined">refresh</span>
                     <span class="btn-text">REFRESH</span>
@@ -159,15 +163,42 @@
         </section>
 
         <!-- ============================================================
-             RESULTS HEADER
+             VIEW MODE TABS: BROWSE vs PIPELINE
              ============================================================ -->
-        <div class="results-header">
+        <div class="view-mode-tabs-container">
+            <div class="view-mode-tabs">
+                <button type="button" class="view-tab-btn active" id="tabBrowseFeed">
+                    <span class="material-symbols-outlined">grid_view</span>
+                    // BROWSE ROLES
+                </button>
+                <button type="button" class="view-tab-btn" id="tabPipeline">
+                    <span class="material-symbols-outlined">view_kanban</span>
+                    // APPLICATION PIPELINE
+                    <span class="pipeline-tab-badge" id="pipelineTabBadge">0</span>
+                </button>
+            </div>
+            <div class="pipeline-view-actions" id="pipelineViewActions" style="display: none;">
+                <button class="pipeline-action-btn" id="exportPipelineCsvBtn" title="Export pipeline to CSV">
+                    <span class="material-symbols-outlined">download</span>
+                    EXPORT CSV
+                </button>
+                <button class="pipeline-action-btn secondary" id="clearPipelineBtn" title="Clear all saved pipeline jobs">
+                    <span class="material-symbols-outlined">delete_sweep</span>
+                    CLEAR ALL
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             RESULTS HEADER (Feed Mode)
+             ============================================================ -->
+        <div class="results-header" id="feedResultsHeader">
             <p class="results-count" id="resultsCount">Loading jobs...</p>
             <p class="results-hint">Press <kbd>/</kbd> to search · <kbd>r</kbd> to refresh</p>
         </div>
 
         <!-- ============================================================
-             JOBS GRID
+             JOBS GRID (Feed Mode)
              ============================================================ -->
         <div id="jobsGrid" class="jobs-grid">
             <!-- Skeleton loading cards -->
@@ -177,9 +208,86 @@
         </div>
 
         <!-- ============================================================
-             PAGINATION
+             PAGINATION (Feed Mode)
              ============================================================ -->
         <div id="pagination" class="pagination-section"></div>
+
+        <!-- ============================================================
+             APPLICATION PIPELINE KANBAN BOARD (Pipeline Mode)
+             ============================================================ -->
+        <div id="pipelineContainer" class="pipeline-container" style="display: none;">
+            <div class="pipeline-board-header">
+                <div class="pipeline-header-title">
+                    <h3>LOCAL-FIRST APPLICATION TRACKER</h3>
+                    <span class="pipeline-privacy-tag">100% PRIVATE // BROWSER-STORED // 0-AI</span>
+                </div>
+                <p class="pipeline-header-desc">
+                    Organize your job search from discovery to offer. All status transitions and notes are stored 100% locally in your browser. Zero tracking, zero latency, offline ready.
+                </p>
+            </div>
+
+            <div class="kanban-board" id="kanbanBoard">
+                <!-- Column: Saved -->
+                <div class="kanban-column" data-status="saved">
+                    <div class="kanban-column-header col-saved">
+                        <div class="col-title-group">
+                            <span class="material-symbols-outlined">bookmark</span>
+                            <span>SAVED</span>
+                        </div>
+                        <span class="col-count-badge" id="count-saved">0</span>
+                    </div>
+                    <div class="kanban-cards-list" id="list-saved"></div>
+                </div>
+
+                <!-- Column: Applied -->
+                <div class="kanban-column" data-status="applied">
+                    <div class="kanban-column-header col-applied">
+                        <div class="col-title-group">
+                            <span class="material-symbols-outlined">send</span>
+                            <span>APPLIED</span>
+                        </div>
+                        <span class="col-count-badge" id="count-applied">0</span>
+                    </div>
+                    <div class="kanban-cards-list" id="list-applied"></div>
+                </div>
+
+                <!-- Column: Interviewing -->
+                <div class="kanban-column" data-status="interviewing">
+                    <div class="kanban-column-header col-interviewing">
+                        <div class="col-title-group">
+                            <span class="material-symbols-outlined">video_call</span>
+                            <span>INTERVIEWING</span>
+                        </div>
+                        <span class="col-count-badge" id="count-interviewing">0</span>
+                    </div>
+                    <div class="kanban-cards-list" id="list-interviewing"></div>
+                </div>
+
+                <!-- Column: Offered -->
+                <div class="kanban-column" data-status="offered">
+                    <div class="kanban-column-header col-offered">
+                        <div class="col-title-group">
+                            <span class="material-symbols-outlined">verified</span>
+                            <span>OFFERED</span>
+                        </div>
+                        <span class="col-count-badge" id="count-offered">0</span>
+                    </div>
+                    <div class="kanban-cards-list" id="list-offered"></div>
+                </div>
+
+                <!-- Column: Rejected -->
+                <div class="kanban-column" data-status="rejected">
+                    <div class="kanban-column-header col-rejected">
+                        <div class="col-title-group">
+                            <span class="material-symbols-outlined">archive</span>
+                            <span>REJECTED</span>
+                        </div>
+                        <span class="col-count-badge" id="count-rejected">0</span>
+                    </div>
+                    <div class="kanban-cards-list" id="list-rejected"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- ============================================================
              FOOTER
@@ -203,6 +311,79 @@
         </footer>
 
     </main>
+
+    <!-- ============================================================
+         REAL-TIME RSS FEEDS & WEBHOOK ALERTS MODAL
+         ============================================================ -->
+    <div class="alerts-modal-overlay" id="alertsModalOverlay" style="display: none;">
+        <div class="alerts-modal">
+            <div class="alerts-modal-header">
+                <div class="alerts-title-group">
+                    <span class="material-symbols-outlined">rss_feed</span>
+                    <h3>REAL-TIME ALERTS &amp; RSS FEEDS</h3>
+                </div>
+                <button class="alerts-close-btn" id="alertsModalClose">&times;</button>
+            </div>
+            
+            <div class="alerts-modal-body">
+                <!-- Section 1: Dynamic RSS Feed -->
+                <div class="alerts-section-card">
+                    <div class="alerts-card-header">
+                        <span class="material-symbols-outlined">stream</span>
+                        <h4>Dynamic Filtered RSS 2.0 Feed</h4>
+                    </div>
+                    <p class="alerts-card-sub">
+                        Subscribe to real-time opportunities in your favorite RSS reader (Feedly, NetNewsWire, Miniflux) or integrate into Slack with <code>/feed subscribe &lt;URL&gt;</code>.
+                    </p>
+                    <div class="rss-link-box">
+                        <input type="text" id="rssFeedUrlInput" class="rss-url-input" readonly value="" />
+                        <button class="btn-primary-nav" id="copyRssUrlBtn">
+                            <span class="material-symbols-outlined">content_copy</span>
+                            COPY RSS LINK
+                        </button>
+                    </div>
+                    <div class="rss-hint-tags">
+                        <span>Current Filters Applied:</span>
+                        <span class="rss-filter-pill" id="rssActiveFiltersLabel">All Roles</span>
+                    </div>
+                </div>
+
+                <!-- Section 2: Outbound Webhook Alerts -->
+                <div class="alerts-section-card">
+                    <div class="alerts-card-header">
+                        <span class="material-symbols-outlined">webhook</span>
+                        <h4>Discord / Slack / Generic Webhook Notifications</h4>
+                    </div>
+                    <p class="alerts-card-sub">
+                        Send automated real-time job alerts straight to your team channel or personal server without needing an AI agent.
+                    </p>
+                    
+                    <div class="webhook-form-grid">
+                        <div class="webhook-form-group">
+                            <label for="webhookPlatformSelect">Target Platform</label>
+                            <select id="webhookPlatformSelect" class="webhook-select">
+                                <option value="discord">Discord Webhook</option>
+                                <option value="slack">Slack Incoming Webhook</option>
+                                <option value="generic">Generic JSON Webhook (HTTP POST)</option>
+                            </select>
+                        </div>
+                        <div class="webhook-form-group">
+                            <label for="webhookUrlInput">Webhook Endpoint URL</label>
+                            <input type="url" id="webhookUrlInput" class="webhook-input" placeholder="https://discord.com/api/webhooks/... or https://hooks.slack.com/..." />
+                        </div>
+                    </div>
+
+                    <div class="webhook-actions-row">
+                        <button class="btn-primary-nav" id="testWebhookBtn">
+                            <span class="material-symbols-outlined">send</span>
+                            DISPATCH TEST ALERT
+                        </button>
+                        <span class="webhook-status-text" id="webhookStatusText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================
          JAVASCRIPT

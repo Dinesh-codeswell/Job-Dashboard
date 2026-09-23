@@ -249,6 +249,34 @@
 
                     <div class="toolbar-divider"></div>
 
+                    <!-- Toolbar Group: Auto-Escape Special Characters -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="autoEscapeBtn" title="Auto-Escape LaTeX Special Characters (%, &, $, _, #)">
+                            <span class="material-symbols-outlined">spellcheck</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Resume-as-Code JSON Schema -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="resumeDataBtn" title="Resume as Code (JSON Schema & Multi-Template Sync)">
+                            <span class="material-symbols-outlined">data_object</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Toolbar Group: Deterministic ATS Resume Linter -->
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn ats-audit-trigger" id="atsAuditBtn" title="Deterministic ATS Auditor & Action Verb Checker (0-AI)">
+                            <span class="material-symbols-outlined">fact_check</span>
+                            <span class="ats-pill-badge" id="atsQuickScore">ATS: —</span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
                     <!-- Toolbar Group: Keyboard Shortcuts -->
                     <div class="toolbar-group">
                         <button class="toolbar-btn" id="shortcutsBtn" title="Keyboard Shortcuts (Ctrl+Shift+/)">
@@ -267,7 +295,7 @@
 
                     <div class="toolbar-divider"></div>
 
-                    <!-- Template + Actions (kept for backward compat) -->
+                    <!-- Template + Actions -->
                     <div class="toolbar-group">
                         <select id="templateSelect" class="toolbar-select" title="Choose Template">
                             <option value="jake">Jake (Default)</option>
@@ -593,6 +621,137 @@ Frameworks: React, Flask, Node.js"
                 </div>
             </div>
         </div>
+    <!-- ============================================================
+         ATS RESUME AUDITOR DRAWER (DETERMINISTIC // 0-AI)
+         ============================================================ -->
+    <div class="ats-drawer-overlay" id="atsDrawerOverlay" style="display: none;">
+        <div class="ats-drawer" id="atsDrawer">
+            <div class="ats-drawer-header">
+                <div class="ats-header-title-group">
+                    <span class="material-symbols-outlined">fact_check</span>
+                    <h3>ATS RESUME AUDITOR</h3>
+                    <span class="ats-badge-tag">DETERMINISTIC // 0-AI</span>
+                </div>
+                <button class="ats-close-btn" id="atsDrawerClose">&times;</button>
+            </div>
+            
+            <div class="ats-drawer-body">
+                <!-- Score Card -->
+                <div class="ats-score-banner">
+                    <div class="ats-score-circle">
+                        <span class="ats-score-number" id="atsScoreValue">—</span>
+                        <span class="ats-score-label">/ 100</span>
+                    </div>
+                    <div class="ats-score-summary">
+                        <h4 id="atsScoreTitle">ATS Readiness Rating</h4>
+                        <p id="atsScoreDesc">Deterministic rule check across verbs, metrics, sections & contact details.</p>
+                    </div>
+                </div>
+
+                <!-- Target Job Description Matcher -->
+                <div class="ats-section-card">
+                    <div class="ats-card-header">
+                        <span class="material-symbols-outlined">join_inner</span>
+                        <h4>Target Job Description Matcher</h4>
+                    </div>
+                    <p class="ats-card-sub">Paste a job description or keywords to extract keywords and compute deterministic ATS overlap.</p>
+                    <textarea id="atsTargetJobInput" class="ats-job-textarea" placeholder="Paste target job role or description here to test keyword match..."></textarea>
+                    <button class="ats-action-btn" id="atsRunMatchBtn">
+                        <span class="material-symbols-outlined">analytics</span>
+                        Compare Resume Keywords
+                    </button>
+                    
+                    <div id="atsMatchResults" style="display: none; margin-top: 12px;">
+                        <div class="ats-match-metric">
+                            <span>Keyword Match:</span>
+                            <strong id="atsMatchPercent">0%</strong>
+                        </div>
+                        <div class="ats-keywords-container">
+                            <div class="ats-kw-col">
+                                <h5>✅ Matched Keywords (<span id="matchedKwCount">0</span>)</h5>
+                                <div class="ats-tags-cloud" id="matchedKwTags"></div>
+                            </div>
+                            <div class="ats-kw-col">
+                                <h5>⚠️ Missing Keywords (<span id="missingKwCount">0</span>)</h5>
+                                <div class="ats-tags-cloud" id="missingKwTags"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Verbs Audit -->
+                <div class="ats-section-card">
+                    <div class="ats-card-header">
+                        <span class="material-symbols-outlined">bolt</span>
+                        <h4>Action Verbs & Voice (<span id="verbsScoreBadge">0/25</span>)</h4>
+                    </div>
+                    <div class="ats-metric-row">
+                        <span class="metric-pill strong" id="strongVerbsCount">0 Strong Verbs</span>
+                        <span class="metric-pill weak" id="weakVerbsCount">0 Weak Verbs</span>
+                    </div>
+                    <div class="ats-verbs-list" id="atsVerbsList"></div>
+                </div>
+
+                <!-- Quantifiable Metrics Audit -->
+                <div class="ats-section-card">
+                    <div class="ats-card-header">
+                        <span class="material-symbols-outlined">calculate</span>
+                        <h4>Quantifiable Metrics Density (<span id="metricsScoreBadge">0/25</span>)</h4>
+                    </div>
+                    <p class="ats-card-sub" id="metricsSummaryText">Calculating measurable numbers, percentages, and metrics...</p>
+                    <div class="ats-metrics-list" id="atsMetricsList"></div>
+                </div>
+
+                <!-- Sections & Contact Info -->
+                <div class="ats-section-card">
+                    <div class="ats-card-header">
+                        <span class="material-symbols-outlined">checklist</span>
+                        <h4>Structural Health & Contacts (<span id="structureScoreBadge">0/35</span>)</h4>
+                    </div>
+                    <div class="ats-checklist" id="atsStructureList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         RESUME-AS-CODE (JSON SCHEMA) MODAL
+         ============================================================ -->
+    <div class="json-modal-overlay" id="resumeDataOverlay" style="display: none;">
+        <div class="json-modal">
+            <div class="json-modal-header">
+                <div class="json-title-group">
+                    <span class="material-symbols-outlined">data_object</span>
+                    <h3>RESUME-AS-CODE // STRUCTURED DATA</h3>
+                </div>
+                <button class="json-close-btn" id="resumeDataClose">&times;</button>
+            </div>
+            <div class="json-modal-body">
+                <p class="json-modal-desc">
+                    Maintain your career data in clean JSON schema (Resume-as-Code). You can seamlessly switch between Jake, Sourabh, Pratul, and FAANG templates without losing a single bullet point!
+                </p>
+                <div class="json-editor-toolbar">
+                    <button class="json-tool-btn" id="loadDefaultJsonBtn">
+                        <span class="material-symbols-outlined">refresh</span> Load Default Schema
+                    </button>
+                    <button class="json-tool-btn" id="copyJsonBtn">
+                        <span class="material-symbols-outlined">content_copy</span> Copy JSON
+                    </button>
+                    <button class="json-tool-btn" id="downloadJsonBtn">
+                        <span class="material-symbols-outlined">download</span> Download .json
+                    </button>
+                </div>
+                <textarea id="resumeJsonTextarea" class="json-textarea" spellcheck="false"></textarea>
+                <div class="json-modal-actions">
+                    <span class="json-status-msg" id="jsonStatusMsg"></span>
+                    <button class="ai-btn-secondary" id="resumeDataCancel">Cancel</button>
+                    <button class="btn-primary-nav" id="applyJsonToLatexBtn">
+                        <span class="material-symbols-outlined">sync</span>
+                        RENDER TO ACTIVE TEMPLATE
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ============================================================
@@ -611,9 +770,10 @@ Frameworks: React, Flask, Node.js"
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/comment/comment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.min.js"></script>
 
-    <!-- Resume App -->
+    <!-- Resume App & ATS Linter -->
+    <script src="{{ url_for('static', filename='js/ats-linter.js') }}?v=4"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/resume.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/resume.js') }}?v=4"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

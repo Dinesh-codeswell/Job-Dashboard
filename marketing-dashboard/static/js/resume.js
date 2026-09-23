@@ -15,6 +15,9 @@ const ResumeApp = {
     activeTemplate: 'jake',
     searchCursor: null,
     searchResults: [],
+    errorLineHandle: null,
+    errorLineNumber: null,
+    currentResumeData: null,
 
     // Constants
     COMPILE_DELAY: 2000,
@@ -430,6 +433,7 @@ const ResumeApp = {
 
             // STEP 2: Setup event listeners (toolbar, keyboard shortcuts, etc.)
             this.setupEventListeners();
+            this.updateAtsQuickScore();
 
             // STEP 3: Load the template from the API (asynchronously, will overwrite the fallback)
             this.loadTemplateFromApi('jake');
@@ -1101,13 +1105,44 @@ code goes here
         document.getElementById('resetBtn')?.addEventListener('click', () => this.resetToDefault());
 
         // ---- Template selector ----
-        document.getElementById('templateSelect')?.addEventListener('change', (e) => {
+        document.getElementById('templateSelect')?.addEventListener('change', async (e) => {
+            const newTemplate = e.target.value;
+            if (this.currentResumeData) {
+                if (confirm(`Switch to "${newTemplate.toUpperCase()}" template and render your structured Resume Data?`)) {
+                    this.activeTemplate = newTemplate;
+                    await this.applyResumeDataToLatex();
+                    return;
+                }
+            }
             if (confirm('Switching templates will overwrite your current changes. Are you sure?')) {
-                this.loadTemplateFromApi(e.target.value);
+                this.loadTemplateFromApi(newTemplate);
             } else {
                 e.target.value = this.activeTemplate;
             }
         });
+
+        // ---- Auto-Escape Special Characters ----
+        document.getElementById('autoEscapeBtn')?.addEventListener('click', () => this.autoEscapeSpecialChars());
+
+        // ---- Resume-as-Code JSON Schema ----
+        document.getElementById('resumeDataBtn')?.addEventListener('click', () => this.openResumeDataModal());
+        document.getElementById('resumeDataClose')?.addEventListener('click', () => this.closeResumeDataModal());
+        document.getElementById('resumeDataCancel')?.addEventListener('click', () => this.closeResumeDataModal());
+        document.getElementById('resumeDataOverlay')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeResumeDataModal();
+        });
+        document.getElementById('loadDefaultJsonBtn')?.addEventListener('click', () => this.loadDefaultResumeData());
+        document.getElementById('copyJsonBtn')?.addEventListener('click', () => this.copyResumeJson());
+        document.getElementById('downloadJsonBtn')?.addEventListener('click', () => this.downloadResumeJson());
+        document.getElementById('applyJsonToLatexBtn')?.addEventListener('click', () => this.applyResumeDataToLatex());
+
+        // ---- ATS Auditor Drawer ----
+        document.getElementById('atsAuditBtn')?.addEventListener('click', () => this.openAtsDrawer());
+        document.getElementById('atsDrawerClose')?.addEventListener('click', () => this.closeAtsDrawer());
+        document.getElementById('atsDrawerOverlay')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeAtsDrawer();
+        });
+        document.getElementById('atsRunMatchBtn')?.addEventListener('click', () => this.runAtsKeywordMatch());
 
         // ---- Snippets button ----
         document.getElementById('snippetsBtn')?.addEventListener('click', (e) => {
@@ -1306,7 +1341,10 @@ code goes here
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.error || `Compilation failed (${response.status})`);
+                const err = new Error(errorData?.error || `Compilation failed (${response.status})`);
+                err.line = errorData?.line || null;
+                err.culprit = errorData?.culprit || null;
+                throw err;
             }
 
             const pdfBlob = await response.blob();
@@ -1323,15 +1361,22 @@ code goes here
             this.latestPdfUrl = URL.createObjectURL(pdfBlob);
             await this.loadPdf(this.latestPdfUrl);
 
+            this.clearErrorLine();
             this.showStatus('Compiled successfully ✓', 'success');
             this.autoHideStatus(2500);
             if (downloadBtn) downloadBtn.disabled = false;
+
+            // Update real-time deterministic ATS quick score
+            this.updateAtsQuickScore();
 
         } catch (error) {
             console.error('Compilation error:', error);
             this.showStatus('Compilation failed', 'error');
             this.autoHideStatus(4000);
-            this.showError(error.message);
+            if (error.line) {
+                this.highlightErrorLine(error.line);
+            }
+            this.showError(error.message, error.line, error.culprit);
         } finally {
             this.isCompiling = false;
         }
@@ -1614,11 +1659,437 @@ code goes here
         }, delay);
     },
 
-    showError(message) {
-        document.getElementById('previewPlaceholder').style.display = 'none';
-        document.getElementById('pdfRenderArea').style.display = 'none';
-        document.getElementById('previewError').style.display = 'flex';
-        document.getElementById('errorMessage').textContent = message || 'Unknown error';
+    highlightErrorLine(lineNum) {
+        if (!this.editor || !lineNum) return;
+        this.clearErrorLine();
+        const lineIndex = parseInt(lineNum, 10) - 1;
+        if (!isNaN(lineIndex) && lineIndex >= 0 && lineIndex < this.editor.lineCount()) {
+            this.errorLineHandle = this.editor.addLineClass(lineIndex, 'background', 'cm-error-line');
+            this.errorLineNumber = lineIndex;
+            this.editor.scrollIntoView({ line: lineIndex, ch: 0 }, 140);
+        }
+    },
+
+    clearErrorLine() {
+        if (this.editor && this.errorLineHandle !== null && this.errorLineNumber !== null) {
+            try {
+                this.editor.removeLineClass(this.errorLineHandle, 'background', 'cm-error-line');
+            } catch (e) {}
+            this.errorLineHandle = null;
+            this.errorLineNumber = null;
+        }
+    },
+
+    jumpToLine(lineNum) {
+        if (!this.editor || !lineNum) return;
+        const lineIndex = parseInt(lineNum, 10) - 1;
+        if (!isNaN(lineIndex) && lineIndex >= 0 && lineIndex < this.editor.lineCount()) {
+            this.editor.focus();
+            this.editor.setCursor({ line: lineIndex, ch: 0 });
+            this.editor.scrollIntoView({ line: lineIndex, ch: 0 }, 140);
+            this.highlightErrorLine(lineNum);
+        }
+    },
+
+    showError(message, line = null, culprit = null) {
+        const placeholder = document.getElementById('previewPlaceholder');
+        const renderArea = document.getElementById('pdfRenderArea');
+        const previewErr = document.getElementById('previewError');
+        const msgEl = document.getElementById('errorMessage');
+
+        if (placeholder) placeholder.style.display = 'none';
+        if (renderArea) renderArea.style.display = 'none';
+        if (previewErr) previewErr.style.display = 'flex';
+        if (msgEl) msgEl.textContent = message || 'Unknown compilation error';
+
+        if (previewErr) {
+            // Clean up existing pinpointer banner if present
+            const oldBanner = previewErr.querySelector('.error-pinpointer-banner');
+            if (oldBanner) oldBanner.remove();
+
+            if (line) {
+                const escape = (s) => (window.Utils && window.Utils.escapeHtml) ? window.Utils.escapeHtml(s) : String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const banner = document.createElement('div');
+                banner.className = 'error-pinpointer-banner';
+                banner.innerHTML = `
+                    <div class="pinpointer-header">
+                        <span class="material-symbols-outlined" style="color: #d93829; font-size: 20px;">crisis_alert</span>
+                        <div>
+                            <div style="font-weight: 700; color: #383838; font-size: 13px;">Error Pinpointed at Line ${line}</div>
+                            ${culprit ? `<div style="font-size: 11px; color: #818181; font-family: 'JetBrains Mono', monospace;">Culprit: <code style="background: #f4efea; padding: 2px 4px; border: 1px solid #383838;">${escape(culprit)}</code></div>` : ''}
+                        </div>
+                    </div>
+                    <button class="pinpointer-jump-btn" type="button" id="pinpointerJumpBtn">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
+                        JUMP TO LINE ${line}
+                    </button>
+                `;
+                banner.querySelector('#pinpointerJumpBtn')?.addEventListener('click', () => {
+                    this.jumpToLine(line);
+                });
+                if (msgEl) {
+                    msgEl.insertAdjacentElement('afterend', banner);
+                } else {
+                    previewErr.appendChild(banner);
+                }
+            }
+        }
+    },
+
+    // ========================================================================
+    // LATEX SPECIAL CHARACTER AUTO-ESCAPER
+    // ========================================================================
+
+    autoEscapeSpecialChars() {
+        if (!this.editor) return;
+        const source = this.editor.getValue();
+        let count = 0;
+        const lines = source.split('\n');
+        let insideTabular = false;
+        let insideMacroDef = false;
+
+        const processedLines = lines.map(line => {
+            const trimmed = line.trim();
+            // Preserve full-line comments
+            if (trimmed.startsWith('%')) return line;
+
+            if (line.includes('\\begin{tabular}')) insideTabular = true;
+            if (line.includes('\\newcommand') || line.includes('\\def')) insideMacroDef = true;
+
+            let newLine = line;
+
+            // 1. Unescaped % after numbers or alphanumeric words (e.g. 20%, 99.9%)
+            newLine = newLine.replace(/(?<=[0-9a-zA-Z])%(?![a-fA-F0-9]{2})/g, (match, offset) => {
+                if (offset > 0 && newLine[offset - 1] === '\\') return match;
+                count++;
+                return '\\%';
+            });
+
+            // 2. Unescaped & outside tabular environments (e.g. AT&T, R&D, Tech & Media)
+            if (!insideTabular) {
+                newLine = newLine.replace(/(?<!\\)&/g, () => {
+                    count++;
+                    return '\\&';
+                });
+            }
+
+            // 3. Unescaped $ before currency/metrics (e.g. $10k, $500M, $1.2B)
+            newLine = newLine.replace(/(?<!\\)\$([0-9])/g, (match, p1) => {
+                count++;
+                return `\\$${p1}`;
+            });
+
+            // 4. Unescaped _ inside word identifiers (e.g. user_id, api_token)
+            newLine = newLine.replace(/([a-zA-Z0-9])_([a-zA-Z0-9])/g, (match, p1, p2) => {
+                count++;
+                return `${p1}\\_${p2}`;
+            });
+
+            // 5. Unescaped # when not part of macro arguments (e.g. #1, #ranking)
+            if (!insideMacroDef) {
+                newLine = newLine.replace(/(?<!\\)#([0-9a-zA-Z])/g, (match, p1) => {
+                    count++;
+                    return `\\#${p1}`;
+                });
+            }
+
+            if (line.includes('\\end{tabular}')) insideTabular = false;
+            if (line.includes('}') && insideMacroDef) insideMacroDef = false;
+
+            return newLine;
+        });
+
+        if (count > 0) {
+            this.editor.setValue(processedLines.join('\n'));
+            this.showStatus(`Auto-escaped ${count} special character(s) ✓`, 'success');
+            this.compile();
+        } else {
+            this.showStatus('No unescaped special characters found ✓', 'info');
+            this.autoHideStatus(2500);
+        }
+    },
+
+    // ========================================================================
+    // ATS RESUME AUDITOR (DETERMINISTIC // 0-AI)
+    // ========================================================================
+
+    updateAtsQuickScore() {
+        if (!this.editor || !window.AtsLinter) return;
+        const source = this.editor.getValue();
+        const report = window.AtsLinter.auditResume(source);
+        const badge = document.getElementById('atsQuickScore');
+        if (badge) {
+            badge.textContent = `ATS: ${report.score}/100`;
+            badge.className = 'ats-pill-badge';
+            if (report.score >= 75) badge.classList.add('badge-high');
+            else if (report.score >= 50) badge.classList.add('badge-mid');
+            else badge.classList.add('badge-low');
+        }
+        return report;
+    },
+
+    openAtsDrawer() {
+        const overlay = document.getElementById('atsDrawerOverlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        this.runAtsAudit();
+    },
+
+    closeAtsDrawer() {
+        const overlay = document.getElementById('atsDrawerOverlay');
+        if (overlay) overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    },
+
+    runAtsAudit() {
+        if (!this.editor || !window.AtsLinter) return;
+        const source = this.editor.getValue();
+        const report = window.AtsLinter.auditResume(source);
+        const escape = (s) => (window.Utils && window.Utils.escapeHtml) ? window.Utils.escapeHtml(s) : String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // Score Banner
+        const scoreVal = document.getElementById('atsScoreValue');
+        if (scoreVal) scoreVal.textContent = report.score;
+        const scoreTitle = document.getElementById('atsScoreTitle');
+        const scoreDesc = document.getElementById('atsScoreDesc');
+        if (scoreTitle) {
+            if (report.score >= 80) {
+                scoreTitle.textContent = 'Excellent ATS Readiness';
+                scoreDesc.textContent = 'High action verb density, quantifiable metrics, valid contact info, and standard sections.';
+            } else if (report.score >= 60) {
+                scoreTitle.textContent = 'Moderate ATS Readiness';
+                scoreDesc.textContent = 'Good foundation. Replace passive phrases with power verbs and add numbers/percentages.';
+            } else {
+                scoreTitle.textContent = 'Needs Improvement';
+                scoreDesc.textContent = 'Missing key sections or metrics. Replace weak phrases with strong action verbs.';
+            }
+        }
+
+        // Action Verbs
+        const verbsBadge = document.getElementById('verbsScoreBadge');
+        if (verbsBadge) verbsBadge.textContent = `${report.categoryScores.verbs.score}/${report.categoryScores.verbs.maxScore}`;
+        const strongCount = document.getElementById('strongVerbsCount');
+        if (strongCount) strongCount.textContent = `${report.verbs.strongCount} Strong Verbs`;
+        const weakCount = document.getElementById('weakVerbsCount');
+        if (weakCount) weakCount.textContent = `${report.verbs.weakCount} Passive/Weak Phrases`;
+
+        const verbsList = document.getElementById('atsVerbsList');
+        if (verbsList) {
+            let verbsHtml = '';
+            if (report.verbs.weakFound.length > 0) {
+                verbsHtml += '<div class="ats-verb-subgroup-title">⚠️ Weak / Passive Phrases to Replace:</div><div class="ats-tags-cloud">';
+                report.verbs.weakFound.forEach(w => {
+                    verbsHtml += `<span class="verb-tag weak" title="Replace with: ${escape(w.suggestion)}">"${escape(w.phrase)}" &rarr; <em>${escape(w.suggestion)}</em></span>`;
+                });
+                verbsHtml += '</div>';
+            }
+            if (report.verbs.strongFound.length > 0) {
+                verbsHtml += '<div class="ats-verb-subgroup-title" style="margin-top: 10px;">✅ Strong Action Verbs Identified:</div><div class="ats-tags-cloud">';
+                report.verbs.strongFound.slice(0, 30).forEach(v => {
+                    verbsHtml += `<span class="verb-tag strong">${escape(v)}</span>`;
+                });
+                if (report.verbs.strongFound.length > 30) {
+                    verbsHtml += `<span class="verb-tag strong">+${report.verbs.strongFound.length - 30} more</span>`;
+                }
+                verbsHtml += '</div>';
+            }
+            verbsList.innerHTML = verbsHtml || '<p class="ats-empty-hint">No action verbs detected. Add power verbs like Spearheaded, Engineered, Architected.</p>';
+        }
+
+        // Metrics
+        const metricsBadge = document.getElementById('metricsScoreBadge');
+        if (metricsBadge) metricsBadge.textContent = `${report.categoryScores.metrics.score}/${report.categoryScores.metrics.maxScore}`;
+        const metricsSum = document.getElementById('metricsSummaryText');
+        if (metricsSum) {
+            metricsSum.textContent = `Found ${report.metrics.count} quantifiable metric instance(s) (${report.metrics.count >= 5 ? 'High density ✓' : 'Aim for at least 5+ across bullets'}).`;
+        }
+        const metricsList = document.getElementById('atsMetricsList');
+        if (metricsList) {
+            if (report.metrics.found.length > 0) {
+                metricsList.innerHTML = '<div class="ats-tags-cloud">' + 
+                    report.metrics.found.map(m => `<span class="metric-tag"><strong>${escape(m.type)}:</strong> ${escape(m.match)}</span>`).join('') +
+                    '</div>';
+            } else {
+                metricsList.innerHTML = '<p class="ats-empty-hint">⚠️ No quantifiable metrics found! Add percentages (e.g. +35%), money ($100k), latency (200ms), or team sizes.</p>';
+            }
+        }
+
+        // Structure checklist
+        const structBadge = document.getElementById('structureScoreBadge');
+        if (structBadge) structBadge.textContent = `${report.categoryScores.structure.score}/${report.categoryScores.structure.maxScore}`;
+        const structList = document.getElementById('atsStructureList');
+        if (structList) {
+            structList.innerHTML = report.structure.checklist.map(item => `
+                <div class="ats-check-item ${item.present ? 'passed' : 'failed'}">
+                    <span class="material-symbols-outlined">${item.present ? 'check_circle' : 'cancel'}</span>
+                    <div class="ats-check-text">
+                        <strong>${escape(item.name)}</strong>
+                        <span>${item.present ? 'Detected' : 'Missing: ' + escape(item.detail || '')}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        this.updateAtsQuickScore();
+    },
+
+    runAtsKeywordMatch() {
+        if (!this.editor || !window.AtsLinter) return;
+        const jobInput = document.getElementById('atsTargetJobInput');
+        const jobDesc = jobInput ? jobInput.value : '';
+        if (!jobDesc || jobDesc.trim().length < 5) {
+            alert('Please paste a job description or keywords to compare.');
+            return;
+        }
+
+        const source = this.editor.getValue();
+        const report = window.AtsLinter.auditResume(source);
+        const matchResult = window.AtsLinter.matchJobDescription(report.cleanText, jobDesc);
+        const escape = (s) => (window.Utils && window.Utils.escapeHtml) ? window.Utils.escapeHtml(s) : String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const resultsContainer = document.getElementById('atsMatchResults');
+        if (resultsContainer) resultsContainer.style.display = 'block';
+
+        const matchPercent = document.getElementById('atsMatchPercent');
+        if (matchPercent) matchPercent.textContent = `${matchResult.matchScore}%`;
+
+        const matchedCount = document.getElementById('matchedKwCount');
+        if (matchedCount) matchedCount.textContent = matchResult.matchedKeywords.length;
+
+        const missingCount = document.getElementById('missingKwCount');
+        if (missingCount) missingCount.textContent = matchResult.missingKeywords.length;
+
+        const matchedCloud = document.getElementById('matchedKwTags');
+        if (matchedCloud) {
+            matchedCloud.innerHTML = matchResult.matchedKeywords.length > 0 
+                ? matchResult.matchedKeywords.map(k => `<span class="verb-tag strong">${escape(k)}</span>`).join('')
+                : '<em style="font-size: 12px; color: #818181;">No exact keyword matches found.</em>';
+        }
+
+        const missingCloud = document.getElementById('missingKwTags');
+        if (missingCloud) {
+            missingCloud.innerHTML = matchResult.missingKeywords.length > 0
+                ? matchResult.missingKeywords.map(k => `<span class="verb-tag weak">${escape(k)}</span>`).join('')
+                : '<em style="font-size: 12px; color: #2e7d32;">All target keywords matched!</em>';
+        }
+    },
+
+    // ========================================================================
+    // RESUME-AS-CODE (JSON SCHEMA & MULTI-TEMPLATE SWITCHING)
+    // ========================================================================
+
+    async openResumeDataModal() {
+        const overlay = document.getElementById('resumeDataOverlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        const textarea = document.getElementById('resumeJsonTextarea');
+        if (textarea && (!textarea.value || textarea.value.trim() === '')) {
+            if (this.currentResumeData) {
+                textarea.value = JSON.stringify(this.currentResumeData, null, 2);
+            } else {
+                await this.loadDefaultResumeData();
+            }
+        }
+    },
+
+    closeResumeDataModal() {
+        const overlay = document.getElementById('resumeDataOverlay');
+        if (overlay) overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    },
+
+    async loadDefaultResumeData() {
+        const textarea = document.getElementById('resumeJsonTextarea');
+        const statusMsg = document.getElementById('jsonStatusMsg');
+        try {
+            if (statusMsg) statusMsg.textContent = 'Loading schema...';
+            const response = await fetch('/api/resume/schema-default');
+            const res = await response.json();
+            const data = (res && res.data) ? res.data : res;
+            this.currentResumeData = data;
+            if (textarea) textarea.value = JSON.stringify(data, null, 2);
+            if (statusMsg) {
+                statusMsg.textContent = 'Loaded default schema ✓';
+                setTimeout(() => { statusMsg.textContent = ''; }, 2500);
+            }
+        } catch (e) {
+            console.error('Failed to load default schema:', e);
+            if (statusMsg) statusMsg.textContent = 'Failed to load default schema';
+        }
+    },
+
+    copyResumeJson() {
+        const textarea = document.getElementById('resumeJsonTextarea');
+        const statusMsg = document.getElementById('jsonStatusMsg');
+        if (!textarea || !textarea.value) return;
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            if (statusMsg) {
+                statusMsg.textContent = 'JSON copied to clipboard! ✓';
+                setTimeout(() => { statusMsg.textContent = ''; }, 2500);
+            }
+        }).catch(() => {
+            if (statusMsg) statusMsg.textContent = 'Clipboard write failed';
+        });
+    },
+
+    downloadResumeJson() {
+        const textarea = document.getElementById('resumeJsonTextarea');
+        if (!textarea || !textarea.value) return;
+        const blob = new Blob([textarea.value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume_data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    async applyResumeDataToLatex() {
+        const textarea = document.getElementById('resumeJsonTextarea');
+        const statusMsg = document.getElementById('jsonStatusMsg');
+        if (!textarea) return;
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(textarea.value);
+        } catch (err) {
+            if (statusMsg) statusMsg.textContent = 'JSON Syntax Error: ' + err.message;
+            return;
+        }
+
+        const actualData = (parsedData && parsedData.data && parsedData.data.basics) ? parsedData.data : parsedData;
+        this.currentResumeData = actualData;
+        try {
+            if (statusMsg) statusMsg.textContent = 'Rendering template...';
+            const response = await fetch('/api/resume/render-from-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    template: this.activeTemplate || 'jake',
+                    data: actualData
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to render template');
+            }
+
+            const latexCode = result.latex_source || result.latex;
+            this.editor.setValue(latexCode);
+            this.closeResumeDataModal();
+            this.showStatus('Rendered from structured JSON ✓', 'success');
+            this.compile();
+
+        } catch (e) {
+            console.error('Render error:', e);
+            if (statusMsg) statusMsg.textContent = 'Render error: ' + e.message;
+        }
     }
 };
 
